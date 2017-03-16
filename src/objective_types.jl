@@ -231,7 +231,7 @@ end
 function _unchecked_gradient!(obj, x)
     obj.g_calls .+= 1
     copy!(obj.last_x_g, x)
-    obj.g!(x, stor)
+    obj.g!(x, obj.g)
 end
 function gradient!(obj::AbstractObjective, x)
     if x != obj.last_x_g
