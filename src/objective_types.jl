@@ -228,10 +228,10 @@ function value!(obj, x)
 end
 
 
-function _unchecked_grad!(obj, x)
+function _unchecked_gradient!(obj, x)
     obj.g_calls .+= 1
     copy!(obj.last_x_g, x)
-    obj.g!(x)
+    obj.g!(x, stor)
 end
 function gradient!(obj::AbstractObjective, x)
     if x != obj.last_x_g
@@ -239,7 +239,7 @@ function gradient!(obj::AbstractObjective, x)
     end
 end
 
-function value_grad!(obj::AbstractObjective, x)
+function value_gradient!(obj::AbstractObjective, x)
     if x != obj.last_x_f && x != obj.last_x_g
         obj.f_calls .+= 1
         obj.g_calls .+= 1
@@ -248,7 +248,7 @@ function value_grad!(obj::AbstractObjective, x)
     elseif x != obj.last_x_f
         _unchecked_value!(obj, x)
     elseif x != obj.last_x_g
-        _unchecked_grad!(obj, x)
+        _unchecked_gradient!(obj, x)
     end
     obj.f_x
 end
