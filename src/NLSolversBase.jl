@@ -1,9 +1,6 @@
 module NLSolversBase
 
 using Compat
-using Calculus
-using ForwardDiff
-using ReverseDiff
 
 import Base: gradient
 export NonDifferentiable,
