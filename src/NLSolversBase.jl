@@ -19,5 +19,6 @@ export NonDifferentiable,
        hessian!
 
 include("objective_types.jl")
+include("interface.jl")
 
 end # module
