@@ -258,7 +258,7 @@ function _unchecked_hessian!(obj::AbstractObjective, x)
     copy!(obj.last_x_h, x)
     obj.h!(x, obj.H)
 end
-function hessian!(obj, x)
+function hessian!(obj::AbstractObjective, x)
     if x != obj.last_x_h
         _unchecked_hessian!(obj, x)
     end
