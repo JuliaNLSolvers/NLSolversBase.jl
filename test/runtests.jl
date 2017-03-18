@@ -1,5 +1,5 @@
 using NLSolversBase
 using Base.Test
 
-# write your own tests here
-@test 1 == 2
+include("objective_types.jl")
+include("interface.jl")
