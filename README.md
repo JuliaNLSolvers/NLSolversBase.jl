@@ -1,6 +1,6 @@
 # NLSolversBase
 
-NLSolversBase is the core, common dependency of several [JuliaNLSolvers](https://github.com/JuliaNLSolvers) packages. Currently, it aims at establishing common ground for [Optim.jl](https://github.com/JuliaNLSolvers/Optim.jl) and [LineSearches.jl](https://github.com/JuliaNLSolvers/LineSearches.jl), but [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) will eventually also depend on this package.
+NLSolversBase is the core, common dependency of several [JuliaNLSolvers](https://github.com/JuliaNLSolvers) packages. Currently, it aims at establishing common ground for [Optim.jl](https://github.com/JuliaNLSolvers/Optim.jl) and [LineSearches.jl](https://github.com/JuliaNLSolvers/LineSearches.jl), but [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) will eventually also depend on this package. The common ground is mainly the types used to hold objectives and information about the objectives, and an interface to interact with these types.
 
 Travis-CI
 
