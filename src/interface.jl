@@ -33,7 +33,8 @@ function value_gradient!(obj::AbstractObjective, x)
     if x != obj.last_x_f && x != obj.last_x_g
         obj.f_calls .+= 1
         obj.g_calls .+= 1
-        obj.last_x_f[:], obj.last_x_g[:] = copy(x), copy(x)
+        copy!(obj.last_x_f, x)
+        copy!(obj.last_x_g, x)
         obj.f_x = obj.fg!(obj.g, x)
     elseif x != obj.last_x_f
         _unchecked_value!(obj, x)
