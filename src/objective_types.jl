@@ -25,14 +25,14 @@ end
 # The user friendly/short form OnceDifferentiable constructor
 function OnceDifferentiable(f, g!, fg!, x_seed)
     g = similar(x_seed)
-    g!(x_seed, g)
+    g!(g, x_seed)
     OnceDifferentiable(f, g!, fg!, f(x_seed), g, copy(x_seed), copy(x_seed), [1], [1])
 end
 
 # Automatically create the fg! helper function if only f and g! is provided
 function OnceDifferentiable(f, g!, x_seed)
-    function fg!(x, storage)
-        g!(x, storage)
+    function fg!(storage, x)
+        g!(storage, x)
         return f(x)
     end
     return OnceDifferentiable(f, g!, fg!, x_seed)
@@ -59,8 +59,8 @@ function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
     n_x = length(x_seed)
     g = similar(x_seed)
     H = Array{T}(n_x, n_x)
-    g!(x_seed, g)
-    h!(x_seed, H)
+    g!(g, x_seed)
+    h!(H, x_seed)
     TwiceDifferentiable(f, g!, fg!, h!, f(x_seed),
                                 g, H, copy(x_seed),
                                 copy(x_seed), copy(x_seed), [1], [1], [1])
@@ -71,8 +71,8 @@ function TwiceDifferentiable{T}(f,
                                  g!,
                                  h!,
                                  x_seed::Array{T})
-    function fg!(x::Vector, storage::Vector)
-        g!(x, storage)
+    function fg!(storage::Vector, x::Vector)
+        g!(storage, x)
         return f(x)
     end
     return TwiceDifferentiable(f, g!, fg!, h!, x_seed)

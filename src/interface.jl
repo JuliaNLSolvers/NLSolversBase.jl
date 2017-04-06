@@ -21,7 +21,7 @@ end
 function _unchecked_gradient!(obj, x)
     obj.g_calls .+= 1
     copy!(obj.last_x_g, x)
-    obj.g!(x, obj.g)
+    obj.g!(obj.g, x)
 end
 function gradient!(obj::AbstractObjective, x)
     if x != obj.last_x_g
@@ -35,7 +35,7 @@ function value_gradient!(obj::AbstractObjective, x)
         obj.g_calls .+= 1
         copy!(obj.last_x_f, x)
         copy!(obj.last_x_g, x)
-        obj.f_x = obj.fg!(x, obj.g)
+        obj.f_x = obj.fg!(obj.g, x)
     elseif x != obj.last_x_f
         _unchecked_value!(obj, x)
     elseif x != obj.last_x_g
@@ -47,7 +47,7 @@ end
 function _unchecked_hessian!(obj::AbstractObjective, x)
     obj.h_calls .+= 1
     copy!(obj.last_x_h, x)
-    obj.h!(x, obj.H)
+    obj.h!(obj.H, x)
 end
 function hessian!(obj::AbstractObjective, x)
     if x != obj.last_x_h
