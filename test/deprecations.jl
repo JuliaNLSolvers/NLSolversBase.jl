@@ -42,4 +42,10 @@
     @test td.f_calls == [1]
     @test td.g_calls == [1]
     @test td.h_calls == [1]
+
+    function exponential_hessian!2(x, storage)
+        sqrt(-1)
+    end
+    @test_throws DomainError TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!2, x_seed)
+
 end

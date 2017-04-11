@@ -114,6 +114,8 @@ function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
         if isa(m, MethodError) || isa(m, BoundsError)
             warn("Storage and evaluation point order has changed. The syntax is now h!(storage, x) as opposed to the old h!(x, storage). Your Hessian appears to have it the wrong way around. Changing the order and proceeding, but please change your code to use the new syntax.")
             _new_h! = (storage, x) -> h!(x, storage)
+        else
+            rethrow(m)
         end
     end
 
