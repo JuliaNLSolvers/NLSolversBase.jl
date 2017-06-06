@@ -1,4 +1,5 @@
 @compat abstract type AbstractObjective end
+@compat abstract type UninitializedObjective <: AbstractObjective end
 
 function fix_order(storage_input, x_input, fun!, fun!_msg)
     _storage = copy(storage_input)
@@ -18,13 +19,14 @@ type NonDifferentiable{T} <: AbstractObjective
     last_x_f::Array{T}
     f_calls::Vector{Int}
 end
-type UnitializedNonDifferentiable <: AbstractObjective
+
+type UninitializedNonDifferentiable <: UninitializedObjective
     f
 end
 # The user friendly/short form NonDifferentiable constructor
-NonDifferentiable(f) = UnitializedNonDifferentiable(f)
-NonDifferentiable{T}(f, x_seed::Array{T}) = NonDifferentiable(f, f(x_seed), copy(x_seed), [1])
-
+NonDifferentiable(f) = UninitializedNonDifferentiable(f)
+NonDifferentiable(f, x_seed::AbstractArray) = NonDifferentiable(f, f(x_seed), copy(x_seed), [1])
+NonDifferentiable(u::UninitializedNonDifferentiable, x::AbstractArray) = NonDifferentiable(u.f, x)
 # Used for objectives and solvers where the gradient is available/exists
 type OnceDifferentiable{T, Tgrad} <: AbstractObjective
     f
@@ -37,15 +39,15 @@ type OnceDifferentiable{T, Tgrad} <: AbstractObjective
     f_calls::Vector{Int}
     g_calls::Vector{Int}
 end
-type UnitializedOnceDifferentiable <: AbstractObjective
+type UninitializedOnceDifferentiable{T} <: UninitializedObjective
     f
     g!
-    fg!
+    fg!::T
 end
 # The user friendly/short form OnceDifferentiable constructor
-OnceDifferentiable(f, g!, fg!) = UnitializedOnceDifferentiable(f, g!,      fg!)
-OnceDifferentiable(f, g!)      = UnitializedOnceDifferentiable(f, g!,      nothing)
-OnceDifferentiable(f)          = UnitializedOnceDifferentiable(f, nothing, nothing)
+OnceDifferentiable(f, g!, fg!) = UninitializedOnceDifferentiable(f, g!,      fg!)
+OnceDifferentiable(f, g!)      = UninitializedOnceDifferentiable(f, g!,      nothing)
+OnceDifferentiable(f)          = UninitializedOnceDifferentiable(f, nothing, nothing)
 
 function OnceDifferentiable(f, g!, fg!, x_seed::AbstractArray)
     g = similar(x_seed)
@@ -56,7 +58,8 @@ function OnceDifferentiable(f, g!, fg!, x_seed::AbstractArray)
     f_val = _new_fg!(g, x_seed)
     OnceDifferentiable(f, _new_g!, _new_fg!, f_val, g, copy(x_seed), copy(x_seed), [1], [1])
 end
-
+OnceDifferentiable(u::UninitializedOnceDifferentiable, x::AbstractArray) = OnceDifferentiable(u.f, u.g!, u.fg!, x)
+OnceDifferentiable(u::UninitializedOnceDifferentiable{Void}, x::AbstractArray) = OnceDifferentiable(u.f, u.g!, x)
 # Automatically create the fg! helper function if only f and g! is provided
 function OnceDifferentiable(f, g!, x_seed::AbstractArray)
     g = similar(x_seed)
@@ -86,17 +89,23 @@ type TwiceDifferentiable{T<:Real} <: AbstractObjective
     g_calls::Vector{Int}
     h_calls::Vector{Int}
 end
-type UnitializedTwiceDifferentiable <: AbstractObjective
+type UninitializedTwiceDifferentiable{Tf, Tfg, Th} <: UninitializedObjective
     f
-    g!
-    fg!
-    h!
+    g!::Tf
+    fg!::Tfg
+    h!::Th
 end
-TwiceDifferentiable(f, g!, fg!, h!) = UnitializedTwiceDifferentiable(f, g!, fg!, h!)
-TwiceDifferentiable(f, g!, h!) = UnitializedTwiceDifferentiable(f, g!,      nothing, h!)
-TwiceDifferentiable(f, g!)     = UnitializedTwiceDifferentiable(f, g!,      nothing, nothing)
-TwiceDifferentiable(f)         = UnitializedTwiceDifferentiable(f, nothing, nothing, nothing)
+TwiceDifferentiable(f, g!, fg!, h!) = UninitializedTwiceDifferentiable(f, g!, fg!, h!)
+TwiceDifferentiable(f, g!, h!) = UninitializedTwiceDifferentiable(f, g!,      nothing, h!)
+TwiceDifferentiable(f, g!)     = UninitializedTwiceDifferentiable(f, g!,      nothing, nothing)
+TwiceDifferentiable(f)         = UninitializedTwiceDifferentiable(f, nothing, nothing, nothing)
 # The user friendly/short form TwiceDifferentiable constructor
+function TwiceDifferentiable(td::TwiceDifferentiable, x::AbstractArray)
+    value_gradient!(td, x)
+    hessian!(td, x)
+    td
+end
+
 function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
     n_x = length(x_seed)
     g = similar(x_seed)
@@ -127,7 +136,9 @@ function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
                                 g, H, copy(x_seed),
                                 copy(x_seed), copy(x_seed), [1], [1], [1])
 end
-
+TwiceDifferentiable{T<:UninitializedObjective}(u::T, x::AbstractArray) = error("Cannot construct a TwiceDifferentiable from UninitializedTwiceDifferentiable unless the gradient and Hessian is provided.")
+TwiceDifferentiable(u::UninitializedTwiceDifferentiable, x::AbstractArray) = TwiceDifferentiable(u.f, u.g!, u.fg!, u.h!, x)
+TwiceDifferentiable{S, T}(u::UninitializedTwiceDifferentiable{S, Void, T}, x::AbstractArray) = TwiceDifferentiable(u.f, u.g!, u.h!, x)
 # Automatically create the fg! helper function if only f, g! and h! is provided
 function TwiceDifferentiable{T}(f,
                                  g!,

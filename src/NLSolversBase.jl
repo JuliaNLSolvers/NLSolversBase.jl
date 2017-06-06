@@ -5,10 +5,14 @@ module NLSolversBase
 using Compat
 
 import Base: gradient
-export NonDifferentiable,
+export AbstractObjective,
+       UninitializedObjective,
+       NonDifferentiable,
        OnceDifferentiable,
        TwiceDifferentiable,
-       AbstractObjective,
+       UninitializedNonDifferentiable,
+       UninitializedOnceDifferentiable,
+       UninitializedTwiceDifferentiable,
        value,
        value!,
        value_gradient!,
