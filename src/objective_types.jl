@@ -92,6 +92,7 @@ type UnitializedTwiceDifferentiable <: AbstractObjective
     fg!
     h!
 end
+TwiceDifferentiable(f, g!, fg!, h!) = UnitializedTwiceDifferentiable(f, g!, fg!, h!)
 TwiceDifferentiable(f, g!, h!) = UnitializedTwiceDifferentiable(f, g!,      nothing, h!)
 TwiceDifferentiable(f, g!)     = UnitializedTwiceDifferentiable(f, g!,      nothing, nothing)
 TwiceDifferentiable(f)         = UnitializedTwiceDifferentiable(f, nothing, nothing, nothing)
