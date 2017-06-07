@@ -4,7 +4,7 @@ NLSolversBase is the core, common dependency of several [JuliaNLSolvers](https:/
 
 Travis-CI
 
-[![Build Status](https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl.svg?branch=master)](https://travis-ci.org/pkofod/NLSolversBase.jl)
+[![Build Status](https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl.svg?branch=master)](https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl)
 
 Package evaluator
 
@@ -13,5 +13,5 @@ Package evaluator
 
 Code coverage
 
-[![Coverage Status](https://coveralls.io/repos/JuliaNLSolvers/NLSolversBase.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/pkofod/NLSolversBase.jl?branch=master)
+[![Coverage Status](https://coveralls.io/repos/JuliaNLSolvers/NLSolversBase.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaNLSolvers/NLSolversBase.jl?branch=master)
 [![codecov.io](http://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl/coverage.svg?branch=master)](http://codecov.io/github/pkofod/NLSolversBase.jl?branch=master)
