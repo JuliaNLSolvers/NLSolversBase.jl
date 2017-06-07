@@ -32,6 +32,7 @@
     td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed)
 
     @test value(nd) == value(od) == value(td) == f_x_seed
+    @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
     @test gradient(od) == gradient(td) == g_x_seed
     @test hessian(td) == h_x_seed
     @test nd.f_calls == od.f_calls == td.f_calls == [1]
