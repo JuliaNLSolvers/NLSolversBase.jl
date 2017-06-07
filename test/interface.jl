@@ -45,6 +45,7 @@
 
     @test value(nd) == value(od) == value(td) == f_x_seed
     @test gradient(td) == g_x_alt
+    @test gradient(td) == [gradient(td, i) for i = 1:length(x_seed)]
     @test hessian(td) == h_x_seed
     @test nd.f_calls == od.f_calls == td.f_calls == [1]
     @test od.g_calls == td.g_calls == [2]
