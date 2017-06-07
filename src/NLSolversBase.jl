@@ -6,13 +6,9 @@ using Compat
 
 import Base: gradient
 export AbstractObjective,
-       UninitializedObjective,
        NonDifferentiable,
        OnceDifferentiable,
        TwiceDifferentiable,
-       UninitializedNonDifferentiable,
-       UninitializedOnceDifferentiable,
-       UninitializedTwiceDifferentiable,
        value,
        value!,
        value_gradient!,
