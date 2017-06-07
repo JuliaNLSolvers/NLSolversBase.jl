@@ -34,6 +34,7 @@
     @test od.g_calls == [1]
 
     td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed)
+    td_new = TwiceDifferentiable(td, x_seed)
     @test td.f == exponential
     #@test td.g! == exponential_gradient!
     @test value(td) == f_x_seed
@@ -41,4 +42,10 @@
     @test td.f_calls == [1]
     @test td.g_calls == [1]
     @test td.h_calls == [1]
+
+    td_from_td = TwiceDifferentiable(td, x_seed-1)
+    @test value(td_from_td) == value(td, x_seed-1)
+    gradient!(td, x_seed-1)
+    @test gradient(td_from_td) == gradient(td)
+    @test value(td_from_td, x_seed) == value(td, x_seed)
 end

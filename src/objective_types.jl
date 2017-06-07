@@ -33,19 +33,19 @@ type OnceDifferentiable{T, Tgrad} <: AbstractObjective
     f_calls::Vector{Int}
     g_calls::Vector{Int}
 end
+
 # The user friendly/short form OnceDifferentiable constructor
 function OnceDifferentiable(f, g!, fg!, x_seed::AbstractArray)
     g = similar(x_seed)
 
      _new_g! = fix_order(g, x_seed, g!,   "g!")
     _new_fg! = fix_order(g, x_seed, fg!, "fg!")
-
     f_val = _new_fg!(g, x_seed)
     OnceDifferentiable(f, _new_g!, _new_fg!, f_val, g, copy(x_seed), copy(x_seed), [1], [1])
 end
 # Automatically create the fg! helper function if only f and g! is provided
 function OnceDifferentiable(f, g!, x_seed::AbstractArray)
-    g = similar(x_seed)
+    g = x_seed+one(eltype(x_seed))
 
     _new_g! = fix_order(g, x_seed, g!, "g!")
 
@@ -81,7 +81,7 @@ end
 
 function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
     n_x = length(x_seed)
-    g = similar(x_seed)
+    g = x_seed+one(T)
     H = Array{T}(n_x, n_x)
 
     _new_g!  = fix_order(g, x_seed, g!,   "g!")
@@ -89,7 +89,7 @@ function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
 
     local _new_h!
     try
-        _H = copy(H)
+        _H = copy(H)+one(T)
         _x = copy(x_seed)
         h!(_H, _x)
         _new_h! = (storage, x) -> h!(storage, x)
@@ -114,7 +114,7 @@ function TwiceDifferentiable{T}(f,
                                  g!,
                                  h!,
                                  x_seed::Array{T})
-    g = similar(x_seed)
+    g = x_seed+one(T)
     _new_g! = fix_order(g, x_seed, g!,   "g!")
 
     function fg!(storage::Vector, x::Vector)
