@@ -32,6 +32,12 @@
     td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed)
 
     @test value(nd) == value(od) == value(td) == f_x_seed
+    @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
+    # change last_x_f manually to test branch
+    nd.last_x_f .*= 0
+    od.last_x_f .*= 0
+    td.last_x_f .*= 0
+    @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
     @test gradient(od) == gradient(td) == g_x_seed
     @test hessian(td) == h_x_seed
     @test nd.f_calls == od.f_calls == td.f_calls == [1]
@@ -44,6 +50,7 @@
 
     @test value(nd) == value(od) == value(td) == f_x_seed
     @test gradient(td) == g_x_alt
+    @test gradient(td) == [gradient(td, i) for i = 1:length(x_seed)]
     @test hessian(td) == h_x_seed
     @test nd.f_calls == od.f_calls == td.f_calls == [1]
     @test od.g_calls == td.g_calls == [2]
@@ -71,6 +78,18 @@
     @test td.h_calls == [2]
 
     @test_throws ErrorException value_gradient!(nd, x_seed)
+    value_gradient!(od, x_seed)
+    value_gradient!(td, x_seed)
+    @test value(od) == value(td) == f_x_seed
+    # change last_x_f manually to test branch
+    od.last_x_f .*= 0
+    td.last_x_f .*= 0
+    value_gradient!(od, x_seed)
+    value_gradient!(td, x_seed)
+    @test value(od) == value(td) == f_x_seed
+    # change last_x_g manually to test branch
+    od.last_x_g .*= 0
+    td.last_x_g .*= 0
     value_gradient!(od, x_seed)
     value_gradient!(td, x_seed)
     @test value(od) == value(td) == f_x_seed
