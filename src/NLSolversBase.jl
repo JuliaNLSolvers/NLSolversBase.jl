@@ -9,6 +9,9 @@ export AbstractObjective,
        NonDifferentiable,
        OnceDifferentiable,
        TwiceDifferentiable,
+       iscomplex,
+       real_to_complex,
+       complex_to_real,
        value,
        value!,
        value_gradient!,
@@ -17,6 +20,7 @@ export AbstractObjective,
        hessian,
        hessian!
 
+include("complex_real.jl")
 include("objective_types.jl")
 include("interface.jl")
 
