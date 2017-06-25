@@ -14,7 +14,7 @@ function fix_order(storage_input, x_input, fun!, fun!_msg)
     end
 end
 # Used for objectives and solvers where no gradient is available/exists
-type NonDifferentiable{T} <: AbstractObjective
+type NonDifferentiable{T<:Real} <: AbstractObjective
     f
     f_x::T
     last_x_f::Array{T}
@@ -33,11 +33,11 @@ function NonDifferentiable(f, x_seed::AbstractArray)
 end
 
 # Used for objectives and solvers where the gradient is available/exists
-type OnceDifferentiable{T, Tgrad} <: AbstractObjective
+type OnceDifferentiable{T<:Real, Tgrad} <: AbstractObjective
     f
     g!
     fg!
-    f_x::Real
+    f_x::T
     g::Tgrad
     last_x_f::Array{T}
     last_x_g::Array{T}
