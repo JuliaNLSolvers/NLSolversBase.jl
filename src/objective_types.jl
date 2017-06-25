@@ -1,4 +1,6 @@
 @compat abstract type AbstractObjective end
+real_to_complex(d::AbstractObjective, x) = iscomplex(d) ? real_to_complex(x) : x
+complex_to_real(d::AbstractObjective, x) = iscomplex(d) ? complex_to_real(x) : x
 
 function fix_order(storage_input, x_input, fun!, fun!_msg)
     _storage = copy(storage_input)
