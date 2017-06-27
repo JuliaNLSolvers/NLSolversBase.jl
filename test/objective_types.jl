@@ -27,7 +27,7 @@
     @test nd.f_calls == [1]
     od = OnceDifferentiable(exponential, exponential_gradient!, x_seed)
     @test od.f == exponential
-    #@test od.g! == exponential_gradient!
+    @test od.g! == exponential_gradient!
     @test value(od) == f_x_seed
     @test od.last_x_f == [0.0, 0.0]
     @test od.f_calls == [1]
@@ -36,7 +36,7 @@
     td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed)
     td_new = TwiceDifferentiable(td, x_seed)
     @test td.f == exponential
-    #@test td.g! == exponential_gradient!
+    @test td.g! == exponential_gradient!
     @test value(td) == f_x_seed
     @test td.last_x_f == [0.0, 0.0]
     @test td.f_calls == [1]
