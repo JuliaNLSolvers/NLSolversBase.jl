@@ -51,8 +51,6 @@ function OnceDifferentiable(f, g!, fg!, x_seed::AbstractArray)
 end
 # Automatically create the fg! helper function if only f and g! is provided
 function OnceDifferentiable(f, g!, x_seed::AbstractArray)
-    g = x_seed+one(eltype(x_seed))
-
     function fg!(storage, x)
         g!(storage, x)
         return f(x)
@@ -86,7 +84,7 @@ end
 
 function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
     n_x = length(x_seed)
-    g = x_seed+one(T)
+    g = similar(x_seed)
     H = Array{T}(n_x, n_x)
 
     f_val = fg!(g, x_seed)
@@ -98,11 +96,9 @@ function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
 end
 # Automatically create the fg! helper function if only f, g! and h! is provided
 function TwiceDifferentiable{T}(f,
-                                 g!,
-                                 h!,
-                                 x_seed::Array{T})
-    g = similar(x_seed)
-
+                                g!,
+                                h!,
+                                x_seed::Array{T})
     function fg!(storage::Vector, x::Vector)
         g!(storage, x)
         return f(x)
