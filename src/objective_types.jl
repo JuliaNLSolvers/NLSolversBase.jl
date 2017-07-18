@@ -47,7 +47,7 @@ function OnceDifferentiable(f, g!, fg!, x_seed::AbstractArray)
         x_seed = complex_to_real(x_seed)
         g = complex_to_real(g)
     end
-    OnceDifferentiable(f, g!, fg!, f_val, g, copy(x_seed), copy(x_seed), [1], [1])
+    OnceDifferentiable(f, g!, fg!, f_val, g, copy(x_seed), copy(x_seed), [1], [1], iscomplex)
 end
 # Automatically create the fg! helper function if only f and g! is provided
 function OnceDifferentiable(f, g!, x_seed::AbstractArray)
