@@ -20,7 +20,7 @@ function NonDifferentiable(f, x_seed::AbstractArray)
     if iscomplex
         x_seed = complex_to_real(x_seed)
     end
-    NonDifferentiable(f, f(x_seed), copy(x_seed), [1], Val{iscomplex})
+    NonDifferentiable{eltype(x_seed),Val{iscomplex}}(f, f(x_seed), copy(x_seed), [1])
 end
 
 # Used for objectives and solvers where the gradient is available/exists
