@@ -1,12 +1,12 @@
 function _unchecked_value!(obj, x)
     obj.f_calls .+= 1
     copy!(obj.last_x_f, x)
-    obj.f_x = obj.f(x)
+    obj.f_x = obj.f(real_to_complex(obj, x))
 end
 function value(obj, x)
     if x != obj.last_x_f
         obj.f_calls += 1
-        return obj.f(x)
+        return obj.f(real_to_complex(obj,x))
     end
     obj.f_x
 end
@@ -21,7 +21,7 @@ end
 function _unchecked_gradient!(obj, x)
     obj.g_calls .+= 1
     copy!(obj.last_x_g, x)
-    obj.g!(obj.g, x)
+    obj.g!(real_to_complex(obj, obj.g), real_to_complex(obj, x))
 end
 function gradient!(obj::AbstractObjective, x)
     if x != obj.last_x_g
@@ -35,7 +35,7 @@ function value_gradient!(obj::AbstractObjective, x)
         obj.g_calls .+= 1
         copy!(obj.last_x_f, x)
         copy!(obj.last_x_g, x)
-        obj.f_x = obj.fg!(obj.g, x)
+        obj.f_x = obj.fg!(real_to_complex(obj, obj.g), real_to_complex(obj, x))
     elseif x != obj.last_x_f
         _unchecked_value!(obj, x)
     elseif x != obj.last_x_g
