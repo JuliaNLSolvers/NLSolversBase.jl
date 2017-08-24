@@ -2,8 +2,6 @@ __precompile__(true)
 
 module NLSolversBase
 
-using Compat
-
 import Base: gradient
 export AbstractObjective,
        NonDifferentiable,
