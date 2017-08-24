@@ -1,9 +1,9 @@
-@compat abstract type AbstractObjective end
+abstract type AbstractObjective end
 real_to_complex(d::AbstractObjective, x) = iscomplex(d) ? real_to_complex(x) : x
 complex_to_real(d::AbstractObjective, x) = iscomplex(d) ? complex_to_real(x) : x
 
 # Used for objectives and solvers where no gradient is available/exists
-type NonDifferentiable{T,Tcplx} <: AbstractObjective where {T<:Real,
+mutable struct NonDifferentiable{T,Tcplx} <: AbstractObjective where {T<:Real,
                                                             Tcplx<:Union{Val{true},Val{false}}  #if true, must convert back on every f call
                                                             }
     f
@@ -24,7 +24,7 @@ function NonDifferentiable(f, x_seed::AbstractArray)
 end
 
 # Used for objectives and solvers where the gradient is available/exists
-type OnceDifferentiable{T, Tgrad, Tcplx} <: AbstractObjective where {T<:Real, Tgrad, Tcplx<:Union{Val{true},Val{false}}}
+mutable struct OnceDifferentiable{T, Tgrad, Tcplx} <: AbstractObjective where {T<:Real, Tgrad, Tcplx<:Union{Val{true},Val{false}}}
     f
     g!
     fg!
@@ -61,7 +61,7 @@ function OnceDifferentiable(f, g!, x_seed::AbstractArray)
 end
 
 # Used for objectives and solvers where the gradient and Hessian is available/exists
-type TwiceDifferentiable{T<:Real} <: AbstractObjective
+mutable struct TwiceDifferentiable{T<:Real} <: AbstractObjective
     f
     g!
     fg!
@@ -84,7 +84,7 @@ function TwiceDifferentiable(td::TwiceDifferentiable, x::AbstractArray)
     td
 end
 
-function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
+function TwiceDifferentiable(f, g!, fg!, h!, x_seed::Array{T}) where T
     n_x = length(x_seed)
     g = similar(x_seed)
     H = Array{T}(n_x, n_x)
@@ -97,10 +97,10 @@ function TwiceDifferentiable{T}(f, g!, fg!, h!, x_seed::Array{T})
                                 copy(x_seed), copy(x_seed), [1], [1], [1])
 end
 # Automatically create the fg! helper function if only f, g! and h! is provided
-function TwiceDifferentiable{T}(f,
-                                g!,
-                                h!,
-                                x_seed::Array{T})
+function TwiceDifferentiable(f,
+                             g!,
+                             h!,
+                             x_seed::Array{T}) where T
     function fg!(storage::Vector, x::Vector)
         g!(storage, x)
         return f(x)
