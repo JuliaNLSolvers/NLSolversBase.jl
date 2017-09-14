@@ -5,7 +5,7 @@ function _unchecked_value!(obj, x)
 end
 function value(obj, x)
     if x != obj.last_x_f
-        obj.f_calls += 1
+        obj.f_calls .+= 1
         return obj.f(real_to_complex(obj,x))
     end
     obj.f_x

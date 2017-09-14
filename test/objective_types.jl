@@ -43,9 +43,9 @@
     @test td.g_calls == [1]
     @test td.h_calls == [1]
 
-    td_from_td = TwiceDifferentiable(td, x_seed-1)
-    @test value(td_from_td) == value(td, x_seed-1)
-    gradient!(td, x_seed-1)
+    td_from_td = TwiceDifferentiable(td, x_seed .- 1)
+    @test value(td_from_td) == value(td, x_seed .- 1)
+    gradient!(td, x_seed .- 1)
     @test gradient(td_from_td) == gradient(td)
     @test value(td_from_td, x_seed) == value(td, x_seed)
 end
