@@ -61,14 +61,14 @@ function OnceDifferentiable(f, g!, x_seed::AbstractArray)
 end
 
 # Used for objectives and solvers where the gradient and Hessian is available/exists
-mutable struct TwiceDifferentiable{T<:Real,Tgrad,A<:AbstractArray{T}} <: AbstractObjective
+mutable struct TwiceDifferentiable{T<:Real,Tgrad,TH,A<:AbstractArray{T}} <: AbstractObjective
     f
     g!
     fg!
     h!
     f_x::T
     g::Tgrad
-    H::Matrix{T}
+    H::TH
     last_x_f::A
     last_x_g::A
     last_x_h::A
