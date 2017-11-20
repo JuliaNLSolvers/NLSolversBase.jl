@@ -20,32 +20,28 @@
     x_seed = [0.0, 0.0]
     f_x_seed = 8157.682077608529
 
-    nd = NonDifferentiable(exponential, x_seed)
+    nd = NonDifferentiable(exponential)
+    ndc = NonDifferentiableCache(exponential, x_seed)
     @test nd.f == exponential
-    @test value(nd) == f_x_seed
-    @test nd.last_x_f == [0.0, 0.0]
-    @test nd.f_calls == [1]
-    od = OnceDifferentiable(exponential, exponential_gradient!, x_seed)
+    @test value(ndc) == f_x_seed
+    @test ndc.last_x_f == [0.0, 0.0]
+    @test ndc.f_calls == [1]
+    od = OnceDifferentiable(exponential, exponential_gradient!)
+    odc = OnceDifferentiableCache(exponential, exponential_gradient!, x_seed)
     @test od.f == exponential
     @test od.g! == exponential_gradient!
-    @test value(od) == f_x_seed
-    @test od.last_x_f == [0.0, 0.0]
-    @test od.f_calls == [1]
-    @test od.g_calls == [1]
+    @test value(odc) == f_x_seed
+    @test odc.last_x_f == [0.0, 0.0]
+    @test odc.f_calls == [1]
+    @test odc.g_calls == [1]
 
-    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed)
-    td_new = TwiceDifferentiable(td, x_seed)
+    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!)
+    tdc = TwiceDifferentiableCache(exponential, exponential_gradient!, exponential_hessian!, x_seed)
     @test td.f == exponential
     @test td.g! == exponential_gradient!
-    @test value(td) == f_x_seed
-    @test td.last_x_f == [0.0, 0.0]
-    @test td.f_calls == [1]
-    @test td.g_calls == [1]
-    @test td.h_calls == [1]
-
-    td_from_td = TwiceDifferentiable(td, x_seed .- 1)
-    @test value(td_from_td) == value(td, x_seed .- 1)
-    gradient!(td, x_seed .- 1)
-    @test gradient(td_from_td) == gradient(td)
-    @test value(td_from_td, x_seed) == value(td, x_seed)
+    @test value(tdc) == f_x_seed
+    @test tdc.last_x_f == [0.0, 0.0]
+    @test tdc.f_calls == [1]
+    @test tdc.g_calls == [1]
+    @test tdc.h_calls == [1]
 end

@@ -1,5 +1,4 @@
 @testset "interface" begin
-
     # Test example
     function exponential(x::Vector)
         return exp((2.0 - x[1])^2) + exp((3.0 - x[2])^2)
@@ -27,75 +26,79 @@
     g_x_alt = [-5.43656365691809, -218.39260013257694]
     h_x_alt = [16.30969097075427 0.; 0. 982.7667005965963]
 
-    nd = NonDifferentiable(exponential, x_seed)
-    od = OnceDifferentiable(exponential, exponential_gradient!, x_seed)
-    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed)
+    nd = NonDifferentiable(exponential)
+    ndc = NonDifferentiableCache(exponential, x_seed)
+    od = OnceDifferentiable(exponential, exponential_gradient!)
+    odc = OnceDifferentiableCache(exponential, exponential_gradient!, x_seed)
+    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!)
+    tdc = TwiceDifferentiableCache(exponential, exponential_gradient!, exponential_hessian!, x_seed)
 
-    @test value(nd) == value(od) == value(td) == f_x_seed
-    @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
+    @test value(ndc) == value(odc) == value(tdc) == f_x_seed
+    @test value(ndc, nd, x_seed) == value(odc, od, x_seed) == value(tdc, td, x_seed)
     # change last_x_f manually to test branch
-    nd.last_x_f .*= 0
-    od.last_x_f .*= 0
-    td.last_x_f .*= 0
-    @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
-    @test gradient(od) == gradient(td) == g_x_seed
-    @test hessian(td) == h_x_seed
-    @test nd.f_calls == od.f_calls == td.f_calls == [1]
-    @test od.g_calls == td.g_calls == [1]
-    @test td.h_calls == [1]
+    ndc.last_x_f .*= 0
+    odc.last_x_f .*= 0
+    tdc.last_x_f .*= 0
+    @test value(ndc, nd, x_seed) == value(odc, od, x_seed) == value(tdc, td, x_seed)
+    @test gradient(odc) == gradient(tdc) == g_x_seed
+    @test hessian(tdc) == h_x_seed
+    @test ndc.f_calls == odc.f_calls == tdc.f_calls == [1]
+    @test odc.g_calls == tdc.g_calls == [1]
+    @test tdc.h_calls == [1]
 
-    @test_throws ErrorException gradient!(nd, x_alt)
-    gradient!(od, x_alt)
-    gradient!(td, x_alt)
+    # can't update gradient for NonDifferentiable
+    @test_throws ErrorException gradient!(ndc, nd, x_alt)
+    gradient!(odc, od, x_alt)
+    gradient!(tdc, td, x_alt)
 
-    @test value(nd) == value(od) == value(td) == f_x_seed
-    @test gradient(td) == g_x_alt
-    @test gradient(td) == [gradient(td, i) for i = 1:length(x_seed)]
-    @test hessian(td) == h_x_seed
-    @test nd.f_calls == od.f_calls == td.f_calls == [1]
-    @test od.g_calls == td.g_calls == [2]
-    @test td.h_calls == [1]
+    @test value(ndc) == value(odc) == value(tdc) == f_x_seed
+    @test gradient(tdc) == g_x_alt
+    @test gradient(tdc) == [gradient(tdc, i) for i = 1:length(x_seed)]
+    @test hessian(tdc) == h_x_seed
+    @test ndc.f_calls == odc.f_calls == tdc.f_calls == [1]
+    @test odc.g_calls == tdc.g_calls == [2]
+    @test tdc.h_calls == [1]
 
-    @test_throws ErrorException hessian!(nd, x_alt)
-    @test_throws ErrorException hessian!(od, x_alt)
-    hessian!(td, x_alt)
+    @test_throws ErrorException hessian!(ndc, nd, x_alt)
+    @test_throws ErrorException hessian!(odc, od, x_alt)
+    hessian!(tdc, td, x_alt)
 
-    @test value(nd) == value(od) == value(td) == f_x_seed
-    @test gradient(td) == g_x_alt
-    @test hessian(td) == h_x_alt
-    @test nd.f_calls == od.f_calls == td.f_calls == [1]
-    @test od.g_calls == td.g_calls == [2]
-    @test td.h_calls == [2]
+    @test value(ndc) == value(odc) == value(tdc) == f_x_seed
+    @test gradient(tdc) == g_x_alt
+    @test hessian(tdc) == h_x_alt
+    @test ndc.f_calls == odc.f_calls == tdc.f_calls == [1]
+    @test odc.g_calls == tdc.g_calls == [2]
+    @test tdc.h_calls == [2]
 
-    value!(nd, x_alt)
-    value!(od, x_alt)
-    value!(td, x_alt)
-    @test value(nd) == value(od) == value(td) == f_x_alt
-    @test gradient(td) == g_x_alt
-    @test hessian(td) == h_x_alt
-    @test nd.f_calls == od.f_calls == td.f_calls == [2]
-    @test od.g_calls == td.g_calls == [2]
-    @test td.h_calls == [2]
+    value!(ndc, nd, x_alt)
+    value!(odc, od, x_alt)
+    value!(tdc, td, x_alt)
+    @test value(ndc) == value(odc) == value(tdc) == f_x_alt
+    @test gradient(tdc) == g_x_alt
+    @test hessian(tdc) == h_x_alt
+    @test ndc.f_calls == odc.f_calls == tdc.f_calls == [2]
+    @test odc.g_calls == tdc.g_calls == [2]
+    @test tdc.h_calls == [2]
 
-    @test_throws ErrorException value_gradient!(nd, x_seed)
-    value_gradient!(od, x_seed)
-    value_gradient!(td, x_seed)
-    @test value(od) == value(td) == f_x_seed
+    @test_throws ErrorException value_gradient!(ndc, nd, x_seed)
+    value_gradient!(odc, od, x_seed)
+    value_gradient!(tdc, td, x_seed)
+    @test value(odc) == value(tdc) == f_x_seed
     # change last_x_f manually to test branch
-    od.last_x_f .*= 0
-    td.last_x_f .*= 0
-    value_gradient!(od, x_seed)
-    value_gradient!(td, x_seed)
-    @test value(od) == value(td) == f_x_seed
+    odc.last_x_f .*= 0
+    tdc.last_x_f .*= 0
+    value_gradient!(odc, od, x_seed)
+    value_gradient!(tdc, td, x_seed)
+    @test value(odc) == value(tdc) == f_x_seed
     # change last_x_g manually to test branch
-    od.last_x_g .*= 0
-    td.last_x_g .*= 0
-    value_gradient!(od, x_seed)
-    value_gradient!(td, x_seed)
-    @test value(od) == value(td) == f_x_seed
-    @test gradient(td) == g_x_seed
-    @test hessian(td) == h_x_alt
-    @test od.f_calls == td.f_calls == [3]
-    @test od.g_calls == td.g_calls == [3]
-    @test td.h_calls == [2]
+    odc.last_x_g .*= 0
+    tdc.last_x_g .*= 0
+    value_gradient!(odc, od, x_seed)
+    value_gradient!(tdc, td, x_seed)
+    @test value(odc) == value(tdc) == f_x_seed
+    @test gradient(tdc) == g_x_seed
+    @test hessian(tdc) == h_x_alt
+    @test odc.f_calls == tdc.f_calls == [3]
+    @test odc.g_calls == tdc.g_calls == [3]
+    @test tdc.h_calls == [2]
 end

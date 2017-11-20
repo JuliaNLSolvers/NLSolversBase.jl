@@ -5,8 +5,11 @@ module NLSolversBase
 import Base: gradient
 export AbstractObjective,
        NonDifferentiable,
+       NonDifferentiableCache,
        OnceDifferentiable,
+       OnceDifferentiableCache,
        TwiceDifferentiable,
+       TwiceDifferentiableCache,
        iscomplex,
        real_to_complex,
        complex_to_real,

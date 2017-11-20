@@ -1,62 +1,56 @@
-function _unchecked_value!(obj, x)
-    obj.f_calls .+= 1
-    copy!(obj.last_x_f, x)
-    obj.f_x = obj.f(real_to_complex(obj, x))
-end
-function value(obj, x)
-    if x != obj.last_x_f
-        obj.f_calls .+= 1
-        return obj.f(real_to_complex(obj,x))
+function value(cache, obj::AbstractObjective, x)
+    if x != cache.last_x_f
+        cache.f_calls .+= 1
+        return obj.f(real_to_complex(cache, x))
     end
-    obj.f_x
+    cache.f_x
 end
-function value!(obj, x)
-    if x != obj.last_x_f
-        _unchecked_value!(obj, x)
+function value!(cache, obj::AbstractObjective, x)
+    if x != cache.last_x_f
+        cache.f_calls .+= 1
+        copy!(cache.last_x_f, x)
+        cache.f_x = obj.f(real_to_complex(cache, x))
     end
-    obj.f_x
+    cache.f_x
 end
 
-
-function _unchecked_gradient!(obj, x)
-    obj.g_calls .+= 1
-    copy!(obj.last_x_g, x)
-    obj.g!(real_to_complex(obj, obj.g), real_to_complex(obj, x))
-end
-function gradient!(obj::AbstractObjective, x)
-    if x != obj.last_x_g
-        _unchecked_gradient!(obj, x)
+function gradient!(cache, obj::AbstractObjective, x)
+    if x != cache.last_x_g
+        cache.g_calls .+= 1
+        copy!(cache.last_x_g, x)
+        obj.g!(real_to_complex(cache, cache.g), real_to_complex(cache, x))
     end
 end
 
-function value_gradient!(obj::AbstractObjective, x)
-    if x != obj.last_x_f && x != obj.last_x_g
-        obj.f_calls .+= 1
-        obj.g_calls .+= 1
-        copy!(obj.last_x_f, x)
-        copy!(obj.last_x_g, x)
-        obj.f_x = obj.fg!(real_to_complex(obj, obj.g), real_to_complex(obj, x))
-    elseif x != obj.last_x_f
-        _unchecked_value!(obj, x)
-    elseif x != obj.last_x_g
-        _unchecked_gradient!(obj, x)
+function value_gradient!(cache, obj::AbstractObjective, x)
+    if x != cache.last_x_f && x != cache.last_x_g
+        cache.f_calls .+= 1
+        cache.g_calls .+= 1
+        copy!(cache.last_x_f, x)
+        copy!(cache.last_x_g, x)
+        cache.f_x = obj.fg!(real_to_complex(cache, cache.g), real_to_complex(cache, x))
+    elseif x != cache.last_x_f
+        cache.f_calls .+= 1
+        copy!(cache.last_x_f, x)
+        cache.f_x = obj.f(real_to_complex(cache, x))
+    elseif x != cache.last_x_g
+        cache.g_calls .+= 1
+        copy!(cache.last_x_g, x)
+        obj.g!(real_to_complex(cache, cache.g), real_to_complex(cache, x))
     end
-    obj.f_x
+    cache.f_x
 end
 
-function _unchecked_hessian!(obj::AbstractObjective, x)
-    obj.h_calls .+= 1
-    copy!(obj.last_x_h, x)
-    obj.h!(obj.H, x)
-end
-function hessian!(obj::AbstractObjective, x)
-    if x != obj.last_x_h
-        _unchecked_hessian!(obj, x)
+function hessian!(cache, obj::AbstractObjective, x)
+    if x != cache.last_x_h
+        cache.h_calls .+= 1
+        copy!(cache.last_x_h, x)
+        obj.h!(cache.H, x)
     end
 end
 
-# Getters are without ! and accept only an objective and index or just an objective
-value(obj::AbstractObjective) = obj.f_x
-gradient(obj::AbstractObjective) = obj.g
-gradient(obj::AbstractObjective, i::Integer) = obj.g[i]
-hessian(obj::AbstractObjective) = obj.H
+# Getters are without ! and accept only an objective cache and index or just an objective cache
+value(cache::AbstractObjectiveCache) = cache.f_x
+gradient(cache::AbstractObjectiveCache) = cache.g
+gradient(cache::AbstractObjectiveCache, i::Integer) = cache.g[i]
+hessian(cache::AbstractObjectiveCache) = cache.H
