@@ -10,6 +10,12 @@
         storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
     end
 
+    function exponential_value_gradient!(storage::Vector, x::Vector)
+        storage[1] = -2.0 * (2.0 - x[1]) * exp((2.0 - x[1])^2)
+        storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
+        return exp((2.0 - x[1])^2) + exp((3.0 - x[2])^2)
+    end
+
     function exponential_hessian!(storage::Matrix, x::Vector)
         storage[1, 1] = 2.0 * exp((2.0 - x[1])^2) * (2.0 * x[1]^2 - 8.0 * x[1] + 9)
         storage[1, 2] = 0.0
@@ -18,6 +24,8 @@
     end
 
     x_seed = [0.0, 0.0]
+    g_seed = [0.0, 0.0]
+    h_seed = [0.0 0.0; 0.0 0.0]
     f_x_seed = 8157.682077608529
     g_x_seed = [-218.39260013257694, -48618.50356545231]
     h_x_seed = [982.7667005965963 0.0; 0.0 307917.1892478646]
@@ -27,21 +35,24 @@
     g_x_alt = [-5.43656365691809, -218.39260013257694]
     h_x_alt = [16.30969097075427 0.; 0. 982.7667005965963]
 
-    nd = NonDifferentiable(exponential, x_seed)
-    od = OnceDifferentiable(exponential, exponential_gradient!, x_seed)
-    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed)
+    nd = NonDifferentiable(exponential, 0.0, x_seed)
+    od = OnceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, 0.0, g_seed, x_seed)
+    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, exponential_hessian!, 0.0, g_seed, h_seed, x_seed)
+
+    value!(nd, x_seed)
+    value_gradient!(od, x_seed)
+    value_gradient!(td, x_seed)
+    hessian!(td, x_seed)
 
     @test value(nd) == value(od) == value(td) == f_x_seed
     @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
-    # change last_x_f manually to test branch
-    nd.last_x_f .*= 0
-    od.last_x_f .*= 0
-    td.last_x_f .*= 0
+
     @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
     @test gradient(od) == gradient(td) == g_x_seed
     @test hessian(td) == h_x_seed
+
     @test nd.f_calls == od.f_calls == td.f_calls == [1]
-    @test od.g_calls == td.g_calls == [1]
+    @test od.df_calls == td.df_calls == [1]
     @test td.h_calls == [1]
 
     @test_throws ErrorException gradient!(nd, x_alt)
@@ -53,7 +64,7 @@
     @test gradient(td) == [gradient(td, i) for i = 1:length(x_seed)]
     @test hessian(td) == h_x_seed
     @test nd.f_calls == od.f_calls == td.f_calls == [1]
-    @test od.g_calls == td.g_calls == [2]
+    @test od.df_calls == td.df_calls == [2]
     @test td.h_calls == [1]
 
     @test_throws ErrorException hessian!(nd, x_alt)
@@ -64,7 +75,7 @@
     @test gradient(td) == g_x_alt
     @test hessian(td) == h_x_alt
     @test nd.f_calls == od.f_calls == td.f_calls == [1]
-    @test od.g_calls == td.g_calls == [2]
+    @test od.df_calls == td.df_calls == [2]
     @test td.h_calls == [2]
 
     value!(nd, x_alt)
@@ -74,28 +85,28 @@
     @test gradient(td) == g_x_alt
     @test hessian(td) == h_x_alt
     @test nd.f_calls == od.f_calls == td.f_calls == [2]
-    @test od.g_calls == td.g_calls == [2]
+    @test od.df_calls == td.df_calls == [2]
     @test td.h_calls == [2]
 
     @test_throws ErrorException value_gradient!(nd, x_seed)
     value_gradient!(od, x_seed)
     value_gradient!(td, x_seed)
     @test value(od) == value(td) == f_x_seed
-    # change last_x_f manually to test branch
-    od.last_x_f .*= 0
-    td.last_x_f .*= 0
+    # change x_f manually to test branch
+    od.x_f .*= 0
+    td.x_f .*= 0
     value_gradient!(od, x_seed)
     value_gradient!(td, x_seed)
     @test value(od) == value(td) == f_x_seed
-    # change last_x_g manually to test branch
-    od.last_x_g .*= 0
-    td.last_x_g .*= 0
+    # change x_df manually to test branch
+    od.x_df .*= 0
+    td.x_df .*= 0
     value_gradient!(od, x_seed)
     value_gradient!(td, x_seed)
     @test value(od) == value(td) == f_x_seed
     @test gradient(td) == g_x_seed
     @test hessian(td) == h_x_alt
     @test od.f_calls == td.f_calls == [3]
-    @test od.g_calls == td.g_calls == [3]
+    @test od.df_calls == td.df_calls == [3]
     @test td.h_calls == [2]
 end

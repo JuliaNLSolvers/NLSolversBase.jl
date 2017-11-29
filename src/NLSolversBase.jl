@@ -13,13 +13,22 @@ export AbstractObjective,
        value,
        value!,
        value_gradient!,
+       value_jacobian!,
        gradient,
        gradient!,
+       jacobian,
+       jacobian!,
        hessian,
-       hessian!
+       hessian!,
+       _unchecked_value!,
+       _unchecked_value_gradient!,
+       _unchecked_hessian!
 
 include("complex_real.jl")
-include("objective_types.jl")
+include("objective_types/abstract.jl")
+include("objective_types/nondifferentiable.jl")
+include("objective_types/oncedifferentiable.jl")
+include("objective_types/twicedifferentiable.jl")
 include("interface.jl")
 
 end # module
