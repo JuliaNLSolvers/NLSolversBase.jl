@@ -24,6 +24,8 @@ export AbstractObjective,
        _unchecked_value_gradient!,
        _unchecked_hessian!
 
+x_of_nans(x) = convert(typeof(x), fill(eltype(x)(NaN), size(x)...))
+
 include("complex_real.jl")
 include("objective_types/abstract.jl")
 include("objective_types/nondifferentiable.jl")

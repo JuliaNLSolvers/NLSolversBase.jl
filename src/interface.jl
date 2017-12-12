@@ -30,7 +30,7 @@ function gradient(obj::AbstractObjective, x)
         copy!(obj.x_df, tmp)
         return newdf
     end
-    obj.x_df
+    obj.DF
 end
 function gradient!(obj::AbstractObjective, x)
     if x != obj.x_df

@@ -16,7 +16,7 @@ function NonDifferentiable(f, F::T, x::AbstractArray{T}) where T
     if iscomplex
         x = complex_to_real(x)
     end
-    NonDifferentiable{eltype(x),typeof(x),Val{iscomplex}}(f, F, similar(x), [0])
+    NonDifferentiable{eltype(x),typeof(x),Val{iscomplex}}(f, F, x_of_nans(x), [0])
 end
 
 NonDifferentiable(f, g, F::T, x::AbstractArray{T}) where T = NonDifferentiable(f, F, x)

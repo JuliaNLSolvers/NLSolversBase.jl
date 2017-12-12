@@ -17,12 +17,12 @@ end
 iscomplex(obj::TwiceDifferentiable) = false
 # compatibility with old constructor
 function TwiceDifferentiable(f,g!,fg!,h!,f_x::T, df::TDF, H::TH, x::TX) where {T, TDF, TH, TX}
-
+    x_f = x_of_nans(x)
+    x_df = x_of_nans(x)
+    x_h = x_of_nans(x)
     TwiceDifferentiable{T,TDF, TH, TX}(f, g!, fg!, h!, f_x,
                                         df, H,
-                                        similar(x),
-                                        similar(x),
-                                        similar(x),
+                                        x_f, x_df, x_h,
                                         [0,], [0,], [0,])
 end
 # The user friendly/short form TwiceDifferentiable constructor

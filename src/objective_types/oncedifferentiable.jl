@@ -20,71 +20,89 @@ function OnceDifferentiable(f, df, fdf, F, DF, x)
         x = complex_to_real(x)
         DF = complex_to_real(DF)
     end
-    x_f = similar(vec(x))
-    x_df = similar(vec(x))
-    Fv = typeof(F) <: Real ? F : similar(vec(F))
-    xv = similar(vec(x))
-    if !(typeof(F)<:AbstractVector)
-        function f!(fx::AbstractVector, x::AbstractVector)
-            f!(reshape(fx, size(F)...), reshape(x, size(x)...))
-        end
-    end
-    function jv!(jx::AbstractMatrix, x::AbstractVector)
-        j!(jx, reshape(x, size(x)...))
-    end
-    function fjv!(fx::AbstractVector, gx::AbstractMatrix, x::AbstractVector)
-        fj!(reshape(fx, size(F)...), gx, reshape(x, size(x)...))
-    end
-    
-    OnceDifferentiable{typeof(Fv),typeof(DF),typeof(xv),Val{iscomplex}}(f, df, fdf,
-                                                Fv,     # copy works for both scalars and arrays
+           
+    x_f = x_of_nans(x)
+    x_df = x_of_nans(x)
+    OnceDifferentiable{typeof(F),typeof(DF),typeof(x),Val{iscomplex}}(f, df, fdf,
+                                                copy(F), # copy works for both scalars and arrays
                                                 DF, # no need to copy as ∇F is always an abstract array
                                                 x_f, x_df,
                                                 [0,], [0,])
 end
-OnceDifferentiable(f, g!, fg!, F::Real, x) = OnceDifferentiable(f, g!, fg!, F, similar(x), x) 
-OnceDifferentiable(f, g!, fg!, F::AbstractVector, x) = OnceDifferentiable(f, g!, fg!, F, alloc_J(x), x) 
-
+#=function OnceDifferentiable(f, df, fdf, F::AbstractArray, J, x::AbstractArray)
+    iscomplex = eltype(x) <: Complex
+    if iscomplex
+        x = complex_to_real(x)
+        J = complex_to_real(J)
+    end
+    x_f = similar(vec(x))
+    x_df = similar(vec(x))
+    Fv = similar(vec(F))
+    xv = similar(vec(x))
+    function fv!(fx::AbstractVector, x::AbstractVector)
+        f(reshape(fx, size(F)...), reshape(x, size(x)...))
+    end
+    function jv!(jx::AbstractMatrix, x::AbstractVector)
+        df(reshape(jx, size(J)...), reshape(x, size(x)...))
+    end
+    function fjv!(fx::AbstractVector, jx::AbstractMatrix, x::AbstractVector)
+        fdf(reshape(fx, size(F)...), reshape(jx, size(J)...), reshape(x, size(x)...))
+    end
+        
+    OnceDifferentiable{typeof(Fv),typeof(J),typeof(xv),Val{iscomplex}}(fv!, jv!, fjv!,
+                                                Fv,     # copy works for both scalars and arrays
+                                                J, # no need to copy as ∇F is always an abstract array
+                                                x_f, x_df,
+                                                [0,], [0,])
+end
+=#
+#=function OnceDifferentiable(f, df, fdf, F::Real, G, x::AbstractArray)
+    iscomplex = eltype(x) <: Complex
+    if iscomplex
+        x = complex_to_real(x)
+        G = complex_to_real(G)
+    end
+    x_f = similar(vec(x))
+    x_df = similar(vec(x))
+    xv = similar(vec(x))
+    function fv(x::AbstractVector)
+        f(reshape(x, size(x)...))
+    end
+    function gv!(gx::AbstractVector, x::AbstractVector)
+        df(reshape(gx, size(G)...), reshape(x, size(x)...))
+    end
+    function fgv!(gx::AbstractVector, x::AbstractVector)
+        fdf(reshape(gx, size(G)...), reshape(x, size(x)...))
+    end
+        
+    OnceDifferentiable{typeof(Fv),typeof(G),typeof(xv),Val{iscomplex}}(fv!, gv!, fgv!,
+                                                F, G, x_f, x_df,
+                                                [0,], [0,])
+end
+=#
 # Automatically create the fg! helper function if only f and g! is provided
-function OnceDifferentiable(f, g!, fx::Real, x::AbstractArray)
+OnceDifferentiable(f, g!, fg!, fx::Real, x::AbstractArray) =
+    OnceDifferentiable(f, g!, fg!, fx, similar(x), x)
+OnceDifferentiable(f!, j!, fj!, fx::AbstractArray, x::AbstractArray) =
+    OnceDifferentiable(f!, j!, fj!, fx, alloc_J(x), x)
+
+function OnceDifferentiable(f, g!, fx::Real, x)
     function fg!(g, x)
         g!(g, x)
         return f(x)
     end
-    return OnceDifferentiable(f, g!, fg!, fx,  x)
+    return OnceDifferentiable(f, g!, fg!, fx, similar(x), x)
 end
-
-# Automatically create the fj! helper function if only f! and j! is provided
-OnceDifferentiable(f!, j!, fx::AbstractArray, x::AbstractArray) = OnceDifferentiable(f!, j!, fx, alloc_J(x), x)
-function OnceDifferentiable(f!, j!, fx::AbstractArray, J, x::AbstractArray)
+function OnceDifferentiable(f!, j!, fx::AbstractArray, x)
     function fj!(F, J, x)
         j!(J, x)
         return f!(F, x)
     end
-    return OnceDifferentiable(f!, j!, fj!, fx, J, x)
+    return OnceDifferentiable(f!, j!, fj!, fx, alloc_J(x), x)
 end
+
+
 function alloc_J(x::AbstractArray{T}) where T
     # Initialize an n-by-n Array{T, 2}
     Array{eltype(x), 2}(length(x), length(x))
 end
-# Generic function to allocate the full OnceDifferentiable given all functions,
-# an initial point, and possibly a custom Jacobian cache variable (that j!, fj!)
-# expect as first positional argument.
-#=
-function OnceDifferentiable(f!, j!, fj!, F::TF, J, x0::TX) where {TF<:AbstractArray, TX<:AbstractArray}
-    xv = similar(vec(x0))
-    
-    function fv!(fx::AbstractVector, x::AbstractVector)
-        f!(reshape(fx, size(F)...), reshape(x, size(x0)...))
-    end
-    function jv!(jx::AbstractMatrix, x::AbstractVector)
-        j!(jx, reshape(x, size(x0)...))
-    end
-    function fjv!(x::AbstractVector, fx::AbstractVector, gx::AbstractMatrix)
-        fj!(reshape(fx, size(F)...), gx, reshape(x, size(x0)...))
-    end
-    OnceDifferentiable(fv!, jv!, fjv!, similar(xv), J, similar(xv)) 
-end
-=#
-
-
