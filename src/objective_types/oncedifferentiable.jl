@@ -14,7 +14,7 @@ iscomplex(obj::OnceDifferentiable{T,Tgrad,A,Val{true}}) where {T,Tgrad,A} = true
 iscomplex(obj::OnceDifferentiable{T,Tgrad,A,Val{false}}) where {T,Tgrad,A} = false
 
 # Compatibility with old constructor that doesn't have the complex field
-function OnceDifferentiable(f, df, fdf, F, DF, x)
+function OnceDifferentiable(f, df, fdf, F::Union{Real, AbstractArray}, DF, x::AbstractArray)
     iscomplex = eltype(x) <: Complex
     if iscomplex
         x = complex_to_real(x)
@@ -93,7 +93,10 @@ function OnceDifferentiable(f, g!, fx::Real, x)
     end
     return OnceDifferentiable(f, g!, fg!, fx, similar(x), x)
 end
-function OnceDifferentiable(f!, j!, fx::AbstractArray, x)
+OnceDifferentiable(f!, j!, fx::AbstractArray, x::AbstractArray) =
+    OnceDifferentiable(f!, j!, fx::AbstractArray, alloc_J(x), x::AbstractArray)
+
+function OnceDifferentiable(f!, j!, fx::AbstractArray, J::AbstractArray, x::AbstractArray)
     function fj!(F, J, x)
         j!(J, x)
         return f!(F, x)
