@@ -27,16 +27,37 @@ This package holds types for use in the JuliaNLSolvers family of packages. The t
 ## NDifferentiable
 There are currently three main types: NonDifferentiable, OnceDifferentiable, and TwiceDifferentiable. There's also a more experimental TwiceDifferentiableHV for optimization algorithms that use Hessian-vector products. An NDifferentiable instance can be used to hold relevant functions for
 
- - Optimization................... F:R^N -> R
- - Solving systems of equations... F:R^N -> R^N
+ - Optimization: ![Objective for optimization](https://user-images.githubusercontent.com/8431156/33996090-6224581c-e0e0-11e7-8737-5dd659745dcb.gif)
+ - Solving systems of equations: ![Objective for systems of equations](https://user-images.githubusercontent.com/8431156/33996088-60760c4a-e0e0-11e7-96ca-470f2731f1c7.gif)
 
 ### Examples
 Say we want to minimize the Hosaki test function
 
-![Hosaki test function][https://user-images.githubusercontent.com/8431156/33995927-c5b9f950-e0df-11e7-8760-9ba792c2b331.gif]
+![Hosaki test function](https://user-images.githubusercontent.com/8431156/33995927-c5b9f950-e0df-11e7-8760-9ba792c2b331.gif)
 
 The relevant functions are coded in Julia as
 ```julia
+function f(x)
+    a = (1.0 - 8.0 * x[1] + 7.0 * x[1]^2 - (7.0 / 3.0) * x[1]^3 + (1.0 / 4.0) * x[1]^4)
+    return a * x[2]^2 * exp(-x[2])
+end
+
+function g!(G, x)
+    G[1] = (x[1]^3 - 7.0 * x[1]^2 + 14.0 * x[1] - 8)* x[2]^2 * exp(-x[2])
+    G[2] = 2.0 * (1.0 - 8.0 * x[1] + 7.0 * x[1]^2 - (7.0 / 3.0) * x[1]^3 + (1.0 / 4.0) * x[1]^4) * x[2] * exp(-x[2]) - (1.0 - 8.0 * x[1] + 7.0 * x[1]^2 - (7.0 / 3.0) * x[1]^3 + (1.0 / 4.0) * x[1]^4) * x[2]^2 * exp(-x[2])
+end
+
+function fg!(G, x)
+    g!(G, x)
+    f(x)
+end
+
+function h!(H, x)
+    H[1, 1] = (3.0 * x[1]^2 - 14.0 * x[1] + 14.0) * x[2]^2 * exp(-x[2])
+    H[1, 2] = 2.0 * (x[1]^3 - 7.0 * x[1]^2 + 14.0 * x[1] - 8.0) * x[2] * exp(-x[2])  - (x[1]^3 - 7.0 * x[1]^2 + 14.0 * x[1] - 8.0) * x[2]^2 * exp(-x[2])
+    H[2, 1] =  2.0 * (x[1]^3 - 7.0 * x[1]^2 + 14.0 * x[1] - 8.0) * x[2] * exp(-x[2])  - (x[1]^3 - 7.0 * x[1]^2 + 14.0 * x[1] - 8.0) * x[2]^2 * exp(-x[2])
+    H[2, 2] = 2.0 * (1.0 - 8.0 * x[1] + 7.0 * x[1]^2 - (7.0 / 3.0) * x[1]^3 + (1.0 / 4.0) * x[1]^4) * exp(-x[2]) - 4.0 * ( 1.0 - 8.0 * x[1] + 7.0 *  x[1]^2 - (7.0 / 3.0) * x[1]^3 + (1.0 / 4.0) * x[1]^4) * x[2] * exp(-x[2]) + (1.0 - 8.0 * x[1] + 7.0 * x[1]^2 - (7.0 / 3.0) * x[1]^3 + (1.0 / 4.0) * x[1]^4) * x[2]^2 * exp(-x[2])
+end
 f(x) = 
 g!(G, x) = 
 fg!(G, x) = 
