@@ -5,24 +5,17 @@ Base functionality for optimization and solving systems of equations in Julia.
 
 NLSolversBase.jl is the core, common dependency of several packages in the [JuliaNLSolvers](https://julianlsolvers.github.io) family.
 
-The package aims at establishing common ground for [Optim.jl](https://github.com/JuliaNLSolvers/Optim.jl) and [LineSearches.jl](https://github.com/JuliaNLSolvers/LineSearches.jl), but [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) will eventually also depend on this package. The common ground is mainly the types used to hold objectives and information about the objectives, and an interface to interact with these types.
 
-Travis-CI
+| **PackageEvaluator**            |**Build Status**                                   |
+|:-------------------------------:|:-------------------------------------------------:|
+| [![][pkg-0.4-img]][pkg-0.4-url] | [![Build Status][build-img]][build-url]           |
+| [![][pkg-0.5-img]][pkg-0.5-url] | [![Codecov branch][cov-img]][cov-url]             |
+| [![][pkg-0.6-img]][pkg-0.6-url] | [![Coverage Status][coveralls-img]][coveralls-url]|
 
-[![Build Status](https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl.svg?branch=master)](https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl)
 
-Package evaluator
+# Purpose
 
-[![pkg-0.4-img](http://pkg.julialang.org/badges/NLSolversBase_0.5.svg)](http://pkg.julialang.org/?pkg=NLSolversBase&ver=0.5)
-[![pkg-0.4-img](http://pkg.julialang.org/badges/NLSolversBase_0.6.svg)](http://pkg.julialang.org/?pkg=NLSolversBase&ver=0.6)
-
-Code coverage
-
-[![Coverage Status](https://coveralls.io/repos/JuliaNLSolvers/NLSolversBase.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaNLSolvers/NLSolversBase.jl?branch=master)
-[![codecov.io](http://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl/coverage.svg?branch=master)](http://codecov.io/github/pkofod/NLSolversBase.jl?branch=master)
-
-# What
-This package holds types for use in the JuliaNLSolvers family of packages. The types act as collections of callables relevant for optimization or solution of systems of equations (objective, (partial) derivatives of different orders), and cache variables needed to evaluate their values.
+The package aims at establishing common ground for [Optim.jl](https://github.com/JuliaNLSolvers/Optim.jl), [LineSearches.jl](https://github.com/JuliaNLSolvers/LineSearches.jl), and [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl). The common ground is mainly the types used to hold objective related callables, information about the objectives, and an interface to interact with these types.
 
 ## NDifferentiable
 There are currently three main types: `NonDifferentiable`, `OnceDifferentiable`, and `TwiceDifferentiable`. There's also a more experimental `TwiceDifferentiableHV` for optimization algorithms that use Hessian-vector products. An `NDifferentiable` instance can be used to hold relevant functions for
@@ -32,7 +25,7 @@ There are currently three main types: `NonDifferentiable`, `OnceDifferentiable`,
 
 The words in front of `Differentiable` in the type names (`Non`, `Once`, `Twice`) are not meant to indicate and specific classification of the function as such, but more the requirement of the algorithms used.
 
-### Examples
+## Examples
 #### Optimization
 Say we want to minimize the Hosaki test function
 
@@ -100,3 +93,60 @@ nd   = NonDifferentiable(f!, x, F)
 od   = OnceDifferentiable(f!, j!, x, F)
 odfj = OnceDifferentiable(f!, j!, fj! x, F)
 ```
+
+## Interface
+
+To extract information about the objective, and to update given some input, we provide a function based interface. For all purposes it should be possible to use a function to extract/update information, and no field access should be necessary. Actually, we proactively discourage it, as it makes it much more difficult to make changes in the future.
+
+### Single-valued objectives 
+To retrieve relevant information about single-valued functions, the following functions are available where applicable:
+```julia
+# obj is the objective function defined as shown above
+value(df)       # return the objective evaluated at df.x_f
+gradient(df)    # return the gradient evaluated at df.x_df
+gradient(df, i) # return the gradient evaluated at df.x_df
+hessian(df)     # return the hessian evaluated at df.x_h
+```
+To update the various quantities, use:
+```julia
+# obj is the objective function defined as shown above
+value!(df, x)     # update the objective if !(df.x_f==x) and set df.x_f to x
+value!!(df, x)    # update the objective and set df.x_f to x
+gradient!(df, x)  # update the gradient if !(df.x_df==x) and set df.x_df to x
+gradient!!(df, x) # update the gradient and set df.x_df to x
+hessian!(df,x)    # update the hessian if !(df.x_df==x) and set df.x_h to x
+hessian!!(df,x)   # update the hessian and set df.x_h to x
+```
+
+### Multivalued 
+To retrieve relevant information about multivalued functions, the following functions are available where applicable:
+```julia
+# obj is the objective function defined as shown above
+value(df)    # return the objective evaluated at df.x_f
+jacobian(df) # return the jacobian evaluated at df.x_df
+jacobian(df) # return the jacobian evaluated at df.x_df
+```
+To update the various quantities, use:
+```julia
+# obj is the objective function defined as shown above
+value!(df, x)     # update the objective if !(df.x_f==x) and set df.x_f to x
+value!!(df, x)    # update the objective and set df.x_f to x
+jacobian!(df, x)  # update the jacobian if !(df.x_df==x) and set df.x_df to x
+jacobian!!(df, x) # update the jacobian and set df.x_df to x
+```
+
+[build-img]: https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl.svg?branch=master
+[build-url]: https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl
+
+[pkg-0.4-img]: http://pkg.julialang.org/badges/NLSolversBase_0.4.svg
+[pkg-0.4-url]: http://pkg.julialang.org/?pkg=NLSolversBase&ver=0.4
+[pkg-0.5-img]: http://pkg.julialang.org/badges/NLSolversBase_0.5.svg
+[pkg-0.5-url]: http://pkg.julialang.org/?pkg=NLSolversBase&ver=0.5
+[pkg-0.6-img]: http://pkg.julialang.org/badges/NLSolversBase_0.6.svg
+[pkg-0.6-url]: http://pkg.julialang.org/?pkg=NLSolversBase&ver=0.6
+
+[cov-img]: http://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl/coverage.svg?branch=master
+[cov-url]: http://codecov.io/github/pkofod/NLSolversBase.jl?branch=master
+
+[coveralls-img]: https://coveralls.io/repos/JuliaNLSolvers/NLSolversBase.jl/badge.svg?branch=master&service=github
+[coveralls-url]: https://coveralls.io/github/JuliaNLSolvers/NLSolversBase.jl?branch=master
