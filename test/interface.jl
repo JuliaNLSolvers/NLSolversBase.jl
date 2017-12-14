@@ -35,9 +35,9 @@
     g_x_alt = [-5.43656365691809, -218.39260013257694]
     h_x_alt = [16.30969097075427 0.; 0. 982.7667005965963]
 
-    nd = NonDifferentiable(exponential, 0.0, x_seed)
-    od = OnceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, 0.0, g_seed, x_seed)
-    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, exponential_hessian!, 0.0, g_seed, h_seed, x_seed)
+    nd = NonDifferentiable(exponential, x_seed)
+    od = OnceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, x_seed, 0.0, g_seed)
+    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, exponential_hessian!, x_seed, 0.0, g_seed, h_seed)
 
     _unchecked_value!(nd, x_seed)
     _unchecked_value_gradient!(od, x_seed)

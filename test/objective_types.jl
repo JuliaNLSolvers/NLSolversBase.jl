@@ -22,18 +22,18 @@
     h_seed = [0.0 0.0; 0.0 0.0]
     f_x_seed = 8157.682077608529
 
-    nd = NonDifferentiable(exponential, 0.0, x_seed)
+    nd = NonDifferentiable(exponential, x_seed)
     @test nd.f == exponential
     @test value(nd) == 0.0
     @test nd.f_calls == [0]
-    od = OnceDifferentiable(exponential, exponential_gradient!, nothing, 0.0, g_seed, x_seed)
+    od = OnceDifferentiable(exponential, exponential_gradient!, nothing, x_seed, 0.0, g_seed)
     @test od.f == exponential
     @test od.df == exponential_gradient!
     @test value(od) == 0.0
     @test od.f_calls == [0]
     @test od.df_calls == [0]
 
-    td = TwiceDifferentiable(exponential, exponential_gradient!, nothing, exponential_hessian!, 0.0, h_seed, g_seed, x_seed)
+    td = TwiceDifferentiable(exponential, exponential_gradient!, nothing, exponential_hessian!, x_seed, 0.0, g_seed, h_seed)
     @test td.f == exponential
     @test td.df == exponential_gradient!
     @test value(td) == 0.0

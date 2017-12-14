@@ -16,34 +16,16 @@ mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective
 end
 iscomplex(obj::TwiceDifferentiable) = false
 # compatibility with old constructor
-function TwiceDifferentiable(f,g!,fg!,h!,f_x::T, df::TDF, H::TH, x::TX) where {T, TDF, TH, TX}
-    x_f = x_of_nans(x)
-    x_df = x_of_nans(x)
-    x_h = x_of_nans(x)
-    TwiceDifferentiable{T,TDF, TH, TX}(f, g!, fg!, h!, f_x,
-                                        df, H,
+function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T, G::TG = similar(x), H::TH = alloc_H(x)) where {T, TG, TH, TX}
+    x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
+    TwiceDifferentiable{T,TG, TH, TX}(f, g!, fg!, h!,
+                                        copy(F), similar(G), copy(H),
                                         x_f, x_df, x_h,
                                         [0,], [0,], [0,])
 end
-# The user friendly/short form TwiceDifferentiable constructor
-function TwiceDifferentiable(f, g!, fg!, h!, f_x::Real, x_seed::AbstractVector)
-    g = similar(x_seed)
-    n = length(x_seed)
-    H = similar(x_seed, n, n)
-    x = similar(x_seed)
-    TwiceDifferentiable(f, g!, fg!, h!, f_x, g, H, x)
-end
 
-function TwiceDifferentiable(f, g!, h!, F::Real, x_seed::AbstractVector)
-    function fg!(storage, x)
-        g!(storage, x)
-        return f(x)
-    end
-    return TwiceDifferentiable(f, g!, fg!, h!, F, x_seed)
-end
 
-function TwiceDifferentiable(td::TwiceDifferentiable, x::AbstractArray)
-    value_gradient!(td, x)
-    hessian!(td, x)
-    td
+function TwiceDifferentiable(f, g!, h!, x::AbstractVector{T}, F = real(zero(T))) where T
+    fg! = make_fdf(x, F, f, g!)
+    return TwiceDifferentiable(f, g!, fg!, h!, x, F)
 end
