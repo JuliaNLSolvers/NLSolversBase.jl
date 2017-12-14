@@ -20,9 +20,9 @@ export AbstractObjective,
        jacobian!,
        hessian,
        hessian!,
-       _unchecked_value!,
-       _unchecked_value_gradient!,
-       _unchecked_hessian!
+       value!!,
+       value_gradient!!,
+       hessian!!
 
 x_of_nans(x) = convert(typeof(x), fill(eltype(x)(NaN), size(x)...))
 

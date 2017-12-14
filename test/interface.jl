@@ -39,10 +39,10 @@
     od = OnceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, x_seed, 0.0, g_seed)
     td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, exponential_hessian!, x_seed, 0.0, g_seed, h_seed)
 
-    _unchecked_value!(nd, x_seed)
-    _unchecked_value_gradient!(od, x_seed)
-    _unchecked_value_gradient!(td, x_seed)
-    _unchecked_hessian!(td, x_seed)
+    value!!(nd, x_seed)
+    value_gradient!!(od, x_seed)
+    value_gradient!!(td, x_seed)
+    hessian!(td, x_seed)
 
     @test value(nd) == value(od) == value(td) == f_x_seed
     @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)

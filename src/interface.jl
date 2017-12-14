@@ -1,4 +1,4 @@
-function _unchecked_value!(obj::AbstractObjective, x)
+function value!!(obj::AbstractObjective, x)
     obj.f_calls .+= 1
     copy!(obj.x_f, x)
     obj.F = obj.f(real_to_complex(obj, x))
@@ -12,12 +12,12 @@ function value(obj::AbstractObjective, x)
 end
 function value!(obj::AbstractObjective, x)
     if x != obj.x_f
-        _unchecked_value!(obj, x)
+        value!!(obj, x)
     end
     obj.F
 end
 
-function _unchecked_gradient!(obj::AbstractObjective, x)
+function gradient!!(obj::AbstractObjective, x)
     obj.df_calls .+= 1
     copy!(obj.x_df, x)
     obj.df(real_to_complex(obj, obj.DF), real_to_complex(obj, x))
@@ -25,7 +25,7 @@ end
 function gradient(obj::AbstractObjective, x)
     if x != obj.x_df
         tmp = copy(obj.x_df)
-        _unchecked_gradient!(obj, x)
+        gradient!!(obj, x)
         newdf = copy(obj.x_df)
         copy!(obj.x_df, tmp)
         return newdf
@@ -34,11 +34,11 @@ function gradient(obj::AbstractObjective, x)
 end
 function gradient!(obj::AbstractObjective, x)
     if x != obj.x_df
-        _unchecked_gradient!(obj, x)
+        gradient!!(obj, x)
     end
 end
 
-function _unchecked_value_gradient!(obj::AbstractObjective, x)
+function value_gradient!!(obj::AbstractObjective, x)
     obj.f_calls .+= 1
     obj.df_calls .+= 1
     copy!(obj.x_f, x)
@@ -47,27 +47,23 @@ function _unchecked_value_gradient!(obj::AbstractObjective, x)
 end
 function value_gradient!(obj::AbstractObjective, x)
     if x != obj.x_f && x != obj.x_df
-        obj.f_calls .+= 1
-        obj.df_calls .+= 1
-        copy!(obj.x_f, x)
-        copy!(obj.x_df, x)
-        obj.F = obj.fdf(real_to_complex(obj, obj.DF), real_to_complex(obj, x))
+        value_gradient!!(obj, x)
     elseif x != obj.x_f
-        _unchecked_value!(obj, x)
+        value!!(obj, x)
     elseif x != obj.x_df
-        _unchecked_gradient!(obj, x)
+        gradient!!(obj, x)
     end
     obj.F
 end
 
-function _unchecked_hessian!(obj::AbstractObjective, x)
+function hessian!!(obj::AbstractObjective, x)
     obj.h_calls .+= 1
     copy!(obj.x_h, x)
     obj.h(obj.H, x)
 end
 function hessian!(obj::AbstractObjective, x)
     if x != obj.x_h
-        _unchecked_hessian!(obj, x)
+        hessian!!(obj, x)
     end
 end
 
