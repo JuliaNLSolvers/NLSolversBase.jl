@@ -1,112 +1,144 @@
 @testset "interface" begin
+    @testset "single-valued" begin
+        # Test example
+        function exponential(x::Vector)
+            return exp((2.0 - x[1])^2) + exp((3.0 - x[2])^2)
+        end
 
-    # Test example
-    function exponential(x::Vector)
-        return exp((2.0 - x[1])^2) + exp((3.0 - x[2])^2)
+        function exponential_gradient!(storage::Vector, x::Vector)
+            storage[1] = -2.0 * (2.0 - x[1]) * exp((2.0 - x[1])^2)
+            storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
+        end
+
+        function exponential_value_gradient!(storage::Vector, x::Vector)
+            storage[1] = -2.0 * (2.0 - x[1]) * exp((2.0 - x[1])^2)
+            storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
+            return exp((2.0 - x[1])^2) + exp((3.0 - x[2])^2)
+        end
+
+        function exponential_hessian!(storage::Matrix, x::Vector)
+            storage[1, 1] = 2.0 * exp((2.0 - x[1])^2) * (2.0 * x[1]^2 - 8.0 * x[1] + 9)
+            storage[1, 2] = 0.0
+            storage[2, 1] = 0.0
+            storage[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
+        end
+
+        x_seed = [0.0, 0.0]
+        g_seed = [0.0, 0.0]
+        h_seed = [0.0 0.0; 0.0 0.0]
+        f_x_seed = 8157.682077608529
+        g_x_seed = [-218.39260013257694, -48618.50356545231]
+        h_x_seed = [982.7667005965963 0.0; 0.0 307917.1892478646]
+
+        x_alt = [1.0, 1.0]
+        f_x_alt = 57.316431861603284
+        g_x_alt = [-5.43656365691809, -218.39260013257694]
+        h_x_alt = [16.30969097075427 0.; 0. 982.7667005965963]
+
+        # Construct instances
+        nd = NonDifferentiable(exponential, x_seed)
+        od = OnceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, x_seed, 0.0, g_seed)
+        td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, exponential_hessian!, x_seed, 0.0, g_seed, h_seed)
+
+        # Force evaluation
+        value!!(nd, x_seed)
+        value_gradient!!(od, x_seed)
+        value_gradient!!(td, x_seed)
+        hessian!!(td, x_seed)
+
+        # Test that values are the same, and that values match those
+        # calculated by the value(obj, x) methods
+        @test value(nd) == value(od) == value(td) == f_x_seed
+        @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
+
+        # Test that the gradients match the intended values
+        @test gradient(od) == gradient(td) == g_x_seed
+        # Test that the Hessian matches the intended value
+        @test hessian(td) == h_x_seed
+
+        # Test that the call counters got incremented
+        @test nd.f_calls == od.f_calls == td.f_calls == [1]
+        @test od.df_calls == td.df_calls == [1]
+        @test td.h_calls == [1]
+
+        # Test that the call counters do not get incremented
+        # with single-"bang" methods...
+        value!(nd, x_seed)
+        value_gradient!(od, x_seed)
+        value_gradient!(td, x_seed)
+        hessian!(td, x_seed)
+
+        @test nd.f_calls == od.f_calls == td.f_calls == [1]
+        @test od.df_calls == td.df_calls == [1]
+        @test td.h_calls == [1]
+
+        # ... and that they do with double-"bang" methods
+        value!!(nd, x_seed)
+        value_gradient!!(od, x_seed)
+        value_gradient!!(td, x_seed)
+        hessian!!(td, x_seed)
+
+        @test nd.f_calls == od.f_calls == td.f_calls == [2]
+        @test od.df_calls == td.df_calls == [2]
+        @test td.h_calls == [2]
+
+        # Test that gradient doesn't work for NonDifferentiable, but does otherwise
+        @test_throws ErrorException gradient!(nd, x_alt)
+        gradient!(od, x_alt)
+        gradient!(td, x_alt)
+
+        @test value(nd) == value(od) == value(td) == f_x_seed
+        @test gradient(td) == g_x_alt
+        @test gradient(td) == [gradient(td, i) for i = 1:length(x_seed)]
+        @test hessian(td) == h_x_seed
+        @test nd.f_calls == od.f_calls == td.f_calls == [2]
+        @test od.df_calls == td.df_calls == [3]
+        @test td.h_calls == [2]
+
+        @test_throws ErrorException hessian!(nd, x_alt)
+        @test_throws ErrorException hessian!(od, x_alt)
+        hessian!(td, x_alt)
+
+        @test value(nd) == value(od) == value(td) == f_x_seed
+        @test gradient(td) == g_x_alt
+        @test hessian(td) == h_x_alt
+        @test nd.f_calls == od.f_calls == td.f_calls == [2]
+        @test od.df_calls == td.df_calls == [3]
+        @test td.h_calls == [3]
+
+        value!(nd, x_alt)
+        value!(od, x_alt)
+        value!(td, x_alt)
+        @test value(nd) == value(od) == value(td) == f_x_alt
+        @test gradient(td) == g_x_alt
+        @test hessian(td) == h_x_alt
+        @test nd.f_calls == od.f_calls == td.f_calls == [3]
+        @test od.df_calls == td.df_calls == [3]
+        @test td.h_calls == [3]
+
+        @test_throws ErrorException value_gradient!(nd, x_seed)
+        value_gradient!(od, x_seed)
+        value_gradient!(td, x_seed)
+        @test value(od) == value(td) == f_x_seed
+        # change x_f manually to test branch
+        od.x_f .*= 0
+        td.x_f .*= 0
+        value_gradient!(od, x_seed)
+        value_gradient!(td, x_seed)
+        @test value(od) == value(td) == f_x_seed
+        # change x_df manually to test branch
+        # only df is meant to be re-calculated as
+        # d.x_f == x_seed
+        # and that the hessian counter doesn't increment
+        od.x_df .*= 0
+        td.x_df .*= 0
+        value_gradient!(od, x_seed)
+        value_gradient!(td, x_seed)
+        @test value(od) == value(td) == f_x_seed
+        @test gradient(td) == g_x_seed
+        @test hessian(td) == h_x_alt
+        @test od.f_calls == td.f_calls == [4]
+        @test od.df_calls == td.df_calls == [4]
+        @test td.h_calls == [3]
     end
-
-    function exponential_gradient!(storage::Vector, x::Vector)
-        storage[1] = -2.0 * (2.0 - x[1]) * exp((2.0 - x[1])^2)
-        storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
-    end
-
-    function exponential_value_gradient!(storage::Vector, x::Vector)
-        storage[1] = -2.0 * (2.0 - x[1]) * exp((2.0 - x[1])^2)
-        storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
-        return exp((2.0 - x[1])^2) + exp((3.0 - x[2])^2)
-    end
-
-    function exponential_hessian!(storage::Matrix, x::Vector)
-        storage[1, 1] = 2.0 * exp((2.0 - x[1])^2) * (2.0 * x[1]^2 - 8.0 * x[1] + 9)
-        storage[1, 2] = 0.0
-        storage[2, 1] = 0.0
-        storage[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
-    end
-
-    x_seed = [0.0, 0.0]
-    g_seed = [0.0, 0.0]
-    h_seed = [0.0 0.0; 0.0 0.0]
-    f_x_seed = 8157.682077608529
-    g_x_seed = [-218.39260013257694, -48618.50356545231]
-    h_x_seed = [982.7667005965963 0.0; 0.0 307917.1892478646]
-
-    x_alt = [1.0, 1.0]
-    f_x_alt = 57.316431861603284
-    g_x_alt = [-5.43656365691809, -218.39260013257694]
-    h_x_alt = [16.30969097075427 0.; 0. 982.7667005965963]
-
-    nd = NonDifferentiable(exponential, x_seed)
-    od = OnceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, x_seed, 0.0, g_seed)
-    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!, exponential_hessian!, x_seed, 0.0, g_seed, h_seed)
-
-    value!!(nd, x_seed)
-    value_gradient!!(od, x_seed)
-    value_gradient!!(td, x_seed)
-    hessian!(td, x_seed)
-
-    @test value(nd) == value(od) == value(td) == f_x_seed
-    @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
-
-    @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
-    @test gradient(od) == gradient(td) == g_x_seed
-    @test hessian(td) == h_x_seed
-
-    @test nd.f_calls == od.f_calls == td.f_calls == [1]
-    @test od.df_calls == td.df_calls == [1]
-    @test td.h_calls == [1]
-
-    @test_throws ErrorException gradient!(nd, x_alt)
-    gradient!(od, x_alt)
-    gradient!(td, x_alt)
-
-    @test value(nd) == value(od) == value(td) == f_x_seed
-    @test gradient(td) == g_x_alt
-    @test gradient(td) == [gradient(td, i) for i = 1:length(x_seed)]
-    @test hessian(td) == h_x_seed
-    @test nd.f_calls == od.f_calls == td.f_calls == [1]
-    @test od.df_calls == td.df_calls == [2]
-    @test td.h_calls == [1]
-
-    @test_throws ErrorException hessian!(nd, x_alt)
-    @test_throws ErrorException hessian!(od, x_alt)
-    hessian!(td, x_alt)
-
-    @test value(nd) == value(od) == value(td) == f_x_seed
-    @test gradient(td) == g_x_alt
-    @test hessian(td) == h_x_alt
-    @test nd.f_calls == od.f_calls == td.f_calls == [1]
-    @test od.df_calls == td.df_calls == [2]
-    @test td.h_calls == [2]
-
-    value!(nd, x_alt)
-    value!(od, x_alt)
-    value!(td, x_alt)
-    @test value(nd) == value(od) == value(td) == f_x_alt
-    @test gradient(td) == g_x_alt
-    @test hessian(td) == h_x_alt
-    @test nd.f_calls == od.f_calls == td.f_calls == [2]
-    @test od.df_calls == td.df_calls == [2]
-    @test td.h_calls == [2]
-
-    @test_throws ErrorException value_gradient!(nd, x_seed)
-    value_gradient!(od, x_seed)
-    value_gradient!(td, x_seed)
-    @test value(od) == value(td) == f_x_seed
-    # change x_f manually to test branch
-    od.x_f .*= 0
-    td.x_f .*= 0
-    value_gradient!(od, x_seed)
-    value_gradient!(td, x_seed)
-    @test value(od) == value(td) == f_x_seed
-    # change x_df manually to test branch
-    od.x_df .*= 0
-    td.x_df .*= 0
-    value_gradient!(od, x_seed)
-    value_gradient!(td, x_seed)
-    @test value(od) == value(td) == f_x_seed
-    @test gradient(td) == g_x_seed
-    @test hessian(td) == h_x_alt
-    @test od.f_calls == td.f_calls == [3]
-    @test od.df_calls == td.df_calls == [3]
-    @test td.h_calls == [2]
 end

@@ -32,6 +32,7 @@ include("objective_types/abstract.jl")
 include("objective_types/nondifferentiable.jl")
 include("objective_types/oncedifferentiable.jl")
 include("objective_types/twicedifferentiable.jl")
+include("objective_types/twicedifferentiablehv.jl")
 include("interface.jl")
 
 end # module
