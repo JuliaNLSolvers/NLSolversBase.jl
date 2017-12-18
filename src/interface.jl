@@ -81,7 +81,7 @@ function value_jacobian!(obj, F, DF, x)
     elseif x != obj.x_f
         value!!(obj, x)
     elseif x != obj.x_df
-        gradient!!(obj, x)
+        jacobian!!(obj, x)
     end
 end
 value_jacobian!!(obj, x) = value_jacobian!!(obj, obj.F, obj.DF, x)

@@ -140,6 +140,27 @@
         @test od.f_calls == td.f_calls == [4]
         @test od.df_calls == td.df_calls == [4]
         @test td.h_calls == [3]
+
+        # test the non-mutating gradient() function
+        gradient!(od, fill(1.0, 2))
+        gradient!(td, fill(1.0, 2))
+        od_df_old = copy(gradient(od))
+        td_df_old = copy(gradient(td))
+        gradient!(od, fill(-1.0, 2))
+        gradient!(td, fill(-1.0, 2))
+        @test od_df_old == gradient(od, fill(1.0, 2))
+        @test td_df_old == gradient(td, fill(1.0, 2))
+        # Mutate obj.DF directly to check that the gradient
+        # is not recalculated if the same x is reused.
+        # We obviously cannot just rerun for the same x twice
+        # as we would then not be able to tell if it was just
+        # calculated again, or the cache was simply returned
+        # as intended.
+        od.DF .= 0.0
+        td.DF .= 0.0
+        @test gradient(od) == zeros(2)
+        @test gradient(td) == zeros(2)
+        
     end
     @testset "multivalued" begin
         # Test example: Rosenbrock MINPACK
@@ -235,6 +256,6 @@
         @test value(od) == F_x_seed
         @test jacobian(od) == J_x_seed
         @test od.f_calls == [4]
-        @test od.df_calls ==[4]
+        @test od.df_calls == [4]
     end
 end
