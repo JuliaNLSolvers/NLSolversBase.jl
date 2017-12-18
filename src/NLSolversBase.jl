@@ -24,7 +24,9 @@ export AbstractObjective,
        value!!,
        value_gradient!!,
        value_jacobian!!,
-       hessian!!
+       hessian!!,
+       hv_product,
+       hv_product!
 
 x_of_nans(x) = convert(typeof(x), fill(eltype(x)(NaN), size(x)...))
 

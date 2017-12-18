@@ -93,14 +93,13 @@ function value_jacobian!!(obj, F, J, x)
     obj.df_calls .+= 1
 end
 
-jacobian!(obj, x) = jacobian!(obj, obj.DF, x)
-function jacobian!(obj, DF, x)
+function jacobian!(obj, x)
     if x != obj.x_df
-        jacobian!!(obj, DF, x)
+        jacobian!!(obj, x)
     end
 end
-function jacobian!!(obj, fjac, x)
-    obj.df(fjac, x)
+function jacobian!!(obj, x)
+    obj.df(obj.DF, x)
     copy!(obj.x_df, x)
     obj.df_calls .+= 1
 end
