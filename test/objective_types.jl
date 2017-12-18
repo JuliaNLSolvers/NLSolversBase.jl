@@ -18,34 +18,51 @@
     end
 
     x_seed = [0.0, 0.0]
+    g_seed = [0.0, 0.0]
+    h_seed = [0.0 0.0; 0.0 0.0]
     f_x_seed = 8157.682077608529
 
     nd = NonDifferentiable(exponential, x_seed)
     @test nd.f == exponential
-    @test value(nd) == f_x_seed
-    @test nd.last_x_f == [0.0, 0.0]
-    @test nd.f_calls == [1]
-    od = OnceDifferentiable(exponential, exponential_gradient!, x_seed)
+    @test value(nd) == 0.0
+    @test nd.f_calls == [0]
+    od = OnceDifferentiable(exponential, exponential_gradient!, nothing, x_seed, 0.0, g_seed)
     @test od.f == exponential
-    @test od.g! == exponential_gradient!
-    @test value(od) == f_x_seed
-    @test od.last_x_f == [0.0, 0.0]
-    @test od.f_calls == [1]
-    @test od.g_calls == [1]
+    @test od.df == exponential_gradient!
+    @test value(od) == 0.0
+    @test od.f_calls == [0]
+    @test od.df_calls == [0]
 
-    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed)
-    td_new = TwiceDifferentiable(td, x_seed)
+    td = TwiceDifferentiable(exponential, exponential_gradient!, nothing, exponential_hessian!, x_seed, 0.0, g_seed, h_seed)
     @test td.f == exponential
-    @test td.g! == exponential_gradient!
-    @test value(td) == f_x_seed
-    @test td.last_x_f == [0.0, 0.0]
-    @test td.f_calls == [1]
-    @test td.g_calls == [1]
-    @test td.h_calls == [1]
+    @test td.df == exponential_gradient!
+    @test value(td) == 0.0
+    @test td.f_calls == [0]
+    @test td.df_calls == [0]
+    @test td.h_calls == [0]
 
-    td_from_td = TwiceDifferentiable(td, x_seed .- 1)
-    @test value(td_from_td) == value(td, x_seed .- 1)
-    gradient!(td, x_seed .- 1)
-    @test gradient(td_from_td) == gradient(td)
-    @test value(td_from_td, x_seed) == value(td, x_seed)
+    @testset "no fg!" begin
+        srand(324)
+        od = OnceDifferentiable(exponential, exponential_gradient!, x_seed, 0.0, g_seed)
+        xrand = rand(2)
+        value_gradient!(od, xrand)
+        fcache = value(od)
+        gcache = copy(gradient(od))
+        value_gradient!(od, zeros(2))
+        gradient!(od, xrand)
+        @test value(od, zeros(2)) == od.F
+        @test value(od, zeros(2)) == value(od)
+        @test gradient(od) == gcache
+
+        td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed, 0.0, g_seed)
+        xrand = rand(2)
+        value_gradient!(td, xrand)
+        fcache = value(td)
+        gcache = copy(gradient(td))
+        value_gradient!(td, zeros(2))
+        gradient!(td, xrand)
+        @test value(td, zeros(2)) == td.F
+        @test value(td, zeros(2)) == value(td)
+        @test gradient(td) == gcache
+    end
 end
