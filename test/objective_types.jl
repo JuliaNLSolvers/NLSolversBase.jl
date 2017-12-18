@@ -40,4 +40,29 @@
     @test td.f_calls == [0]
     @test td.df_calls == [0]
     @test td.h_calls == [0]
+
+    @testset "no fg!" begin
+        srand(324)
+        od = OnceDifferentiable(exponential, exponential_gradient!, x_seed, 0.0, g_seed)
+        xrand = rand(2)
+        value_gradient!(od, xrand)
+        fcache = value(od)
+        gcache = copy(gradient(od))
+        value_gradient!(od, zeros(2))
+        gradient!(od, xrand)
+        @test value(od, zeros(2)) == od.F
+        @test value(od, zeros(2)) == value(od)
+        @test gradient(od) == gcache
+
+        td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed, 0.0, g_seed)
+        xrand = rand(2)
+        value_gradient!(td, xrand)
+        fcache = value(td)
+        gcache = copy(gradient(td))
+        value_gradient!(td, zeros(2))
+        gradient!(td, xrand)
+        @test value(td, zeros(2)) == td.F
+        @test value(td, zeros(2)) == value(td)
+        @test gradient(td) == gcache
+    end
 end

@@ -84,6 +84,7 @@ function value_jacobian!(obj, F, DF, x)
         gradient!!(obj, x)
     end
 end
+value_jacobian!!(obj, x) = value_jacobian!!(obj, obj.F, obj.DF, x)
 function value_jacobian!!(obj, F, J, x)
     obj.fdf(F, J, x)
     copy!(obj.x_f, x)
@@ -104,13 +105,10 @@ function jacobian!!(obj, fjac, x)
     obj.df_calls .+= 1
 end
 
-function value!(obj::OnceDifferentiable{TF, TDF, TX, Tcplx}, x) where {TF<:AbstractArray, TDF, TX, Tcplx}
-    if x != obj.x_f
-        value!!(obj, obj.F, x)
-    end
-end
-function value!!(obj, fvec, x)
-    obj.f(fvec, x)
+value!!(obj::NonDifferentiable{TF, TX, Tcplx}, x) where {TF<:AbstractArray, TX, Tcplx} = value!!(obj, obj.F, x)
+value!!(obj::OnceDifferentiable{TF, TDF, TX, Tcplx}, x) where {TF<:AbstractArray, TDF, TX, Tcplx} = value!!(obj, obj.F, x)
+function value!!(obj, F, x)
+    obj.f(F, x)
     copy!(obj.x_f, x)
     obj.f_calls .+= 1
 end

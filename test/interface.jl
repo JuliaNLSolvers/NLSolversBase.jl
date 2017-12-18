@@ -141,4 +141,100 @@
         @test od.df_calls == td.df_calls == [4]
         @test td.h_calls == [3]
     end
+    @testset "multivalued" begin
+        # Test example: Rosenbrock MINPACK
+        function f!(F::Vector, x::Vector)
+            F[1] = 1 - x[1]
+            F[2] = 10(x[2]-x[1]^2)
+        end
+        function j!(J::Matrix, x::Vector)
+            J[1,1] = -1
+            J[1,2] = 0
+            J[2,1] = -20x[1]
+            J[2,2] = 10
+        end
+
+        x_seed = [0.0, 0.0]
+        F_seed = [0.0, 0.0]
+        J_seed = [0.0 0.0; 0.0 0.0]
+        F_x_seed = [1.0, 0.0]
+        J_x_seed = [-1.0 0.0; -0.0 10.0]
+       
+        x_alt = [0.5, 0.5]
+        F_x_alt = [0.5, 2.5]
+        J_x_alt = [-1.0 0.0; -10.0 10.0]
+
+        # Construct instances
+        nd = NonDifferentiable(f!, x_seed, F_seed)
+        od = OnceDifferentiable(f!, j!, x_seed, F_seed, J_seed)
+
+        # Force evaluation
+        value!!(nd, nd.F, x_seed)
+        value_jacobian!!(od, od.F, od.DF, x_seed)
+
+        # Test that values are the same, and that values match those
+        # calculated by the value(obj, x) methods
+        @test value(nd) == value(od) == F_x_seed
+        @test value(nd, x_seed) == value(od, x_seed)
+
+        # Test that the Jacobians match the intended values
+        @test jacobian(od) == J_x_seed
+
+        # Test that the call counters got incremented
+        @test nd.f_calls == od.f_calls == [1]
+        @test od.df_calls == [1]
+
+        # Test that the call counters do not get incremented
+        # with single-"bang" methods...
+        value!(nd, x_seed)
+        value_jacobian!(od, x_seed)
+
+        @test nd.f_calls == od.f_calls == [1]
+        @test od.df_calls == [1]
+
+        # ... and that they do with double-"bang" methods
+        value!!(nd, x_seed)
+        value_jacobian!!(od, x_seed)
+
+        @test nd.f_calls == od.f_calls == [2]
+        @test od.df_calls == [2]
+
+        # Test that jacobian doesn't work for NonDifferentiable, but does otherwise
+        @test_throws ErrorException jacobian!(nd, x_alt)
+        jacobian!(od, x_alt)
+
+        @test value(nd) == value(od) == F_x_seed
+        @test jacobian(od) == J_x_alt
+        @test nd.f_calls == od.f_calls == [2]
+        @test od.df_calls == [3]
+
+        @test value(nd) == value(od) == F_x_seed
+        @test jacobian(od) == J_x_alt
+        @test nd.f_calls == od.f_calls == [2]
+        @test od.df_calls == [3]
+
+        value!(nd, x_alt)
+        value!(od, x_alt)
+        @test value(nd) == value(od) == F_x_alt
+        @test jacobian(od) == J_x_alt
+        @test nd.f_calls == od.f_calls == [3]
+        @test od.df_calls == [3]
+
+        @test_throws ErrorException value_jacobian!(nd, x_seed)
+        value_jacobian!(od, x_seed)
+        @test value(od) == F_x_seed
+        # change x_f manually to test branch
+        od.x_f .*= 0
+        value_jacobian!(od, x_seed)
+        @test value(od) == F_x_seed
+        # change x_df manually to test branch
+        # only df is meant to be re-calculated as
+        # d.x_f == x_seed
+        od.x_df .*= 0
+        value_jacobian!(od, x_seed)
+        @test value(od) == F_x_seed
+        @test jacobian(od) == J_x_seed
+        @test od.f_calls == [4]
+        @test od.df_calls ==[4]
+    end
 end
