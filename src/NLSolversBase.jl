@@ -26,7 +26,20 @@ export AbstractObjective,
        value_jacobian!!,
        hessian!!,
        hv_product,
-       hv_product!
+       hv_product!,
+       only_fg!,
+       only_fj!,
+       only_g!_and_fg!,
+       only_j!_and_fj!,
+       only_f_and_fg!,
+       only_f!_and_fj!,
+       only_fg,
+       only_fj,
+       only_g_and_fg,
+       only_j_and_fj,
+       only_f_and_fg,
+       only_f_and_fj
+             
 
 x_of_nans(x) = convert(typeof(x), fill(eltype(x)(NaN), size(x)...))
 
@@ -36,6 +49,7 @@ include("objective_types/nondifferentiable.jl")
 include("objective_types/oncedifferentiable.jl")
 include("objective_types/twicedifferentiable.jl")
 include("objective_types/twicedifferentiablehv.jl")
+include("objective_types/incomplete.jl")
 include("interface.jl")
 
 end # module
