@@ -135,6 +135,46 @@ jacobian!(df, x)  # update the jacobian if !(df.x_df==x) and set df.x_df to x
 jacobian!!(df, x) # update the jacobian and set df.x_df to x
 ```
 
+## Special single-function interface
+In some cases the objective and partial derivaties share
+common terms that are expensive to calculate. One such case is if
+the underlying problem requires solution of a model or simulation
+of a some system. In that case the `only_fg!`/`only_fj!` and `only_fgh!`
+interfaces can be used.
+
+### Example
+Say we have some common functionality in `common_calc(...)` that is used
+in both the objective and partial derivative. Then we might construct a
+OnceDifferentiable instance as
+```julia
+function f(x)
+    common_calc(...)
+    # calculations specific to f
+    return f
+end
+function g!(G, x)
+    common_calc(...)
+    # mutating calculations specific to g!
+end
+OnceDifferentiable(f, g!, x0)
+```
+However, in many algorithms `f` and `g!` are evaluated together, so the
+common calculations are done twice instead of once. We can use the special
+interface as shown below.
+```julia
+function fg!(G, x)
+    common_calc(...)
+    if !(G == nothing)
+        # mutating calculations specific to g!
+    end
+    # calculations specific to f
+    return f
+end
+OnceDifferentiable(only_fg!(fg!), x0)
+```
+Notice the important check in the `if` statement. This makes sure that `G` is only
+updated when we want to.
+
 [build-img]: https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl.svg?branch=master
 [build-url]: https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl
 
