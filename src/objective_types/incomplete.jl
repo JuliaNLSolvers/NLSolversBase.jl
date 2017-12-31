@@ -32,9 +32,9 @@ function make_f_from_t(t, x, F::TF) where TF
     if t[end]
         # Mutating version
         if TF <: Real
-            return x -> fdf(alloc_DF(x, F), x)
+            return f(x) = fdf(nothing, x)
         else
-            return (F, x) -> fdf(F, alloc_DF(x, F), x)
+            return (F, x) -> fdf(F, nothing, x)
         end
     else
         # Non-mutating version
@@ -53,13 +53,19 @@ function make_f_and_df_from_t(t, x, F::TF) where TF
     if t[end]
         # Mutating version
         if TF <: Real
-            f(x) = fdf(alloc_DF(x, F), x)[1]
-            g!(G, x) = fdf(G, x)
-            return f, g!
+            f(x) = fdf(nothing, x)
+            function g!(G, x)
+                fdf(G, x)
+                # return `nothing` to cause a high chance of
+                # program failure if users accidentally use
+                # the output of g!
+                return nothing
+            end
+            return f, g!, fdf
         else
-            f!(F, x) = fdf(F, alloc_DF(x, F), x)
-            j!(J, x) = fdf(similar(F), J, x)
-            return f!, j!
+            f!(F, x) = fdf(F, nothing, x)
+            j!(J, x) = fdf(nothing, J, x)
+            return f!, j!, fdf
         end
     else
         # Non-mutating version
@@ -95,7 +101,7 @@ function make_df_from_t(t, x, F::TF) where TF
         if TF <: Real
             return fdf
         else
-            return (J, x) -> fdf(similar(F), J, x)
+            return (J, x) -> fdf(nothing, J, x)
         end
     else
         # Non-mutating version
