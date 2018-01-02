@@ -162,18 +162,21 @@ However, in many algorithms `f` and `g!` are evaluated together, so the
 common calculations are done twice instead of once. We can use the special
 interface as shown below.
 ```julia
-function fg!(G, x)
+function fg!(F, G, x)
     common_calc(...)
     if !(G == nothing)
         # mutating calculations specific to g!
     end
-    # calculations specific to f
-    return f
+    if !(F == nothing)
+        # calculations specific to f
+        return f
+    end
 end
 OnceDifferentiable(only_fg!(fg!), x0)
 ```
-Notice the important check in the `if` statement. This makes sure that `G` is only
-updated when we want to.
+Notice the important check in the `if` statements. This makes sure that `G` is only
+updated when we want to, and, if only `G` is to be updated, that we don't calculate 
+the objective.
 
 [build-img]: https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl.svg?branch=master
 [build-url]: https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl
