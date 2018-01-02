@@ -24,7 +24,6 @@ function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T, G::TG = similar(x), H:
                                         [0,], [0,], [0,])
 end
 
-
 function TwiceDifferentiable(f, g!, h!, x::AbstractVector, F = real(zero(eltype(x))), G = similar(x))
     fg! = make_fdf(x, F, f, g!)
     return TwiceDifferentiable(f, g!, fg!, h!, x, F)

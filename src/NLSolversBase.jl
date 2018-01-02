@@ -29,16 +29,10 @@ export AbstractObjective,
        hv_product!,
        only_fg!,
        only_fj!,
-       only_g!_and_fg!,
-       only_j!_and_fj!,
-       only_f_and_fg!,
-       only_f!_and_fj!,
        only_fg,
        only_fj,
        only_g_and_fg,
-       only_j_and_fj,
-       only_f_and_fg,
-       only_f_and_fj
+       only_j_and_fj
              
 
 x_of_nans(x) = convert(typeof(x), fill(eltype(x)(NaN), size(x)...))

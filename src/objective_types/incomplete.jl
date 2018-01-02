@@ -25,6 +25,7 @@ only_fj(fj) = NotInplaceObjective(nothing, fj)
 only_g_and_fg(g, fg) = NotInplaceObjective(g, fg)
 only_j_and_fj(j, fj) = NotInplaceObjective(j, fj)
 
+df(t::Union{InplaceObjective, NotInplaceObjective}) = t.df
 fdf(t::Union{InplaceObjective, NotInplaceObjective}) = t.fdf
 
 # Mutating version
@@ -39,7 +40,8 @@ make_fdf(t::InplaceObjective, x, F::TF) where TF = fdf(t)
 # of whatever fdf returns.
 make_f(t::NotInplaceObjective, x, F::Real) = x -> fdf(t)(x)[1]
 make_f(t::NotInplaceObjective, x, F) = (F, x) -> copy!(F, fdf(t)(x)[1])
-make_df(t::NotInplaceObjective, x, F) = (DF, x) -> copy!(G, fdf(t)(x)[2])
+make_df(t::NotInplaceObjective{DF, TDF}, x, F) where {DF<:Void, TDF} = (DF, x) -> copy!(G, fdf(t)(x)[2])
+make_df(t::NotInplaceObjective, x, F) = t.df
 function make_fdf(t::NotInplaceObjective, x, F::Real)
     return function ffgg!(G, x)
         f, g = fdf(t)(x)
