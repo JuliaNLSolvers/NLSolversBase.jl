@@ -189,7 +189,7 @@ the objective.
 [pkg-0.6-url]: http://pkg.julialang.org/?pkg=NLSolversBase&ver=0.6
 
 [cov-img]: http://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl/coverage.svg?branch=master
-[cov-url]: http://codecov.io/github/pkofod/NLSolversBase.jl?branch=master
+[cov-url]: http://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl?branch=master
 
 [coveralls-img]: https://coveralls.io/repos/JuliaNLSolvers/NLSolversBase.jl/badge.svg?branch=master&service=github
 [coveralls-url]: https://coveralls.io/github/JuliaNLSolvers/NLSolversBase.jl?branch=master
