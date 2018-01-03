@@ -50,20 +50,21 @@
     end
 
     nd_fg = NonDifferentiable(only_fg(fg), x)
-    nd_fg! = NonDifferentiable(only_fg(just_fg!), x)
+    nd_fg! = NonDifferentiable(only_fg!(just_fg!), x)
     for ND in (nd_fg, nd_fg!)
         value!(ND, x)
         value(ND) == f(x)
     end
-    od_fg = NonDifferentiable(only_fg(fg), x)
-    od_fg! = NonDifferentiable(only_fg(just_fg!), x)
+    od_fg = OnceDifferentiable(only_fg(fg), x)
+    od_fg! = OnceDifferentiable(only_fg!(just_fg!), x)
     for OD in (od_fg, od_fg!)
         value!(OD, x)
-        value(OD) == f(x)
+        @test value(OD) == f(x)
         gradient!(OD, x)
-        gradient(OD) == f(x)
+        @test gradient(OD) == g(x)
         value_gradient!(OD, 2.*x)
-        value(OD), gradient(OD) == f(2.*x), g(2.*x)
+        @test value(OD) == f(2.*x)
+        @test gradient(OD) == g(2.*x)
     end
 
 end
