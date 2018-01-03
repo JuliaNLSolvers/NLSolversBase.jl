@@ -32,7 +32,8 @@ fdf(t::Union{InplaceObjective, NotInplaceObjective}) = t.fdf
 make_f(t::InplaceObjective, x, F::Real) = x -> fdf(t)(F, nothing, x)
 make_f(t::InplaceObjective, x, F) =  (F, x) -> fdf(t)(F, nothing, x)
 make_df(t::InplaceObjective, x, F) = (DF, x) -> fdf(t)(nothing, DF, x)
-make_fdf(t::InplaceObjective, x, F::TF) where TF = fdf(t)
+make_fdf(t::InplaceObjective, x, F::Real) = (G, x) -> fdf(t)(F, G, x)
+make_fdf(t::InplaceObjective, x, F) = fdf(t)
 
 # Non-mutating version
 # The contract with the user is that fdf returns (F, DF)
@@ -40,7 +41,7 @@ make_fdf(t::InplaceObjective, x, F::TF) where TF = fdf(t)
 # of whatever fdf returns.
 make_f(t::NotInplaceObjective, x, F::Real) = x -> fdf(t)(x)[1]
 make_f(t::NotInplaceObjective, x, F) = (F, x) -> copy!(F, fdf(t)(x)[1])
-make_df(t::NotInplaceObjective{DF, TDF}, x, F) where {DF<:Void, TDF} = (DF, x) -> copy!(G, fdf(t)(x)[2])
+make_df(t::NotInplaceObjective{DF, TDF}, x, F) where {DF<:Void, TDF} = (DF, x) -> copy!(DF, fdf(t)(x)[2])
 make_df(t::NotInplaceObjective, x, F) = t.df
 function make_fdf(t::NotInplaceObjective, x, F::Real)
     return function ffgg!(G, x)
@@ -58,7 +59,11 @@ function make_fdf(t::NotInplaceObjective, x, F)
 end
 
 # Constructors
-function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F = real(zero(eltype(x))))
+function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::Real = real(zero(eltype(x))))
+    f = make_f(t, x, F)
+    NonDifferentiable(f, x, F)
+end
+function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::AbstractArray)
     f = make_f(t, x, F)
     NonDifferentiable(f, x, F)
 end
