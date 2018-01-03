@@ -62,6 +62,7 @@
         @test value(OD) == f(x)
         gradient!(OD, x)
         @test gradient(OD) == g(x)
+        @test gradient(OD, x) == g(x)
         value_gradient!(OD, 2.*x)
         @test value(OD) == f(2.*x)
         @test gradient(OD) == g(2.*x)
