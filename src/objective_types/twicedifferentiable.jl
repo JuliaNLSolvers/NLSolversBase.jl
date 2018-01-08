@@ -16,7 +16,7 @@ mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective
 end
 iscomplex(obj::TwiceDifferentiable) = false
 # compatibility with old constructor
-function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T, G::TG = similar(x), H::TH = alloc_H(x)) where {T, TG, TH, TX}
+function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T = real(zero(eltype(x))), G::TG = similar(x), H::TH = alloc_H(x)) where {T, TG, TH, TX}
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
     TwiceDifferentiable{T,TG, TH, TX}(f, g!, fg!, h!,
                                         copy(F), similar(G), copy(H),
