@@ -161,9 +161,9 @@
         @test gradient(od) == zeros(2)
         @test gradient(td) == zeros(2)
 
-        reset!(nd)
-        reset!(od)
-        reset!(td)
+        clear!(nd)
+        clear!(od)
+        clear!(td)
         @test nd.f_calls == [0,]
         @test od.f_calls == [0,]
         @test td.f_calls == [0,]
@@ -267,8 +267,8 @@
         @test od.f_calls == [4]
         @test od.df_calls == [4]
 
-        reset!(nd)
-        reset!(od)
+        clear!(nd)
+        clear!(od)
         @test nd.f_calls == [0,]
         @test od.f_calls == [0,]
         @test od.df_calls == [0,]
