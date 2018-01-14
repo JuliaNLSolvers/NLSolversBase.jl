@@ -160,7 +160,16 @@
         td.DF .= 0.0
         @test gradient(od) == zeros(2)
         @test gradient(td) == zeros(2)
-        
+
+        reset!(nd)
+        reset!(od)
+        reset!(td)
+        @test nd.f_calls == [0,]
+        @test od.f_calls == [0,]
+        @test td.f_calls == [0,]
+        @test od.df_calls == [0,]
+        @test td.df_calls == [0,]
+        @test td.h_calls == [0,]
     end
     @testset "multivalued" begin
         # Test example: Rosenbrock MINPACK
@@ -180,7 +189,7 @@
         J_seed = [0.0 0.0; 0.0 0.0]
         F_x_seed = [1.0, 0.0]
         J_x_seed = [-1.0 0.0; -0.0 10.0]
-       
+
         x_alt = [0.5, 0.5]
         F_x_alt = [0.5, 2.5]
         J_x_alt = [-1.0 0.0; -10.0 10.0]
