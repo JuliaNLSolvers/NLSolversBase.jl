@@ -32,8 +32,8 @@ export AbstractObjective,
        only_fg,
        only_fj,
        only_g_and_fg,
-       only_j_and_fj
-             
+       only_j_and_fj,
+       reset!
 
 x_of_nans(x) = convert(typeof(x), fill(eltype(x)(NaN), size(x)...))
 
