@@ -24,7 +24,7 @@ function OnceDifferentiable(f, df, fdf,
         x = complex_to_real(x)
         DF = complex_to_real(DF)
     end
-           
+
     x_f, x_df = x_of_nans(x), x_of_nans(x)
     OnceDifferentiable{typeof(F),typeof(DF),typeof(x),Val{iscomplex}}(f, df, fdf,
                                                 copy(F), copy(DF),

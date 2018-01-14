@@ -114,7 +114,11 @@ end
 
 function _reset_f!(d::NLSolversBase.AbstractObjective)
     d.f_calls .= 0
-    d.F = typeof(d.F)(NaN)
+    if typeof(d.F) <: AbstractArray
+        d.F .= eltype(d.F)(NaN)
+    else
+        d.F = typeof(d.F)(NaN)
+    end
     d.x_f .= eltype(d.x_f)(NaN)
 end
 

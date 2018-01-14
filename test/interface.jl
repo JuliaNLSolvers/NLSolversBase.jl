@@ -266,5 +266,11 @@
         @test jacobian(od) == J_x_seed
         @test od.f_calls == [4]
         @test od.df_calls == [4]
+
+        reset!(nd)
+        reset!(od)
+        @test nd.f_calls == [0,]
+        @test od.f_calls == [0,]
+        @test od.df_calls == [0,]
     end
 end
