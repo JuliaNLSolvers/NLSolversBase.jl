@@ -53,7 +53,7 @@ function value_gradient!!(obj::AbstractObjective, x)
     obj.df_calls .+= 1
     copy!(obj.x_f, x)
     copy!(obj.x_df, x)
-    obj.F = obj.fdf(real_to_complex(obj, obj.DF), real_to_complex(obj, x))    
+    obj.F = obj.fdf(real_to_complex(obj, obj.DF), real_to_complex(obj, x))
 end
 
 function hessian!(obj::AbstractObjective, x)
@@ -110,4 +110,52 @@ function value!!(obj, F, x)
     obj.f(F, x)
     copy!(obj.x_f, x)
     obj.f_calls .+= 1
+end
+
+function _clear_f!(d::NLSolversBase.AbstractObjective)
+    d.f_calls .= 0
+    if typeof(d.F) <: AbstractArray
+        d.F .= eltype(d.F)(NaN)
+    else
+        d.F = typeof(d.F)(NaN)
+    end
+    d.x_f .= eltype(d.x_f)(NaN)
+end
+
+function _clear_df!(d::NLSolversBase.AbstractObjective)
+    d.df_calls .= 0
+    d.DF .= eltype(d.DF)(NaN)
+    d.x_df .= eltype(d.x_df)(NaN)
+end
+
+function _clear_h!(d::NLSolversBase.AbstractObjective)
+    d.h_calls .= 0
+    d.H .= eltype(d.H)(NaN)
+    d.x_h .= eltype(d.x_h)(NaN)
+end
+
+function _clear_hv!(d::NLSolversBase.AbstractObjective)
+    d.hv_calls .= 0
+    d.Hv .= eltype(d.Hv)(NaN)
+    d.x_hv .= eltype(d.x_hv)(NaN)
+    d.v_hv .= eltype(d.v_h)(NaN)
+end
+
+clear!(d::NonDifferentiable)  = _clear_f!(d)
+
+function clear!(d::OnceDifferentiable)
+    _clear_f!(d)
+    _clear_df!(d)
+end
+
+function clear!(d::TwiceDifferentiable)
+    _clear_f!(d)
+    _clear_df!(d)
+    _clear_h!(d)
+end
+
+function clear!(d::TwiceDifferentiableHV)
+    _clear_f!(d)
+    _clear_df!(d)
+    _clear_hv!(d)
 end

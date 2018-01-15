@@ -2,7 +2,7 @@ __precompile__(true)
 
 module NLSolversBase
 
-import Base: gradient
+import Base: gradient, clear!
 export AbstractObjective,
        NonDifferentiable,
        OnceDifferentiable,
@@ -32,8 +32,8 @@ export AbstractObjective,
        only_fg,
        only_fj,
        only_g_and_fg,
-       only_j_and_fj
-             
+       only_j_and_fj,
+       clear!
 
 x_of_nans(x) = convert(typeof(x), fill(eltype(x)(NaN), size(x)...))
 
