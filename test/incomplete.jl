@@ -69,3 +69,79 @@
     end
 
 end
+@testset "incomplete objectives vectors" begin
+    import NLSolversBase: df, fdf, make_f, make_df, make_fdf
+    function tf(x)
+        x.^2
+    end
+    function tf(F, x)
+        copy!(F, tf(x))
+    end
+
+    tj!(J, x) = copy!(J, diagm(x))
+    tj(x) = diagm(x)
+
+    function tfj!(F, J, x)
+        copy!(J, diagm(x))
+        copy!(F, tf(x))
+    end
+    function just_tfj!(F, J, x)
+        !(J == nothing) && copy!(J, diagm(x))
+        !(F == nothing) && copy!(F, tf(x))
+    end
+    tfj(x) = tf(x), tj(x)
+
+    fdf!_real = only_fj!(just_tfj!)
+    fdf_real = only_fj(tfj)
+    
+    df_fdf_real = only_j_and_fj(tj, tfj)
+    srand(3259)
+    x = rand(10)
+    J_cache = similar(diagm(x))
+    J_cache2 = similar(diagm(x))
+    F_cache = similar(x)
+    F_cache2 = similar(x)
+
+    @test df(fdf!_real) === nothing
+    @test df(fdf_real) === nothing
+    @test df(df_fdf_real) === tj 
+    @test df(df_fdf_real)(x) == tj(x) 
+    
+    @test fdf(fdf!_real) === just_tfj!
+    @test fdf(fdf_real) === tfj
+    @test df(df_fdf_real) == tj
+    @test fdf(df_fdf_real) == tfj
+    @test df(df_fdf_real)(x) == tj(x) 
+    @test fdf(df_fdf_real)(x) == tfj(x) 
+    
+    for FDF in (fdf_real, fdf!_real)
+        @test make_f(FDF, x, x)(F_cache, x) == tf(x)
+        make_df(FDF, x, x)(J_cache, x)
+        tj!(J_cache2, x)
+        @test J_cache == J_cache2
+        make_fdf(FDF, x, x)(F_cache, J_cache, x.*2)
+        tfj!(F_cache2, J_cache2, x.*2)
+        @test F_cache == F_cache2
+        @test J_cache == J_cache2
+    end
+
+    nd_fj = NonDifferentiable(only_fj(tfj), x, x)
+    nd_fj! = NonDifferentiable(only_fj!(just_tfj!), x, x)
+    for ND in (nd_fj, nd_fj!)
+        value!(ND, x)
+        value(ND) == tf(x)
+    end
+    od_fj = OnceDifferentiable(only_fj(tfj), x, x)
+    od_fj! = OnceDifferentiable(only_fj!(just_tfj!), x, x)
+    for OD in (od_fj, od_fj!)
+        value!(OD, x)
+        @test value(OD) == tf(x)
+        jacobian!(OD, x)
+        @test jacobian(OD) == tj(x)
+        @test jacobian(OD, x) == tj(x)
+        value_jacobian!(OD, 2.*x)
+        @test value(OD) == tf(2.*x)
+        @test jacobian(OD) == tj(2.*x)
+    end
+
+end

@@ -70,7 +70,7 @@ end
 # Getters are without ! and accept only an objective and index or just an objective
 value(obj::AbstractObjective) = obj.F
 gradient(obj::AbstractObjective) = obj.DF
-jacobian(obj::AbstractObjective) = gradient(obj)
+jacobian(obj::AbstractObjective) = obj.DF
 gradient(obj::AbstractObjective, i::Integer) = obj.DF[i]
 hessian(obj::AbstractObjective) = obj.H
 
@@ -102,6 +102,16 @@ function jacobian!!(obj, x)
     obj.df(obj.DF, x)
     copy!(obj.x_df, x)
     obj.df_calls .+= 1
+end
+function jacobian(obj::AbstractObjective, x)
+    if x != obj.x_df
+        tmp = copy(obj.DF)
+        jacobian!!(obj, x)
+        newdf = copy(obj.DF)
+        copy!(obj.DF, tmp)
+        return newdf
+    end
+    obj.DF
 end
 
 value!!(obj::NonDifferentiable{TF, TX, Tcplx}, x) where {TF<:AbstractArray, TX, Tcplx} = value!!(obj, obj.F, x)
