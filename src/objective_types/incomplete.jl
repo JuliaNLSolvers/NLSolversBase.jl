@@ -74,3 +74,10 @@ function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::
     fdf = make_fdf(t, x, F)
     OnceDifferentiable(f, df, fdf, x, F)
 end
+
+function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::AbstractArray)
+    f = make_f(t, x, F)
+    df = make_df(t, x, F)
+    fdf = make_fdf(t, x, F)
+    OnceDifferentiable(f, df, fdf, x, F)
+end
