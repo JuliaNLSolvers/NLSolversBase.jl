@@ -35,7 +35,7 @@ export AbstractObjective,
        only_j_and_fj,
        clear!
 
-x_of_nans(x) = convert(typeof(x), fill(eltype(x)(NaN), size(x)...))
+x_of_nans(x) = copy(x).=(eltype(x))(NaN)
 
 include("complex_real.jl")
 include("objective_types/abstract.jl")
