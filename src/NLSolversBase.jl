@@ -36,7 +36,7 @@ export AbstractObjective,
        clear!
 
 export AbstractConstraints, DifferentiableConstraints,
-    TwiceDifferentiableConstraints, ConstraintBounds,
+    TwiceDifferentiableConstraints, ConstraintBounds
 
 x_of_nans(x) = copy(x).=(eltype(x))(NaN)
 

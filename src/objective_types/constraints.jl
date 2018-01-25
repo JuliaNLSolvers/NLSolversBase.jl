@@ -85,30 +85,30 @@ abstract type AbstractConstraints end
 
 nconstraints(constraints::AbstractConstraints) = nconstraints(constraints.bounds)
 
-struct DifferentiableConstraintsFunction{F,J,T} <: AbstractConstraints
+struct DifferentiableConstraints{F,J,T} <: AbstractConstraints
     c!::F         # c!(x, storage) stores the value of the constraint-functions at x
     jacobian!::J  # jacobian!(x, storage) stores the Jacobian of the constraint-functions
     bounds::ConstraintBounds{T}
 end
 
-function DifferentiableConstraintsFunction(c!, jacobian!, lx, ux, lc, uc)
+function DifferentiableConstraints(c!, jacobian!, lx, ux, lc, uc)
     b = ConstraintBounds(lx, ux, lc, uc)
-    DifferentiableConstraintsFunction(c!, jacobian!, b)
+    DifferentiableConstraints(c!, jacobian!, b)
 end
 
 #TODO: is this constructor necessary?
-DifferentiableConstraintsFunction(c!, jacobian!, bounds::ConstraintBounds) =
-    DifferentiableConstraintsFunction{typeof(c!), typeof(jacobian!), eltype(b)}(c!, jacobian!, b)
+DifferentiableConstraints(c!, jacobian!, bounds::ConstraintBounds) =
+    DifferentiableConstraints{typeof(c!), typeof(jacobian!), eltype(b)}(c!, jacobian!, b)
 
-function DifferentiableConstraintsFunction(lx::AbstractArray, ux::AbstractArray)
+function DifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
     bounds = ConstraintBounds(lx, ux, [], [])
-    DifferentiableConstraintsFunction(bounds)
+    DifferentiableConstraints(bounds)
 end
 
-function DifferentiableConstraintsFunction(bounds::ConstraintBounds)
+function DifferentiableConstraints(bounds::ConstraintBounds)
     c! = (x,c)->nothing
     J! = (x,J)->nothing
-    DifferentiableConstraintsFunction(c!, J!, bounds)
+    DifferentiableConstraints(c!, J!, bounds)
 end
 
 struct TwiceDifferentiableConstraints{F,J,H,T} <: AbstractConstraints
