@@ -18,8 +18,8 @@ function make_fdf(x, F::Number, f, g!)
 end
 
 # Initialize an n-by-n Jacobian
-alloc_DF(x, F) = zeros(eltype(x), length(x), length(x)) #similar(x, length(x), length(x))
+alloc_DF(x, F) = fill(eltype(x)(NaN), length(F), length(x))
 # Initialize a gradient shaped like x
-alloc_DF(x, F::Number) = similar(x)
+alloc_DF(x, F::Number) = x_of_nans(x)
 # Initialize an n-by-n Hessian
-alloc_H(x) = zeros(eltype(x), length(x), length(x)) # similar(x, length(x), length(x))
+alloc_H(x) = alloc_DF(x, x)
