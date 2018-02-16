@@ -85,26 +85,26 @@ abstract type AbstractConstraints end
 
 nconstraints(constraints::AbstractConstraints) = nconstraints(constraints.bounds)
 
-struct DifferentiableConstraints{F,J,T} <: AbstractConstraints
+struct OnceDifferentiableConstraints{F,J,T} <: AbstractConstraints
     c!::F         # c!(storage, x) stores the value of the constraint-functions at x
     jacobian!::J  # jacobian!(storage, x) stores the Jacobian of the constraint-functions
     bounds::ConstraintBounds{T}
 end
 
-function DifferentiableConstraints(c!, jacobian!, lx, ux, lc, uc)
+function OnceDifferentiableConstraints(c!, jacobian!, lx, ux, lc, uc)
     b = ConstraintBounds(lx, ux, lc, uc)
-    DifferentiableConstraints(c!, jacobian!, b)
+    OnceDifferentiableConstraints(c!, jacobian!, b)
 end
 
-function DifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
+function OnceDifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
     bounds = ConstraintBounds(lx, ux, [], [])
-    DifferentiableConstraints(bounds)
+    OnceDifferentiableConstraints(bounds)
 end
 
-function DifferentiableConstraints(bounds::ConstraintBounds)
+function OnceDifferentiableConstraints(bounds::ConstraintBounds)
     c! = (x,c)->nothing
     J! = (x,J)->nothing
-    DifferentiableConstraints(c!, J!, bounds)
+    OnceDifferentiableConstraints(c!, J!, bounds)
 end
 
 struct TwiceDifferentiableConstraints{F,J,H,T} <: AbstractConstraints

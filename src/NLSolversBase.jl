@@ -35,7 +35,7 @@ export AbstractObjective,
        only_j_and_fj,
        clear!
 
-export AbstractConstraints, DifferentiableConstraints,
+export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds
 
 x_of_nans(x) = copy(x).=(eltype(x))(NaN)
