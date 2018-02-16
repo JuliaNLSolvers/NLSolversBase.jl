@@ -13,7 +13,7 @@
 # provide the variable-derivatives manually, which would be silly.
 #
 # This parametrization of the constraints gets "parsed" into a form
-# that speeds and simplifies the algorithm, at the cost of many
+# that speeds and simplifies the IPNewton algorithm, at the cost of many
 # additional variables. See `parse_constraints` for details.
 
 struct ConstraintBounds{T}
@@ -86,8 +86,8 @@ abstract type AbstractConstraints end
 nconstraints(constraints::AbstractConstraints) = nconstraints(constraints.bounds)
 
 struct DifferentiableConstraints{F,J,T} <: AbstractConstraints
-    c!::F         # c!(x, storage) stores the value of the constraint-functions at x
-    jacobian!::J  # jacobian!(x, storage) stores the Jacobian of the constraint-functions
+    c!::F         # c!(storage, x) stores the value of the constraint-functions at x
+    jacobian!::J  # jacobian!(storage, x) stores the Jacobian of the constraint-functions
     bounds::ConstraintBounds{T}
 end
 
@@ -95,10 +95,6 @@ function DifferentiableConstraints(c!, jacobian!, lx, ux, lc, uc)
     b = ConstraintBounds(lx, ux, lc, uc)
     DifferentiableConstraints(c!, jacobian!, b)
 end
-
-#TODO: is this constructor necessary?
-DifferentiableConstraints(c!, jacobian!, bounds::ConstraintBounds) =
-    DifferentiableConstraints{typeof(c!), typeof(jacobian!), eltype(b)}(c!, jacobian!, b)
 
 function DifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
     bounds = ConstraintBounds(lx, ux, [], [])
@@ -112,17 +108,15 @@ function DifferentiableConstraints(bounds::ConstraintBounds)
 end
 
 struct TwiceDifferentiableConstraints{F,J,H,T} <: AbstractConstraints
-    c!::F
-    jacobian!::J
-    h!::H   # Hessian of the barrier terms
+    c!::F # c!(storage, x) stores the value of the constraint-functions at x
+    jacobian!::J # jacobian!(storage, x) stores the Jacobian of the constraint-functions
+    h!::H   # h!(storage, x) stores the hessian of the constraint functions
     bounds::ConstraintBounds{T}
 end
 function TwiceDifferentiableConstraints(c!, jacobian!, h!, lx, ux, lc, uc)
     b = ConstraintBounds(lx, ux, lc, uc)
     TwiceDifferentiableConstraints(c!, jacobian!, h!, b)
 end
-TwiceDifferentiableConstraints(c!, jacobian!, h!, bounds::ConstraintBounds) =
-    TwiceDifferentiableConstraints{typeof(c!), typeof(jacobian!), typeof(h!), eltype(bounds)}(c!, jacobian!, h!, bounds)
 
 function TwiceDifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
     bounds = ConstraintBounds(lx, ux, [], [])
@@ -232,10 +226,6 @@ end
 Base.show(io::IO, uqstr::UnquotedString) = print(io, uqstr.str)
 
 Base.array_eltype_show_how(a::Vector{UnquotedString}) = false, ""
-
-if !isdefined(Base, :IOContext)
-    IOContext(io; kwargs...) = io
-end
 
 function showeq(io, indent, eq, val, chr, style)
     if !isempty(eq)
