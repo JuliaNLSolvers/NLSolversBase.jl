@@ -134,10 +134,15 @@ end
 ## Utilities
 
 function symmetrize(l, u)
-    if isempty(l) && !isempty(u)
+    if isempty(l) && isempty(u)
+        # This prevents ConstraintBounds{Any} if we call
+        # ConstraintBounds([], [], lc, uc) (or same for lc, uc)
+        # TODO: Is this a bad way to do this?
+        l = Array{Int}(0)
+        u = Array{Int}(0)
+    elseif isempty(l) && !isempty(u)
         l = fill!(similar(u), -Inf)
-    end
-    if !isempty(l) && isempty(u)
+    elseif !isempty(l) && isempty(u)
         u = fill!(similar(l), Inf)
     end
     # TODO: change to indices?
