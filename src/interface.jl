@@ -1,8 +1,18 @@
+"""
+Force (re-)evaluation of the objective value at `x`.
+
+Returns `f(x)` and stores the value in `obj.F`
+"""
 function value!!(obj::AbstractObjective, x)
     obj.f_calls .+= 1
     copy!(obj.x_f, x)
     obj.F = obj.f(real_to_complex(obj, x))
 end
+"""
+Evaluates the objective value at `x`.
+
+Returns `f(x)`, but does *not* store the value in `obj.F`
+"""
 function value(obj::AbstractObjective, x)
     if x != obj.x_f
         obj.f_calls .+= 1
@@ -10,6 +20,11 @@ function value(obj::AbstractObjective, x)
     end
     obj.F
 end
+"""
+Evaluates the objective value at `x`.
+
+Returns `f(x)` and stores the value in `obj.F`
+"""
 function value!(obj::AbstractObjective, x)
     if x != obj.x_f
         value!!(obj, x)
@@ -17,6 +32,11 @@ function value!(obj::AbstractObjective, x)
     obj.F
 end
 
+"""
+Evaluates the gradient value at `x`
+
+This does *not* update `obj.DF`.
+"""
 function gradient(obj::AbstractObjective, x)
     if x != obj.x_df
         tmp = copy(obj.DF)
@@ -27,11 +47,21 @@ function gradient(obj::AbstractObjective, x)
     end
     obj.DF
 end
+"""
+Evaluates the gradient value at `x`.
+
+Stores the value in `obj.DF`.
+"""
 function gradient!(obj::AbstractObjective, x)
     if x != obj.x_df
         gradient!!(obj, x)
     end
 end
+"""
+Force (re-)evaluation of the gradient value at `x`.
+
+Stores the value in `obj.DF`.
+"""
 function gradient!!(obj::AbstractObjective, x)
     obj.df_calls .+= 1
     copy!(obj.x_df, x)
@@ -68,10 +98,15 @@ function hessian!!(obj::AbstractObjective, x)
 end
 
 # Getters are without ! and accept only an objective and index or just an objective
+"Get the most recently evaluated objective value of `obj`."
 value(obj::AbstractObjective) = obj.F
+"Get the most recently evaluated gradient of `obj`."
 gradient(obj::AbstractObjective) = obj.DF
+"Get the most recently evaluated Jacobian of `obj`."
 jacobian(obj::AbstractObjective) = obj.DF
+"Get the `i`th element of the most recently evaluated gradient of `obj`."
 gradient(obj::AbstractObjective, i::Integer) = obj.DF[i]
+"Get the most recently evaluated Hessian of `obj`"
 hessian(obj::AbstractObjective) = obj.H
 
 value_jacobian!(obj, x) = value_jacobian!(obj, obj.F, obj.DF, x)

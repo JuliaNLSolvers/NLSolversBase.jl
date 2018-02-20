@@ -1,4 +1,6 @@
 @testset "objective types" begin
+    # TODO: Use OptimTestProblems
+    # TODO: MultivariateProblems.UnconstrainedProblems.exampples["Exponential"]
 
     # Test example
     function exponential(x::Vector)
@@ -53,7 +55,7 @@
         @test value(od, zeros(2)) == od.F
         @test value(od, zeros(2)) == value(od)
         @test gradient(od) == gcache
-        
+
         od = OnceDifferentiable(exponential, exponential_gradient!, x_seed)
         xrand = rand(2)
         value_gradient!(od, xrand)

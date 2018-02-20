@@ -35,6 +35,9 @@ export AbstractObjective,
        only_j_and_fj,
        clear!
 
+export AbstractConstraints, OnceDifferentiableConstraints,
+    TwiceDifferentiableConstraints, ConstraintBounds
+
 x_of_nans(x) = copy(x).=(eltype(x))(NaN)
 
 include("complex_real.jl")
@@ -44,6 +47,7 @@ include("objective_types/oncedifferentiable.jl")
 include("objective_types/twicedifferentiable.jl")
 include("objective_types/twicedifferentiablehv.jl")
 include("objective_types/incomplete.jl")
+include("objective_types/constraints.jl")
 include("interface.jl")
 
 end # module
