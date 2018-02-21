@@ -206,7 +206,6 @@ function parse_constraints(::Type{T}, l, u) where T
                 push!(σ, 1)
                 push!(b, li)
             end
-            ui = u[i]
             if isfinite(ui)
                 push!(ineq, i)
                 push!(σ, -1)
