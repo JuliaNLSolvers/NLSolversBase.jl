@@ -42,6 +42,13 @@ end
 Base.eltype(::Type{ConstraintBounds{T}}) where T = T
 Base.eltype(cb::ConstraintBounds) = eltype(typeof(cb))
 
+Base.convert{T,S}(::Type{ConstraintBounds{T}}, cb::ConstraintBounds{S}) =
+    ConstraintBounds(cb.nc, cb.eqx, convert(Vector{T}, cb.valx),
+                     cb.ineqx, cb.σx, convert(Vector{T}, cb.bx),
+                     cb.eqc, convert(Vector{T}, cb.valc), cb.ineqc,
+                     cb.σc, convert(Vector{T}, cb.bc))
+
+
 """
     nconstraints(bounds) -> nc
 
