@@ -25,6 +25,10 @@
         @test cb.σc[1] == 1
         @test eltype(cb) == Float64
 
+        cb = ConstraintBounds([],[],[],[])
+        @test eltype(cb) == Union{}
+        @test eltype(convert(ConstraintBounds{Int}, cb)) == Int
+
         cb =  ConstraintBounds([1,2], [3,4.0], [], [10.,20.,30.])
         io = IOBuffer()
         show(io, cb)
