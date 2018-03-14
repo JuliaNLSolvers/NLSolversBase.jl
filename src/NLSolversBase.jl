@@ -2,7 +2,8 @@ __precompile__(true)
 
 module NLSolversBase
 
-import Base: gradient, clear!
+import Distributed: clear!
+import LinearAlgebra: gradient
 export AbstractObjective,
        NonDifferentiable,
        OnceDifferentiable,

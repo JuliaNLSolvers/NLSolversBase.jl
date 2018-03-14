@@ -41,7 +41,7 @@ make_fdf(t::InplaceObjective, x, F) = fdf(t)
 # of whatever fdf returns.
 make_f(t::NotInplaceObjective, x, F::Real) = x -> fdf(t)(x)[1]
 make_f(t::NotInplaceObjective, x, F) = (F, x) -> copy!(F, fdf(t)(x)[1])
-make_df(t::NotInplaceObjective{DF, TDF}, x, F) where {DF<:Void, TDF} = (DF, x) -> copy!(DF, fdf(t)(x)[2])
+make_df(t::NotInplaceObjective{DF, TDF}, x, F) where {DF<:Nothing, TDF} = (DF, x) -> copy!(DF, fdf(t)(x)[2])
 make_df(t::NotInplaceObjective, x, F) = t.df
 function make_fdf(t::NotInplaceObjective, x, F::Real)
     return function ffgg!(G, x)

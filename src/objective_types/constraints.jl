@@ -34,7 +34,7 @@ end
 function ConstraintBounds(lx, ux, lc, uc)
     _cb(symmetrize(lx, ux)..., symmetrize(lc, uc)...)
 end
-function _cb{Tx,Tc}(lx::AbstractArray{Tx}, ux::AbstractArray{Tx}, lc::AbstractVector{Tc}, uc::AbstractVector{Tc})
+function _cb(lx::AbstractArray{Tx}, ux::AbstractArray{Tx}, lc::AbstractVector{Tc}, uc::AbstractVector{Tc}) where {Tx,Tc}
     T = promote_type(Tx,Tc)
     ConstraintBounds{T}(length(lc), parse_constraints(T, lx, ux)..., parse_constraints(T, lc, uc)...)
 end
@@ -42,7 +42,7 @@ end
 Base.eltype(::Type{ConstraintBounds{T}}) where T = T
 Base.eltype(cb::ConstraintBounds) = eltype(typeof(cb))
 
-Base.convert{T,S}(::Type{ConstraintBounds{T}}, cb::ConstraintBounds{S}) =
+Base.convert(::Type{ConstraintBounds{T}}, cb::ConstraintBounds{S}) where {T,S} =
     ConstraintBounds(cb.nc, cb.eqx, convert(Vector{T}, cb.valx),
                      cb.ineqx, cb.σx, convert(Vector{T}, cb.bx),
                      cb.eqc, convert(Vector{T}, cb.valc), cb.ineqc,
@@ -153,7 +153,7 @@ function symmetrize(l, u)
     size(l) == size(u) || throw(DimensionMismatch("bounds arrays must be consistent, got sizes $(size(l)) and $(size(u))"))
     _symmetrize(l, u)
 end
-_symmetrize{T,N}(l::AbstractArray{T,N}, u::AbstractArray{T,N}) = l, u
+_symmetrize(l::AbstractArray{T,N}, u::AbstractArray{T,N}) where {T,N} = l, u
 _symmetrize(l::Vector{Any}, u::Vector{Any}) = _symm(l, u)
 _symmetrize(l, u) = _symm(l, u)
 
@@ -233,7 +233,7 @@ struct UnquotedString
 end
 Base.show(io::IO, uqstr::UnquotedString) = print(io, uqstr.str)
 
-Base.array_eltype_show_how(a::Vector{UnquotedString}) = false, ""
+#Base.array_eltype_show_how(a::Vector{UnquotedString}) = false, ""
 
 function showeq(io, indent, eq, val, chr, style)
     if !isempty(eq)
