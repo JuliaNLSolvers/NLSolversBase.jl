@@ -2,8 +2,10 @@ __precompile__(true)
 
 module NLSolversBase
 
-import Distributed: clear!
-import LinearAlgebra: gradient
+using Compat
+
+import Compat.Distributed: clear!
+import Compat.LinearAlgebra: gradient
 export AbstractObjective,
        NonDifferentiable,
        OnceDifferentiable,
