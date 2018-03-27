@@ -1,8 +1,9 @@
 # Used for objectives and solvers where the gradient is available/exists
-mutable struct OnceDifferentiable{TF, TDF, TX, Tcplx<:Union{Val{true},Val{false}}} <: AbstractObjective
-    f # objective
-    df # (partial) derivative of objective
-    fdf # objective and (partial) derivative of objective
+mutable struct OnceDifferentiable{TF, TDF, TX, Tcplx<:Union{Val{true},Val{false}}} <: AbstractObjective#,
+                                   # F<:Function,DF<:Function,FDF<:Function} <: AbstractObjective
+    f#::F # objective
+    df#::DF # (partial) derivative of objective
+    fdf#::FDF # objective and (partial) derivative of objective
     F::TF # cache for f output
     DF::TDF # cache for df output
     x_f::TX # x used to evaluate f (stored in F)

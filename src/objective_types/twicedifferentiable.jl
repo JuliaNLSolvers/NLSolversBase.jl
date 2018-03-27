@@ -1,9 +1,9 @@
 # Used for objectives and solvers where the gradient and Hessian is available/exists
-mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective
-    f
-    df
-    fdf
-    h
+mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective#,F,DF,FDF,H} <: AbstractObjective
+    f#::F
+    df#::DF
+    fdf#::FDF
+    h#::H
     F::T
     DF::TDF
     H::TH

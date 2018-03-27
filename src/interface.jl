@@ -125,7 +125,8 @@ function value_jacobian!!(obj, F, J, x)
     copyto!(obj.x_f, x)
     copyto!(obj.x_df, x)
     obj.f_calls .+= 1
-    obj.df_calls .+= 1
+    (obj.df_calls .+= 1; nothing)
+    obj.df_calls
 end
 
 function jacobian!(obj, x)
@@ -136,7 +137,8 @@ end
 function jacobian!!(obj, x)
     obj.df(obj.DF, x)
     copyto!(obj.x_df, x)
-    obj.df_calls .+= 1
+    (obj.df_calls .+= 1; nothing)
+    obj.df_calls
 end
 function jacobian(obj::AbstractObjective, x)
     if x != obj.x_df
@@ -154,7 +156,8 @@ value!!(obj::OnceDifferentiable{TF, TDF, TX, Tcplx}, x) where {TF<:AbstractArray
 function value!!(obj, F, x)
     obj.f(F, x)
     copyto!(obj.x_f, x)
-    obj.f_calls .+= 1
+    (obj.f_calls .+= 1; nothing)
+    obj.f_calls
 end
 
 function _clear_f!(d::NLSolversBase.AbstractObjective)
@@ -164,26 +167,30 @@ function _clear_f!(d::NLSolversBase.AbstractObjective)
     else
         d.F = typeof(d.F)(NaN)
     end
-    d.x_f .= eltype(d.x_f)(NaN)
+    (d.x_f .= eltype(d.x_f)(NaN); nothing)
+    d.x_f
 end
 
 function _clear_df!(d::NLSolversBase.AbstractObjective)
     d.df_calls .= 0
     d.DF .= eltype(d.DF)(NaN)
-    d.x_df .= eltype(d.x_df)(NaN)
+    (d.x_df .= eltype(d.x_df)(NaN); nothing)
+    d.x_df
 end
 
 function _clear_h!(d::NLSolversBase.AbstractObjective)
     d.h_calls .= 0
     d.H .= eltype(d.H)(NaN)
-    d.x_h .= eltype(d.x_h)(NaN)
+    (d.x_h .= eltype(d.x_h)(NaN); nothing)
+    d.x_h
 end
 
 function _clear_hv!(d::NLSolversBase.AbstractObjective)
     d.hv_calls .= 0
     d.Hv .= eltype(d.Hv)(NaN)
     d.x_hv .= eltype(d.x_hv)(NaN)
-    d.v_hv .= eltype(d.v_h)(NaN)
+    (d.v_hv .= eltype(d.v_h)(NaN); nothing)
+    d.v_hv
 end
 
 clear!(d::NonDifferentiable)  = _clear_f!(d)
