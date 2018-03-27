@@ -165,10 +165,10 @@ function _symm(l, u)
     if isempty(l) && isempty(u)
         if eltype(l) == Any
             # prevent promotion from returning eltype Any
-            l = Array{Union{}}(0)
+            l = Array{Union{}}(undef, 0)
         end
         if eltype(u) == Any
-            u = Array{Union{}}(0)
+            u = Array{Union{}}(undef, 0)
         end
     end
     promote(l, u)
@@ -203,7 +203,7 @@ function parse_constraints(::Type{T}, l, u) where T
     size(l) == size(u) || throw(DimensionMismatch("l and u must be the same size, got $(size(l)) and $(size(u))"))
     eq, ineq = Int[], Int[]
     val, b = T[], T[]
-    σ = Array{Int8}(0)
+    σ = Array{Int8}(undef, 0)
     for i = 1:length(l)
         li, ui = l[i], u[i]
         li <= ui || throw(ArgumentError("l must be smaller than u, got $li, $ui"))

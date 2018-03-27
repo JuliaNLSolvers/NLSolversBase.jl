@@ -1,5 +1,5 @@
 using NLSolversBase
-using Base.Test
+using Compat, Compat.Test, Compat.Random, Compat.LinearAlgebra
 using OptimTestProblems
 MVP = OptimTestProblems.MultivariateProblems
 
