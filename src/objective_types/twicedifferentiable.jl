@@ -1,9 +1,9 @@
 # Used for objectives and solvers where the gradient and Hessian is available/exists
-mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective#,F,DF,FDF,H} <: AbstractObjective
-    f#::F
-    df#::DF
-    fdf#::FDF
-    h#::H
+mutable struct TwiceDifferentiable{T,TDF,TH,TX,F,DF,FDF,H} <: AbstractObjective
+    f::F
+    df::DF
+    fdf::FDF
+    h::H
     F::T
     DF::TDF
     H::TH
@@ -18,7 +18,7 @@ iscomplex(obj::TwiceDifferentiable) = false
 # compatibility with old constructor
 function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T = real(zero(eltype(x))), G::TG = similar(x), H::TH = alloc_H(x)) where {T, TG, TH, TX}
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
-    TwiceDifferentiable{T,TG, TH, TX}(f, g!, fg!, h!,
+    TwiceDifferentiable{T,TG, TH, TX,typeof(f),typeof(g!),typeof(fg!),typeof(h!)}(f, g!, fg!, h!,
                                         copy(F), similar(G), copy(H),
                                         x_f, x_df, x_h,
                                         [0,], [0,], [0,])
