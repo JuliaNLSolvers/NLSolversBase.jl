@@ -42,9 +42,7 @@ export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds
 
 function x_of_nans(x)   # https://github.com/JuliaLang/julia/issues/26516
-    out = copy(x)       # if above issue is fixed, revert.
-    (out.=(eltype(x))(NaN); nothing)
-    out
+    fill((eltype(x))(NaN), size(x))
 end
 
 include("complex_real.jl")
