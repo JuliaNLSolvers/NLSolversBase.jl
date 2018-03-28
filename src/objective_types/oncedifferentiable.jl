@@ -1,5 +1,6 @@
 # Used for objectives and solvers where the gradient is available/exists
-mutable struct OnceDifferentiable{TF, TDF, TX, Tcplx<:Union{Val{true},Val{false}},F<:Function,DF<:Function,FDF<:Function} <: AbstractObjective
+mutable struct OnceDifferentiable{TF, TDF, TX, Tcplx<:Union{Val{true},Val{false}},
+                                F<:Function,DF<:Function,FDF<:Union{Function,Nothing}} <: AbstractObjective
     f::F # objective
     df::DF # (partial) derivative of objective
     fdf::FDF # objective and (partial) derivative of objective
