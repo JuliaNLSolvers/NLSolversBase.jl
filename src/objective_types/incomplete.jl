@@ -1,29 +1,32 @@
 # To pass incomplete specifications, we provide the "only_"
 # family of functions. It allows the users to simply provide
 # fg! for optimization or fj! for solving systems of equations
-# and have NLSolversBase wrap them up properly so "F" can be 
+# and have NLSolversBase wrap them up properly so "F" can be
 # calculated on its own and the save for partial derivatives.
 # Note, that for TwiceDifferentiable we cannot provide con-
 # structors if h == nothing, as that requires automatic dif-
 # fferentiation of some sort.
-struct InplaceObjective{DF, FDF}
+struct InplaceObjective{DF, FDF, FGH}
     df::DF
     fdf::FDF
+    fgh::FGH
 end
-struct NotInplaceObjective{DF, FDF}
+struct NotInplaceObjective{DF, FDF, FGH}
     df::DF
     fdf::FDF
+    fgh::FGH
 end
 # Mutating version
-only_fg!(fg) = InplaceObjective(nothing, fg)
-only_fj!(fj) = InplaceObjective(nothing, fj)
+only_fg!(fg)   = InplaceObjective(nothing, fg,      nothing)
+only_fgh!(fgh) = InplaceObjective(nothing, nothing, fgh)
+only_fj!(fj)   = InplaceObjective(nothing, fj,      nothing)
 
 # Non-mutating version
-only_fg(fg) = NotInplaceObjective(nothing, fg)
-only_fj(fj) = NotInplaceObjective(nothing, fj)
+only_fg(fg)  = NotInplaceObjective(nothing, fg,      nothing)
+only_fj(fj)  = NotInplaceObjective(nothing, fj,      nothing)
 
-only_g_and_fg(g, fg) = NotInplaceObjective(g, fg)
-only_j_and_fj(j, fj) = NotInplaceObjective(j, fj)
+only_g_and_fg(g, fg) = NotInplaceObjective(g, fg, nothing)
+only_j_and_fj(j, fj) = NotInplaceObjective(j, fj, nothing)
 
 df(t::Union{InplaceObjective, NotInplaceObjective}) = t.df
 fdf(t::Union{InplaceObjective, NotInplaceObjective}) = t.fdf
@@ -80,4 +83,20 @@ function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::
     df = make_df(t, x, F)
     fdf = make_fdf(t, x, F)
     OnceDifferentiable(f, df, fdf, x, F)
+end
+
+function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, H}, x::AbstractArray{T,1}, F::Real = real(zero(eltype(x)))) where {H, T}
+    f   =     x  -> t.fgh(F, nothing, nothing, x)
+    df  = (G, x) -> t.fgh(nothing, G, nothing, x)
+    fdf = (G, x) -> t.fgh(F, G, nothing, x)
+    h   = (H, x) -> t.fgh(F, nothing, H, x)
+    TwiceDifferentiable(f, df, fdf, h, x, F)
+end
+
+function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, H}, x::AbstractArray{T}, F::Real = real(zero(eltype(x)))) where {H, T}
+    f   =     x  -> t.fgh(F, nothing, nothing, x)
+    df  = (G, x) -> t.fgh(nothing, G, nothing, x)
+    fdf = (G, x) -> t.fgh(F, G, nothing, x)
+    h   = (H, x) -> t.fgh(H, nothing, F, x)
+    TwiceDifferentiable(f, df, fdf, h, x, F)
 end
