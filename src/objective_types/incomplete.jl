@@ -11,9 +11,10 @@ struct InplaceObjective{DF, FDF, FGH}
     fdf::FDF
     fgh::FGH
 end
-struct NotInplaceObjective{DF, FDF}
+struct NotInplaceObjective{DF, FDF, FGH}
     df::DF
     fdf::FDF
+    fgh::FGH
 end
 # Mutating version
 only_fg!(fg)   = InplaceObjective(nothing, fg,      nothing)
