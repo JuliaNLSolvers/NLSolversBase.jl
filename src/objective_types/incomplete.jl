@@ -92,7 +92,7 @@ function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::Abstr
     h   = (H, x) -> t.fgh(F, nothing, H, x)
     TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
 end
-
+#=
 function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray{T,1}, F::Real = real(zero(eltype(x))),  G::AbstractVector = similar(x), H = alloc_H(x)) where {TH, T}
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
@@ -100,7 +100,7 @@ function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::Abstr
     h   = (H, x) -> t.fgh(F, nothing, H, x)
     TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
 end
-
+=#
 function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray{T}, F::Real = real(zero(eltype(x))), G::TG = similar(x), H = alloc_H(x)) where {TG, TH, T}
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
