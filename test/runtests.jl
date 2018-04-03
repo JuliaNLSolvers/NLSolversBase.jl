@@ -17,6 +17,13 @@ function exponential_gradient!(storage, x)
     storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
 end
 
+
+function exponential_value_gradient!(storage, x)
+    storage[1] = -2.0 * (2.0 - x[1]) * exp((2.0 - x[1])^2)
+    storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
+    return exp((2.0 - x[1])^2) + exp((3.0 - x[2])^2)
+end
+
 function exponential_hessian!(storage, x)
     storage[1, 1] = 2.0 * exp((2.0 - x[1])^2) * (2.0 * x[1]^2 - 8.0 * x[1] + 9)
     storage[1, 2] = 0.0
