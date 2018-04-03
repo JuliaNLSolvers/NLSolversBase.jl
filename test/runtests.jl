@@ -1,6 +1,7 @@
 using NLSolversBase
 using Base.Test
 using OptimTestProblems
+using RecursiveArrayTools
 MVP = OptimTestProblems.MultivariateProblems
 
 # TODO: Use OptimTestProblems
