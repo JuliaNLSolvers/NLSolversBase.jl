@@ -19,7 +19,7 @@
 
     fdf!_real = only_fg!(just_fg!)
     fdf_real = only_fg(fg)
-    
+
     df_fdf_real = only_g_and_fg(g, fg)
     srand(3259)
     x = rand(10)
@@ -28,16 +28,16 @@
 
     @test df(fdf!_real) === nothing
     @test df(fdf_real) === nothing
-    @test df(df_fdf_real) === g 
-    @test df(df_fdf_real)(x) == g(x) 
-    
+    @test df(df_fdf_real) === g
+    @test df(df_fdf_real)(x) == g(x)
+
     @test fdf(fdf!_real) === just_fg!
     @test fdf(fdf_real) === fg
     @test df(df_fdf_real) == g
     @test fdf(df_fdf_real) == fg
-    @test df(df_fdf_real)(x) == g(x) 
-    @test fdf(df_fdf_real)(x) == fg(x) 
-    
+    @test df(df_fdf_real)(x) == g(x)
+    @test fdf(df_fdf_real)(x) == fg(x)
+
     for FDF in (fdf_real, fdf!_real)
         @test make_f(FDF, x, x[1])(x) == f(x)
         make_df(FDF, x, x[1])(G_cache, x)
@@ -93,7 +93,7 @@ end
 
     fdf!_real = only_fj!(just_tfj!)
     fdf_real = only_fj(tfj)
-    
+
     df_fdf_real = only_j_and_fj(tj, tfj)
     srand(3259)
     x = rand(10)
@@ -104,16 +104,16 @@ end
 
     @test df(fdf!_real) === nothing
     @test df(fdf_real) === nothing
-    @test df(df_fdf_real) === tj 
-    @test df(df_fdf_real)(x) == tj(x) 
-    
+    @test df(df_fdf_real) === tj
+    @test df(df_fdf_real)(x) == tj(x)
+
     @test fdf(fdf!_real) === just_tfj!
     @test fdf(fdf_real) === tfj
     @test df(df_fdf_real) == tj
     @test fdf(df_fdf_real) == tfj
-    @test df(df_fdf_real)(x) == tj(x) 
-    @test fdf(df_fdf_real)(x) == tfj(x) 
-    
+    @test df(df_fdf_real)(x) == tj(x)
+    @test fdf(df_fdf_real)(x) == tfj(x)
+
     for FDF in (fdf_real, fdf!_real)
         @test make_f(FDF, x, x)(F_cache, x) == tf(x)
         make_df(FDF, x, x)(J_cache, x)

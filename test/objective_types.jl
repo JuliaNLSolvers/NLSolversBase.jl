@@ -1,24 +1,4 @@
 @testset "objective types" begin
-    # TODO: Use OptimTestProblems
-    # TODO: MultivariateProblems.UnconstrainedProblems.exampples["Exponential"]
-
-    # Test example
-    function exponential(x::Vector)
-        return exp((2.0 - x[1])^2) + exp((3.0 - x[2])^2)
-    end
-
-    function exponential_gradient!(storage::Vector, x::Vector)
-        storage[1] = -2.0 * (2.0 - x[1]) * exp((2.0 - x[1])^2)
-        storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
-    end
-
-    function exponential_hessian!(storage::Matrix, x::Vector)
-        storage[1, 1] = 2.0 * exp((2.0 - x[1])^2) * (2.0 * x[1]^2 - 8.0 * x[1] + 9)
-        storage[1, 2] = 0.0
-        storage[2, 1] = 0.0
-        storage[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
-    end
-
     x_seed = [0.0, 0.0]
     g_seed = [0.0, 0.0]
     h_seed = [0.0 0.0; 0.0 0.0]
