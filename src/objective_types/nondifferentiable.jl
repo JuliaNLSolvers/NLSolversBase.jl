@@ -12,21 +12,23 @@ iscomplex(obj::NonDifferentiable{T,A,Val{false}}) where {T,A} = false
 NonDifferentiable(f, F::TF, x_f::TX, f_calls::Vector{Int}) where {TF, TX} =
     NonDifferentiable{TF, TX, Val{false}}(f, F, x_f, f_calls)
 
-function NonDifferentiable(f, x::AbstractArray, F::TF = real(zero(eltype(x)))) where TF<:Real
+# These could be the same if we could restrict g below not to be an AbstractArray
+function NonDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x))))
     iscomplex = eltype(x) <: Complex
     if iscomplex
         x = complex_to_real(x)
     end
-    NonDifferentiable{TF,typeof(x),Val{iscomplex}}(f, F, x_of_nans(x), [0,])
+    NonDifferentiable{typeof(F),typeof(x),Val{iscomplex}}(f, F, x_of_nans(x), [0,])
 end
-function NonDifferentiable(f, x::AbstractArray, F::TF) where {TF<:AbstractArray}
+function NonDifferentiable(f, x::AbstractArray, F::AbstractArray)
     iscomplex = eltype(x) <: Complex
     if iscomplex
         x = complex_to_real(x)
     end
-    NonDifferentiable{TF,typeof(x),Val{iscomplex}}(f, F, x_of_nans(x), [0,])
+    NonDifferentiable{typeof(F),typeof(x),Val{iscomplex}}(f, F, x_of_nans(x), [0,])
 end
 
+# this is the g referred to above!
 NonDifferentiable(f, g,        x::AbstractArray, F::Union{AbstractArray, Real} = real(zero(eltype(x)))) = NonDifferentiable(f, x, F)
 NonDifferentiable(f, g, h,     x::TX, F) where TX  = NonDifferentiable(f, x, F)
 NonDifferentiable(f, g, fg, h, x::TX, F) where TX  = NonDifferentiable(f, x, F)
