@@ -66,25 +66,18 @@ function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::A
     f = make_f(t, x, F)
     NonDifferentiable(f, x, F)
 end
+# this would not be possible if we could mark f, g, ... as non-AbstractArrays
 function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::AbstractArray)
     f = make_f(t, x, F)
     NonDifferentiable(f, x, F)
 end
 
-function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F = real(zero(eltype(x))))
+function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F = real(zero(eltype(x))), DF::AbstractArray = alloc_DF(x, F))
     f = make_f(t, x, F)
     df = make_df(t, x, F)
     fdf = make_fdf(t, x, F)
-    OnceDifferentiable(f, df, fdf, x, F)
+    OnceDifferentiable(f, df, fdf, x, F, DF)
 end
-
-function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::AbstractArray)
-    f = make_f(t, x, F)
-    df = make_df(t, x, F)
-    fdf = make_fdf(t, x, F)
-    OnceDifferentiable(f, df, fdf, x, F)
-end
-
 function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::AbstractArray, DF::AbstractArray = alloc_DF(x, F))
     f = make_f(t, x, F)
     df = make_df(t, x, F)
@@ -92,23 +85,15 @@ function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::
     OnceDifferentiable(f, df, fdf, x, F, DF)
 end
 
-function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray{T,1}, F::Real = real(zero(eltype(x))),  G::TG = similar(x), H = alloc_H(x)) where {TG, TH, T}
+function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray, F = real(zero(eltype(x))), G::AbstractArray = similar(x), H = alloc_H(x)) where {TH}
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
-    h   = (H, x) -> t.fgh(F, nothing, H, x)
+    h   = (H, x) -> t.fgh(H, nothing, F, x)
     TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
 end
 
-function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray{T,1}, F::Real = real(zero(eltype(x))),  G::AbstractVector{TG} = similar(x), H = alloc_H(x)) where {TG, TH, T}
-    f   =     x  -> t.fgh(F, nothing, nothing, x)
-    df  = (G, x) -> t.fgh(nothing, G, nothing, x)
-    fdf = (G, x) -> t.fgh(F, G, nothing, x)
-    h   = (H, x) -> t.fgh(F, nothing, H, x)
-    TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
-end
-
-function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray{T}, F::Real = real(zero(eltype(x))), G::TG = similar(x), H = alloc_H(x)) where {TG, TH, T}
+function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray, F, G::AbstractVector, H = alloc_H(x)) where {TH}
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
