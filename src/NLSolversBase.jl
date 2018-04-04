@@ -41,15 +41,10 @@ export AbstractObjective,
 export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds
 
-<<<<<<< HEAD
-function x_of_nans(x)   # https://github.com/JuliaLang/julia/issues/26516
-    fill((eltype(x))(NaN), size(x))
-=======
 function x_of_nans(x)
     x_out = similar(x)
     x_out .= (eltype(x))(NaN)
     x_out
->>>>>>> v0.7dw
 end
 
 include("complex_real.jl")
