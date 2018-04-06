@@ -35,14 +35,16 @@ end
 """
 Evaluates the gradient value at `x`
 
-This does *not* update `obj.DF`.
+This does *not* update `obj.DF` or `obj.x_df`.
 """
 function gradient(obj::AbstractObjective, x)
     if x != obj.x_df
-        tmp = copy(obj.DF)
+        tmpdf = copy(obj.DF)
+        tmpxdf = copy(obj.x_df)
         gradient!!(obj, x)
         newdf = copy(obj.DF)
         copy!(obj.DF, tmp)
+        copy!(obj.x_df, tmp)
         return newdf
     end
     obj.DF
