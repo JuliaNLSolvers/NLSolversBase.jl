@@ -15,8 +15,13 @@
     @test value(od) == 0.0
     @test od.f_calls == [0]
     @test od.df_calls == [0]
-    gx = gradient(od, x_seed)
-    @test gradient(od, x_seed) == gx
+    od.x_df .= x_seed
+    gold = copy(od.DF)
+    xnew = rand(size(x_seed))
+    gnew = gradient(od, xnew)
+    @test od.x_df == x_seed
+    @test od.DF == gold
+    @test gnew == gradient(od, xnew)
 
     td = TwiceDifferentiable(exponential, exponential_gradient!, nothing, exponential_hessian!, x_seed, 0.0, g_seed, h_seed)
     @test td.f == exponential
