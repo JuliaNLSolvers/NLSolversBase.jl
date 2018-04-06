@@ -43,8 +43,9 @@ function OnceDifferentiable(f, df, fdf,
     end
 
     x_f, x_df = x_of_nans(x), x_of_nans(x)
-    OnceDifferentiable{typeof(F),typeof(DF),typeof(x),Val{iscomplex}}(f, df, fdf,
-                                                copy(F), copy(DF),
+    copyDF = copy(DF)
+    OnceDifferentiable{typeof(F),typeof(copyDF),typeof(x_f),Val{iscomplex}}(f, df, fdf,
+                                                copy(F), copyDF,
                                                 x_f, x_df,
                                                 [0,], [0,])
 end

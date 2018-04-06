@@ -5,7 +5,7 @@ Returns `f(x)` and stores the value in `obj.F`
 """
 function value!!(obj::AbstractObjective, x)
     obj.f_calls .+= 1
-    copy!(obj.x_f, x)
+    copyto!(obj.x_f, x)
     obj.F = obj.f(real_to_complex(obj, x))
 end
 """
@@ -42,7 +42,7 @@ function gradient(obj::AbstractObjective, x)
         tmp = copy(obj.DF)
         gradient!!(obj, x)
         newdf = copy(obj.DF)
-        copy!(obj.DF, tmp)
+        copyto!(obj.DF, tmp)
         return newdf
     end
     obj.DF
@@ -64,7 +64,7 @@ Stores the value in `obj.DF`.
 """
 function gradient!!(obj::AbstractObjective, x)
     obj.df_calls .+= 1
-    copy!(obj.x_df, x)
+    copyto!(obj.x_df, x)
     obj.df(real_to_complex(obj, obj.DF), real_to_complex(obj, x))
 end
 
@@ -81,8 +81,8 @@ end
 function value_gradient!!(obj::AbstractObjective, x)
     obj.f_calls .+= 1
     obj.df_calls .+= 1
-    copy!(obj.x_f, x)
-    copy!(obj.x_df, x)
+    copyto!(obj.x_f, x)
+    copyto!(obj.x_df, x)
     obj.F = obj.fdf(real_to_complex(obj, obj.DF), real_to_complex(obj, x))
 end
 
@@ -93,7 +93,7 @@ function hessian!(obj::AbstractObjective, x)
 end
 function hessian!!(obj::AbstractObjective, x)
     obj.h_calls .+= 1
-    copy!(obj.x_h, x)
+    copyto!(obj.x_h, x)
     obj.h(obj.H, x)
 end
 
@@ -122,10 +122,11 @@ end
 value_jacobian!!(obj, x) = value_jacobian!!(obj, obj.F, obj.DF, x)
 function value_jacobian!!(obj, F, J, x)
     obj.fdf(F, J, x)
-    copy!(obj.x_f, x)
-    copy!(obj.x_df, x)
+    copyto!(obj.x_f, x)
+    copyto!(obj.x_df, x)
     obj.f_calls .+= 1
     obj.df_calls .+= 1
+    obj.df_calls
 end
 
 function jacobian!(obj, x)
@@ -135,15 +136,16 @@ function jacobian!(obj, x)
 end
 function jacobian!!(obj, x)
     obj.df(obj.DF, x)
-    copy!(obj.x_df, x)
+    copyto!(obj.x_df, x)
     obj.df_calls .+= 1
+    obj.df_calls
 end
 function jacobian(obj::AbstractObjective, x)
     if x != obj.x_df
         tmp = copy(obj.DF)
         jacobian!!(obj, x)
         newdf = copy(obj.DF)
-        copy!(obj.DF, tmp)
+        copyto!(obj.DF, tmp)
         return newdf
     end
     obj.DF
@@ -153,8 +155,9 @@ value!!(obj::NonDifferentiable{TF, TX, Tcplx}, x) where {TF<:AbstractArray, TX, 
 value!!(obj::OnceDifferentiable{TF, TDF, TX, Tcplx}, x) where {TF<:AbstractArray, TDF, TX, Tcplx} = value!!(obj, obj.F, x)
 function value!!(obj, F, x)
     obj.f(F, x)
-    copy!(obj.x_f, x)
+    copyto!(obj.x_f, x)
     obj.f_calls .+= 1
+    obj.f_calls
 end
 
 function _clear_f!(d::NLSolversBase.AbstractObjective)
@@ -165,18 +168,21 @@ function _clear_f!(d::NLSolversBase.AbstractObjective)
         d.F = typeof(d.F)(NaN)
     end
     d.x_f .= eltype(d.x_f)(NaN)
+    d.x_f
 end
 
 function _clear_df!(d::NLSolversBase.AbstractObjective)
     d.df_calls .= 0
     d.DF .= eltype(d.DF)(NaN)
     d.x_df .= eltype(d.x_df)(NaN)
+    d.x_df
 end
 
 function _clear_h!(d::NLSolversBase.AbstractObjective)
     d.h_calls .= 0
     d.H .= eltype(d.H)(NaN)
     d.x_h .= eltype(d.x_h)(NaN)
+    d.x_h
 end
 
 function _clear_hv!(d::NLSolversBase.AbstractObjective)
@@ -184,6 +190,7 @@ function _clear_hv!(d::NLSolversBase.AbstractObjective)
     d.Hv .= eltype(d.Hv)(NaN)
     d.x_hv .= eltype(d.x_hv)(NaN)
     d.v_hv .= eltype(d.v_h)(NaN)
+    d.v_hv
 end
 
 clear!(d::NonDifferentiable)  = _clear_f!(d)
