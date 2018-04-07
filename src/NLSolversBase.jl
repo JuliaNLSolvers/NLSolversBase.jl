@@ -8,9 +8,6 @@ export AbstractObjective,
        OnceDifferentiable,
        TwiceDifferentiable,
        TwiceDifferentiableHV,
-       iscomplex,
-       real_to_complex,
-       complex_to_real,
        value,
        value!,
        value_gradient!,
@@ -41,7 +38,6 @@ export AbstractConstraints, OnceDifferentiableConstraints,
 
 x_of_nans(x) = copy(x).=(eltype(x))(NaN)
 
-include("complex_real.jl")
 include("objective_types/abstract.jl")
 include("objective_types/nondifferentiable.jl")
 include("objective_types/oncedifferentiable.jl")
