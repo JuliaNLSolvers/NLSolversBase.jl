@@ -35,14 +35,13 @@ end
 """
 Evaluates the gradient value at `x`
 
-This does *not* update `obj.DF`.
+This does *not* update `obj.DF` or `obj.x_df`.
 """
 function gradient(obj::AbstractObjective, x)
     if x != obj.x_df
-        tmp = copy(obj.DF)
-        gradient!!(obj, x)
         newdf = copy(obj.DF)
-        copy!(obj.DF, tmp)
+        obj.df(real_to_complex(obj, newdf), real_to_complex(obj, x))
+        obj.df_calls .+= 1
         return newdf
     end
     obj.DF
