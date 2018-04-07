@@ -1,5 +1,5 @@
 # Used for objectives and solvers where the gradient is available/exists
-mutable struct OnceDifferentiable{TF, TDF, TX, Tcplx<:Union{Val{true},Val{false}}} <: AbstractObjective
+mutable struct OnceDifferentiable{TF, TDF, TX} <: AbstractObjective
     f # objective
     df # (partial) derivative of objective
     fdf # objective and (partial) derivative of objective
@@ -10,8 +10,6 @@ mutable struct OnceDifferentiable{TF, TDF, TX, Tcplx<:Union{Val{true},Val{false}
     f_calls::Vector{Int}
     df_calls::Vector{Int}
 end
-iscomplex(obj::OnceDifferentiable{T,Tgrad,A,Val{true}}) where {T,Tgrad,A} = true
-iscomplex(obj::OnceDifferentiable{T,Tgrad,A,Val{false}}) where {T,Tgrad,A} = false
 
 # Compatibility with old constructor that doesn't have the complex field
 function OnceDifferentiable(f, df, fdf,
@@ -19,14 +17,8 @@ function OnceDifferentiable(f, df, fdf,
                             F::Real = real(zero(eltype(x))),
                             DF = alloc_DF(x, F);
                             inplace = true)
-    iscomplex = eltype(x) <: Complex
-    if iscomplex
-        x = complex_to_real(x)
-        DF = complex_to_real(DF)
-    end
-
     x_f, x_df = x_of_nans(x), x_of_nans(x)
-    OnceDifferentiable{typeof(F),typeof(DF),typeof(x),Val{iscomplex}}(f, df, fdf,
+    OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df, fdf,
                                                 copy(F), copy(DF),
                                                 x_f, x_df,
                                                 [0,], [0,])
@@ -36,14 +28,8 @@ function OnceDifferentiable(f, df, fdf,
                             F::AbstractArray,
                             DF = alloc_DF(x, F);
                             inplace = true)
-    iscomplex = eltype(x) <: Complex
-    if iscomplex
-        x = complex_to_real(x)
-        DF = complex_to_real(DF)
-    end
-
     x_f, x_df = x_of_nans(x), x_of_nans(x)
-    OnceDifferentiable{typeof(F),typeof(DF),typeof(x),Val{iscomplex}}(f, df, fdf,
+    OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df, fdf,
                                                 copy(F), copy(DF),
                                                 x_f, x_df,
                                                 [0,], [0,])
