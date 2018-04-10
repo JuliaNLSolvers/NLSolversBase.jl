@@ -37,7 +37,7 @@ mutable struct TwiceDifferentiableDynamicFuncUntyped{T,TDF,TH,TX} <: TwiceDiffer
 end
 iscomplex(obj::TwiceDifferentiable) = false
 # compatibility with old constructor
-function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T, ::Val{S}) where {T, TG, TH, TX, S}
+function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T, ::Val{S}) where {T, TX, S}
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
     H = alloc_H(x)
     if S
