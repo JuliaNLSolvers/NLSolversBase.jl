@@ -40,7 +40,7 @@ This does *not* update `obj.DF` or `obj.x_df`.
 function gradient(obj::AbstractObjective, x)
     if x != obj.x_df
         newdf = copy(obj.DF)
-        obj.df(real_to_complex(obj, newdf), real_to_complex(obj, x))
+        obj.df(newdf, x)
         obj.df_calls .+= 1
         return newdf
     end
