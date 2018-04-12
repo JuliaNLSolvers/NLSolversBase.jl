@@ -6,7 +6,7 @@ Returns `f(x)` and stores the value in `obj.F`
 function value!!(obj::AbstractObjective, x)
     obj.f_calls .+= 1
     copyto!(obj.x_f, x)
-    obj.F = obj.f(real_to_complex(obj, x))
+    obj.F = obj.f(x)
 end
 """
 Evaluates the objective value at `x`.
@@ -16,7 +16,7 @@ Returns `f(x)`, but does *not* store the value in `obj.F`
 function value(obj::AbstractObjective, x)
     if x != obj.x_f
         obj.f_calls .+= 1
-        return obj.f(real_to_complex(obj,x))
+        return obj.f(x)
     end
     obj.F
 end
@@ -35,14 +35,13 @@ end
 """
 Evaluates the gradient value at `x`
 
-This does *not* update `obj.DF`.
+This does *not* update `obj.DF` or `obj.x_df`.
 """
 function gradient(obj::AbstractObjective, x)
     if x != obj.x_df
-        tmp = copy(obj.DF)
-        gradient!!(obj, x)
         newdf = copy(obj.DF)
-        copyto!(obj.DF, tmp)
+        obj.df(newdf, x)
+        obj.df_calls .+= 1
         return newdf
     end
     obj.DF
@@ -65,7 +64,7 @@ Stores the value in `obj.DF`.
 function gradient!!(obj::AbstractObjective, x)
     obj.df_calls .+= 1
     copyto!(obj.x_df, x)
-    obj.df(real_to_complex(obj, obj.DF), real_to_complex(obj, x))
+    obj.df(obj.DF, x)
 end
 
 function value_gradient!(obj::AbstractObjective, x)
@@ -83,7 +82,7 @@ function value_gradient!!(obj::AbstractObjective, x)
     obj.df_calls .+= 1
     copyto!(obj.x_f, x)
     copyto!(obj.x_df, x)
-    obj.F = obj.fdf(real_to_complex(obj, obj.DF), real_to_complex(obj, x))
+    obj.F = obj.fdf(obj.DF, x)
 end
 
 function hessian!(obj::AbstractObjective, x)
@@ -151,8 +150,8 @@ function jacobian(obj::AbstractObjective, x)
     obj.DF
 end
 
-value!!(obj::NonDifferentiable{TF, TX, Tcplx}, x) where {TF<:AbstractArray, TX, Tcplx} = value!!(obj, obj.F, x)
-value!!(obj::OnceDifferentiable{TF, TDF, TX, Tcplx}, x) where {TF<:AbstractArray, TDF, TX, Tcplx} = value!!(obj, obj.F, x)
+value!!(obj::NonDifferentiable{TF, TX}, x) where {TF<:AbstractArray, TX} = value!!(obj, obj.F, x)
+value!!(obj::OnceDifferentiable{TF, TDF, TX}, x) where {TF<:AbstractArray, TDF, TX} = value!!(obj, obj.F, x)
 function value!!(obj, F, x)
     obj.f(F, x)
     copyto!(obj.x_f, x)

@@ -11,9 +11,6 @@ export AbstractObjective,
        OnceDifferentiable,
        TwiceDifferentiable,
        TwiceDifferentiableHV,
-       iscomplex,
-       real_to_complex,
-       complex_to_real,
        value,
        value!,
        value_gradient!,
@@ -31,6 +28,7 @@ export AbstractObjective,
        hv_product,
        hv_product!,
        only_fg!,
+       only_fgh!,
        only_fj!,
        only_fg,
        only_fj,
@@ -47,7 +45,6 @@ function x_of_nans(x)
     x_out
 end
 
-include("complex_real.jl")
 include("objective_types/abstract.jl")
 include("objective_types/nondifferentiable.jl")
 include("objective_types/oncedifferentiable.jl")
