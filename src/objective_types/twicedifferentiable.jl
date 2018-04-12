@@ -14,7 +14,6 @@ mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective
     df_calls::Vector{Int}
     h_calls::Vector{Int}
 end
-iscomplex(obj::TwiceDifferentiable) = false
 # compatibility with old constructor
 function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T = real(zero(eltype(x))), G::TG = similar(x), H::TH = alloc_H(x)) where {T, TG, TH, TX}
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
