@@ -2,7 +2,10 @@ __precompile__(true)
 
 module NLSolversBase
 
-import Base: gradient, clear!
+using Compat
+
+import Compat.Distributed: clear!
+import Compat.LinearAlgebra: gradient
 export AbstractObjective,
        NonDifferentiable,
        OnceDifferentiable,
@@ -36,7 +39,11 @@ export AbstractObjective,
 export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds
 
-x_of_nans(x) = copy(x).=(eltype(x))(NaN)
+function x_of_nans(x)
+    x_out = similar(x)
+    x_out .= (eltype(x))(NaN)
+    x_out
+end
 
 include("objective_types/abstract.jl")
 include("objective_types/nondifferentiable.jl")

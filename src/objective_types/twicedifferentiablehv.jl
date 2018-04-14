@@ -41,8 +41,8 @@ function hv_product!(obj::AbstractObjective, x, v)
 end
 function hv_product!!(obj::AbstractObjective, x, v)
     obj.hv_calls .+= 1
-    copy!(obj.x_hv, x)
-    copy!(obj.v_hv, v)
+    copyto!(obj.x_hv, x)
+    copyto!(obj.v_hv, v)
     obj.hv(obj.Hv, x, v)
 end
 hv_product(obj) = obj.Hv
