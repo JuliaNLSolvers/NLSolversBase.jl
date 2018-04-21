@@ -85,8 +85,8 @@ function value_gradient!!(obj::AbstractObjective, x)
     obj.df_calls .+= 1
     copyto!(obj.x_f, x)
     copyto!(obj.x_df, x)
-    obj.F = obj.fdf(obj.DF, x)
-    value(obj)
+    obj.F = obj.fdf(gradient(obj), x)
+    value(obj), gradient(obj)
 end
 
 function hessian!(obj::AbstractObjective, x)
@@ -115,15 +115,15 @@ gradient(obj::AbstractObjective, i::Integer) = obj.DF[i]
 hessian(obj::AbstractObjective) = obj.H
 
 value_jacobian!(obj, x) = value_jacobian!(obj, obj.F, obj.DF, x)
-function value_jacobian!(obj, F, DF, x)
+function value_jacobian!(obj, F, J, x)
     if x != obj.x_f && x != obj.x_df
-        value_jacobian!!(obj, F, DF, x)
+        value_jacobian!!(obj, F, J, x)
     elseif x != obj.x_f
-        value!!(obj, x)
+        value!!(obj, F, x)
     elseif x != obj.x_df
-        jacobian!!(obj, x)
+        jacobian!!(obj, J, x)
     end
-    F, DF
+    F, J
 end
 value_jacobian!!(obj, x) = value_jacobian!!(obj, obj.F, obj.DF, x)
 function value_jacobian!!(obj, F, J, x)
@@ -142,12 +142,14 @@ function jacobian!(obj, x)
     end
     jacobian(obj)
 end
-function jacobian!!(obj, x)
-    obj.df(obj.DF, x)
+
+jacobian!!(obj, x) = jacobian!!(obj, obj.DF, x)
+function jacobian!!(obj, J, x)
+    obj.df(J, x)
     copyto!(obj.x_df, x)
     obj.df_calls .+= 1
     obj.df_calls
-    jacobian(obj)
+    J
 end
 function jacobian(obj::AbstractObjective, x)
     if x != obj.x_df
