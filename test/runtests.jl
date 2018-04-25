@@ -1,4 +1,3 @@
-ENV["JULIA_PKGDIR"] = "/home/pkm/.julia/dev/v0.6/"
 using NLSolversBase
 using Compat, Compat.Test, Compat.Random, Compat.LinearAlgebra
 using OptimTestProblems
