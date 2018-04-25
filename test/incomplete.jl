@@ -70,7 +70,9 @@
 
 end
 @testset "incomplete objectives vectors" begin
-    import NLSolversBase: df, fdf, make_f, make_df, make_fdf
+    import NLSolversBase: OnceDifferentiable, df, fdf, make_f, make_df, make_fdf, only_fj!, only_fj, only_j_and_fj
+    import NLSolversBase: value!, value, jacobian, jacobian!, value_jacobian!
+    import Compat: copyto!
     function tf(x)
         x.^2
     end

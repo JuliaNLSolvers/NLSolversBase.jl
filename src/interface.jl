@@ -224,3 +224,10 @@ function clear!(d::TwiceDifferentiableHV)
     _clear_hv!(d)
     nothing
 end
+
+g_calls(d::NonDifferentiable) = 0
+h_calls(d::Union{NonDifferentiable, OnceDifferentiable}) = 0
+f_calls(d) = first(d.f_calls)
+g_calls(d) = first(d.df_calls)
+h_calls(d) = first(d.h_calls)
+h_calls(d::TwiceDifferentiableHV) = first(d.hv_calls)

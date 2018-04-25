@@ -3,7 +3,7 @@ __precompile__(true)
 module NLSolversBase
 
 using Compat
-
+using DiffEqDiffTools, ForwardDiff, Calculus
 import Compat.Distributed: clear!
 import Compat.LinearAlgebra: gradient
 export AbstractObjective,
@@ -34,7 +34,10 @@ export AbstractObjective,
        only_fj,
        only_g_and_fg,
        only_j_and_fj,
-       clear!
+       clear!,
+       f_calls,
+       g_calls,
+       h_calls
 
 export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds

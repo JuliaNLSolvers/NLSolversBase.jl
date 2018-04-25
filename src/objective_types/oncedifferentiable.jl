@@ -11,22 +11,22 @@ mutable struct OnceDifferentiable{TF, TDF, TX} <: AbstractObjective
     df_calls::Vector{Int}
 end
 
-# Compatibility with old constructor that doesn't have the complex field
+### BUGG?? INPLACE IS NOT USED
 function OnceDifferentiable(f, df, fdf,
-                            x::AbstractArray,
-                            F::Real = real(zero(eltype(x))),
-                            DF = alloc_DF(x, F);
-                            inplace = true)
+    x::AbstractArray,
+    F::Real = real(zero(eltype(x))),
+    DF::AbstractArray = alloc_DF(x, F);
+    inplace = true)
     x_f, x_df = x_of_nans(x), x_of_nans(x)
     OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df, fdf,
-                                                copy(F), copy(DF),
-                                                x_f, x_df,
-                                                [0,], [0,])
+    copy(F), copy(DF),
+    x_f, x_df,
+    [0,], [0,])
 end
 function OnceDifferentiable(f, df, fdf,
                             x::AbstractArray,
                             F::AbstractArray,
-                            DF = alloc_DF(x, F);
+                            DF::AbstractArray = alloc_DF(x, F);
                             inplace = true)
     x_f, x_df = x_of_nans(x), x_of_nans(x)
     OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df, fdf,
@@ -35,13 +35,104 @@ function OnceDifferentiable(f, df, fdf,
                                                 [0,], [0,])
 end
 
-# Automatically create the fg! helper function if only f and g! is provided
-function OnceDifferentiable(f, df, x::AbstractArray)
-    F = real(zero(eltype(x)))
-    fdf = make_fdf(x, F, f, df)
-    return OnceDifferentiable(f, df, fdf, x, F)
+OnceDifferentiable(f, df,
+                   x::AbstractArray,
+                   F::Real = real(zero(eltype(x))),
+                   DF::AbstractArray = alloc_DF(x, F);
+                   inplace = true) =
+    OnceDifferentiable(f, df, make_fdf(x, F, f, df), x, F, DF)
+
+OnceDifferentiable(f, df,
+                   x::AbstractArray,
+                   F::AbstractArray,
+                   DF::AbstractArray = alloc_DF(x, F);
+                   inplace = true) =
+    OnceDifferentiable(f, df, make_fdf(x, F, f, df), x, F, DF)
+
+# Ambiguity
+OnceDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x))), DF::AbstractArray = alloc_DF(x, F); autodiff = :finite) =
+    OnceDifferentiable(f, x, F, DF, autodiff)
+#OnceDifferentiable(f, x::AbstractArray, F::AbstractArray; autodiff = :finite) =
+#    OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, alloc_DF(x, F))
+OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractArray; autodiff = :finite) =
+    OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF, autodiff)
+
+
+function OnceDifferentiable(f, x_seed::AbstractArray{T}, F::Union{Real,AbstractArray},
+                            DF::AbstractArray,
+                            autodiff) where T
+
+    if  typeof(f) <: Union{InplaceObjective, NotInplaceObjective}
+        fF = make_f(f, x_seed, F)
+        dfF = make_df(f, x_seed, F)
+        fdfF = make_fdf(f, x_seed, F)
+        return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
+    else
+        if any(autodiff .== (:finite, :central))
+            # TODO: Allow user to specify Val{:central}, Val{:forward}, :Val{:complex} (requires care when using :forward I think)
+            gcache = DiffEqDiffTools.GradientCache(x_seed, x_seed, Val{:central})
+            function g!(storage, x)
+                DiffEqDiffTools.finite_difference_gradient!(storage, f, x, gcache)
+                return
+            end
+            function fg!(storage, x)
+                g!(storage, x)
+                return f(x)
+            end
+        elseif autodiff == :forward
+            gcfg = ForwardDiff.GradientConfig(f, x_seed)
+            g! = (out, x) -> ForwardDiff.gradient!(out, f, x, gcfg)
+
+            fg! = (out, x) -> begin
+                gr_res = DiffBase.DiffResult(zero(T), out)
+                ForwardDiff.gradient!(gr_res, f, x, gcfg)
+                DiffBase.value(gr_res)
+            end
+        else
+            error("The autodiff value $autodiff is not support. Use :finite or :forward.")
+        end
+        return OnceDifferentiable(f, g!, fg!, x_seed, F, DF)
+    end
 end
-OnceDifferentiable(f, df, x::AbstractArray, F::AbstractArray, DF::AbstractArray = alloc_DF(x, F)) =
-    OnceDifferentiable(f, df, make_fdf(x, F, f, df), x, F, DF)
-OnceDifferentiable(f, df, x::AbstractArray, F::Real, DF::AbstractArray =  alloc_DF(x, F)) =
-    OnceDifferentiable(f, df, make_fdf(x, F, f, df), x, F, DF)
+
+function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::Union{Symbol, Bool} = :central, chunk = ForwardDiff.Chunk(x))
+
+    if  typeof(f) <: Union{InplaceObjective, NotInplaceObjective}
+        DF = alloc_DF(x, F)
+        fF = make_f(f, x, F)
+        dfF = make_df(f, x, F)
+        fdfF = make_fdf(f, x, F)
+        return OnceDifferentiable(fF, dfF, fdfF, x, F, DF)
+    else
+        if autodiff == :central
+            central_cache = DiffEqDiffTools.JacobianCache(similar(x), similar(x), similar(x))
+            function fj!(F, J, x)
+                f(F, x)
+                DiffEqDiffTools.finite_difference_jacobian!(J, f, x, central_cache)
+                F
+            end
+            function j!(J, x)
+                F = similar(x)
+                fj!(F, J, x)
+            end
+            return OnceDifferentiable(f, j!, fj!, x, x)
+        elseif autodiff == :forward || autodiff == true
+            jac_cfg = ForwardDiff.JacobianConfig(f, x, x, chunk)
+            ForwardDiff.checktag(jac_cfg, f, x)
+
+            F2 = copy(x)
+            function g!(J, x)
+                ForwardDiff.jacobian!(J, f, F2, x, jac_cfg, Val{false}())
+            end
+            function fg!(F, J, x)
+                jac_res = DiffBase.DiffResult(F, J)
+                ForwardDiff.jacobian!(jac_res, f, F2, x, jac_cfg, Val{false}())
+                DiffBase.value(jac_res)
+            end
+
+            return OnceDifferentiable(f, g!, fg!, x, x)
+        else
+            error("The autodiff value $(autodiff) is not supported. Use :central or :forward.")
+        end
+    end
+end

@@ -1,3 +1,4 @@
+ENV["JULIA_PKGDIR"] = "/home/pkm/.julia/dev/v0.6/"
 using NLSolversBase
 using Compat, Compat.Test, Compat.Random, Compat.LinearAlgebra
 using OptimTestProblems
@@ -36,4 +37,5 @@ include("interface.jl")
 include("incomplete.jl")
 include("constraints.jl")
 include("abstractarrays.jl")
+include("autodiff.jl")
 include("sparse.jl")
