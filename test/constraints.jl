@@ -15,7 +15,6 @@
         show(io, cb)
         s = String(take!(io))
         @test s == "ConstraintBounds:\n  Variables:\n    x[1]=0\n  Linear/nonlinear constraints:"
-
         cb = ConstraintBounds([], [3.0], [0.0], [])
         @test NLSolversBase.nconstraints(cb) == 1
         @test NLSolversBase.nconstraints_x(cb) == 1
@@ -33,7 +32,6 @@
         io = IOBuffer()
         show(io, cb)
         s = String(take!(io))
-
         @test s == "ConstraintBounds:\n  Variables:\n    x[1]≥1.0, x[1]≤3.0, x[2]≥2.0, x[2]≤4.0\n  Linear/nonlinear constraints:\n    c_1≤10.0, c_2≤20.0, c_3≤30.0"
 
     end

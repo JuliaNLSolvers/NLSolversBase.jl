@@ -4,22 +4,22 @@
         sum(x->x^2,x)
     end
 
-    g!(G, x) = copy!(G, 2.*x)
-    g(x) = 2.*x
+    g!(G, x) = copyto!(G, 2 .* x)
+    g(x) = 2 .* x
 
     function fg!(G, x)
-        copy!(G, 2.*x)
+        copyto!(G, 2 .* x)
         sum(x->x^2,x)
     end
     function just_fg!(F, G, x)
-        !(G == nothing) && copy!(G, 2.*x)
+        !(G == nothing) && copyto!(G, 2 .* x)
         !(F == nothing) && sum(x->x^2,x)
     end
     fg(x) = f(x), g(x)
 
     fdf!_real = only_fg!(just_fg!)
     fdf_real = only_fg(fg)
-    
+
     df_fdf_real = only_g_and_fg(g, fg)
     srand(3259)
     x = rand(10)
@@ -28,16 +28,16 @@
 
     @test df(fdf!_real) === nothing
     @test df(fdf_real) === nothing
-    @test df(df_fdf_real) === g 
-    @test df(df_fdf_real)(x) == g(x) 
-    
+    @test df(df_fdf_real) === g
+    @test df(df_fdf_real)(x) == g(x)
+
     @test fdf(fdf!_real) === just_fg!
     @test fdf(fdf_real) === fg
     @test df(df_fdf_real) == g
     @test fdf(df_fdf_real) == fg
-    @test df(df_fdf_real)(x) == g(x) 
-    @test fdf(df_fdf_real)(x) == fg(x) 
-    
+    @test df(df_fdf_real)(x) == g(x)
+    @test fdf(df_fdf_real)(x) == fg(x)
+
     for FDF in (fdf_real, fdf!_real)
         @test make_f(FDF, x, x[1])(x) == f(x)
         make_df(FDF, x, x[1])(G_cache, x)
@@ -63,9 +63,9 @@
         gradient!(OD, x)
         @test gradient(OD) == g(x)
         @test gradient(OD, x) == g(x)
-        value_gradient!(OD, 2.*x)
-        @test value(OD) == f(2.*x)
-        @test gradient(OD) == g(2.*x)
+        value_gradient!(OD, 2 .* x)
+        @test value(OD) == f(2 .* x)
+        @test gradient(OD) == g(2 .* x)
     end
 
 end
@@ -75,45 +75,45 @@ end
         x.^2
     end
     function tf(F, x)
-        copy!(F, tf(x))
+        copyto!(F, tf(x))
     end
 
-    tj!(J, x) = copy!(J, diagm(x))
-    tj(x) = diagm(x)
+    tj!(J, x) = copyto!(J, Matrix(Diagonal(x)))
+    tj(x) = Matrix(Diagonal(x))
 
     function tfj!(F, J, x)
-        copy!(J, diagm(x))
-        copy!(F, tf(x))
+        copyto!(J, Matrix(Diagonal(x)))
+        copyto!(F, tf(x))
     end
     function just_tfj!(F, J, x)
-        !(J == nothing) && copy!(J, diagm(x))
-        !(F == nothing) && copy!(F, tf(x))
+        !(J == nothing) && copyto!(J, Matrix(Diagonal(x)))
+        !(F == nothing) && copyto!(F, tf(x))
     end
     tfj(x) = tf(x), tj(x)
 
     fdf!_real = only_fj!(just_tfj!)
     fdf_real = only_fj(tfj)
-    
+
     df_fdf_real = only_j_and_fj(tj, tfj)
     srand(3259)
     x = rand(10)
-    J_cache = similar(diagm(x))
-    J_cache2 = similar(diagm(x))
+    J_cache = similar(Matrix(Diagonal(x)))
+    J_cache2 = similar(Matrix(Diagonal(x)))
     F_cache = similar(x)
     F_cache2 = similar(x)
 
     @test df(fdf!_real) === nothing
     @test df(fdf_real) === nothing
-    @test df(df_fdf_real) === tj 
-    @test df(df_fdf_real)(x) == tj(x) 
-    
+    @test df(df_fdf_real) === tj
+    @test df(df_fdf_real)(x) == tj(x)
+
     @test fdf(fdf!_real) === just_tfj!
     @test fdf(fdf_real) === tfj
     @test df(df_fdf_real) == tj
     @test fdf(df_fdf_real) == tfj
-    @test df(df_fdf_real)(x) == tj(x) 
-    @test fdf(df_fdf_real)(x) == tfj(x) 
-    
+    @test df(df_fdf_real)(x) == tj(x)
+    @test fdf(df_fdf_real)(x) == tfj(x)
+
     for FDF in (fdf_real, fdf!_real)
         @test make_f(FDF, x, x)(F_cache, x) == tf(x)
         make_df(FDF, x, x)(J_cache, x)
@@ -139,9 +139,9 @@ end
         jacobian!(OD, x)
         @test jacobian(OD) == tj(x)
         @test jacobian(OD, x) == tj(x)
-        value_jacobian!(OD, 2.*x)
-        @test value(OD) == tf(2.*x)
-        @test jacobian(OD) == tj(2.*x)
+        value_jacobian!(OD, 2 .* x)
+        @test value(OD) == tf(2 .* x)
+        @test jacobian(OD) == tj(2 .* x)
     end
 
 end

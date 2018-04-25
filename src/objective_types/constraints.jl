@@ -165,10 +165,10 @@ function _symm(l, u)
     if isempty(l) && isempty(u)
         if eltype(l) == Any
             # prevent promotion from returning eltype Any
-            l = Array{Union{}}(0)
+            l = Array{Union{}}(undef, 0)
         end
         if eltype(u) == Any
-            u = Array{Union{}}(0)
+            u = Array{Union{}}(undef, 0)
         end
     end
     promote(l, u)
@@ -203,7 +203,7 @@ function parse_constraints(::Type{T}, l, u) where T
     size(l) == size(u) || throw(DimensionMismatch("l and u must be the same size, got $(size(l)) and $(size(u))"))
     eq, ineq = Int[], Int[]
     val, b = T[], T[]
-    σ = Array{Int8}(0)
+    σ = Array{Int8}(undef, 0)
     for i = 1:length(l)
         li, ui = l[i], u[i]
         li <= ui || throw(ArgumentError("l must be smaller than u, got $li, $ui"))
@@ -228,22 +228,16 @@ end
 
 ### Compact printing of constraints
 
-struct UnquotedString
-    str::AbstractString
-end
-Base.show(io::IO, uqstr::UnquotedString) = print(io, uqstr.str)
-
-#Base.array_eltype_show_how(a::Vector{UnquotedString}) = false, ""
-
 function showeq(io, indent, eq, val, chr, style)
     if !isempty(eq)
         print(io, '\n', indent)
         if style == :bracket
-            eqstrs = map((i,v) -> UnquotedString("$chr[$i]=$v"), eq, val)
+            eqstrs = map((i,v) -> "$chr[$i]=$v", eq, val)
         else
-            eqstrs = map((i,v) -> UnquotedString("$(chr)_$i=$v"), eq, val)
+            eqstrs = map((i,v) -> "$(chr)_$i=$v", eq, val)
         end
-        Base.show_vector(IOContext(io, limit=true), eqstrs, "", "")
+        foreach(s->print(io, s*", "), eqstrs[1:end-1])
+        print(io, eqstrs[end])
     end
 end
 
@@ -251,11 +245,12 @@ function showineq(io, indent, ineqs, σs, bs, chr, style)
     if !isempty(ineqs)
         print(io, '\n', indent)
         if style == :bracket
-            ineqstrs = map((i,σ,b) -> UnquotedString(string("$chr[$i]", ineqstr(σ,b))), ineqs, σs, bs)
+            ineqstrs = map((i,σ,b) -> "$chr[$i]"*ineqstr(σ,b), ineqs, σs, bs)
         else
-            ineqstrs = map((i,σ,b) -> UnquotedString(string("$(chr)_$i", ineqstr(σ,b))), ineqs, σs, bs)
+            ineqstrs = map((i,σ,b) -> "$(chr)_$i"*ineqstr(σ,b), ineqs, σs, bs)
         end
-        Base.show_vector(IOContext(io, limit=true), ineqstrs, "", "")
+        foreach(s->print(io, s*", "), ineqstrs[1:end-1])
+        print(io, ineqstrs[end])
     end
 end
 ineqstr(σ,b) = σ>0 ? "≥$b" : "≤$b"
