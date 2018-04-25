@@ -228,22 +228,16 @@ end
 
 ### Compact printing of constraints
 
-struct UnquotedString
-    str::AbstractString
-end
-Base.show(io::IO, uqstr::UnquotedString) = print(io, uqstr.str)
-
-#Base.array_eltype_show_how(a::Vector{UnquotedString}) = false, ""
-
 function showeq(io, indent, eq, val, chr, style)
     if !isempty(eq)
         print(io, '\n', indent)
         if style == :bracket
-            eqstrs = map((i,v) -> UnquotedString("$chr[$i]=$v"), eq, val)
+            eqstrs = map((i,v) -> "$chr[$i]=$v", eq, val)
         else
-            eqstrs = map((i,v) -> UnquotedString("$(chr)_$i=$v"), eq, val)
+            eqstrs = map((i,v) -> "$(chr)_$i=$v", eq, val)
         end
-        Base.show_vector(IOContext(io, limit=true), eqstrs, "", "")
+        foreach(s->print(io, s*", "), eqstrs[1:end-1])
+        print(io, eqstrs[end])
     end
 end
 
@@ -251,11 +245,12 @@ function showineq(io, indent, ineqs, σs, bs, chr, style)
     if !isempty(ineqs)
         print(io, '\n', indent)
         if style == :bracket
-            ineqstrs = map((i,σ,b) -> UnquotedString(string("$chr[$i]", ineqstr(σ,b))), ineqs, σs, bs)
+            ineqstrs = map((i,σ,b) -> "$chr[$i]"*ineqstr(σ,b), ineqs, σs, bs)
         else
-            ineqstrs = map((i,σ,b) -> UnquotedString(string("$(chr)_$i", ineqstr(σ,b))), ineqs, σs, bs)
+            ineqstrs = map((i,σ,b) -> "$(chr)_$i"*ineqstr(σ,b), ineqs, σs, bs)
         end
-        Base.show_vector(IOContext(io, limit=true), ineqstrs, "", "")
+        foreach(s->print(io, s*", "), ineqstrs[1:end-1])
+        print(io, ineqstrs[end])
     end
 end
 ineqstr(σ,b) = σ>0 ? "≥$b" : "≤$b"

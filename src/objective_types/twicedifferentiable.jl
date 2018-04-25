@@ -35,7 +35,6 @@ mutable struct TwiceDifferentiableDynamicFuncUntyped{T,TDF,TH,TX} <: TwiceDiffer
     df_calls::Vector{Int}
     h_calls::Vector{Int}
 end
-iscomplex(obj::TwiceDifferentiable) = false
 # compatibility with old constructor
 function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T, ::Val{S}) where {T, TX, S}
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
@@ -71,9 +70,7 @@ function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T = real(zero(eltype(x)))
     end
 end
 
-
-
-function TwiceDifferentiable(f, g!, h!, x::AbstractVector, F = real(zero(eltype(x))), G = similar(x), H = alloc_H(x))
+function TwiceDifferentiable(f, g!, h!, x::AbstractVector{TX}, F::T = real(zero(eltype(x))), G = similar(x), H = alloc_H(x)) where {TX, T}
     fg! = make_fdf(x, F, f, g!)
     return TwiceDifferentiable(f, g!, fg!, h!, x, F, G, H)
 end

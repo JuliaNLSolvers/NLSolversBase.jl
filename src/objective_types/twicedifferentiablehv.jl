@@ -14,7 +14,6 @@ mutable struct TwiceDifferentiableHV{T,TDF,THv,TX} <: AbstractObjective
     df_calls::Vector{Int}
     hv_calls::Vector{Int}
 end
-iscomplex(obj::TwiceDifferentiableHV) = false
 
 # compatibility with old constructor
 function TwiceDifferentiableHV(f, fdf, h, x::TX, F::T, G::TG = similar(x), H::THv = similar(x)) where {T, TG, THv, TX}
@@ -32,7 +31,7 @@ end
 function gradient!!(obj::TwiceDifferentiableHV, x)
     obj.df_calls .+= 1
     copy!(obj.x_df, x)
-    obj.fdf(real_to_complex(obj, obj.DF), real_to_complex(obj, x))    
+    obj.fdf(obj.DF, x)    
 end
 
 function hv_product!(obj::AbstractObjective, x, v)
