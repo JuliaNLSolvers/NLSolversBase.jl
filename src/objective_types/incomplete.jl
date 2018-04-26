@@ -72,18 +72,6 @@ function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::A
     NonDifferentiable(f, x, F)
 end
 
-function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F = real(zero(eltype(x))), DF::AbstractArray = alloc_DF(x, F))
-    f = make_f(t, x, F)
-    df = make_df(t, x, F)
-    fdf = make_fdf(t, x, F)
-    OnceDifferentiable(f, df, fdf, x, F, DF)
-end
-function OnceDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::AbstractArray, DF::AbstractArray = alloc_DF(x, F))
-    f = make_f(t, x, F)
-    df = make_df(t, x, F)
-    fdf = make_fdf(t, x, F)
-    OnceDifferentiable(f, df, fdf, x, F, DF)
-end
 
 function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray, F = real(zero(eltype(x))), G::AbstractArray = similar(x), H = alloc_H(x)) where {TH}
     f   =     x  -> t.fgh(F, nothing, nothing, x)

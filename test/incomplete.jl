@@ -70,7 +70,7 @@
 
 end
 @testset "incomplete objectives vectors" begin
-    import NLSolversBase: df, fdf, make_f, make_df, make_fdf
+    import Compat: copyto!
     function tf(x)
         x.^2
     end
