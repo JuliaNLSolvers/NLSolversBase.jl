@@ -37,7 +37,8 @@ export AbstractObjective,
        clear!,
        f_calls,
        g_calls,
-       h_calls
+       h_calls,
+       LinSolveFactorize
 
 export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds
@@ -56,5 +57,6 @@ include("objective_types/twicedifferentiablehv.jl")
 include("objective_types/incomplete.jl")
 include("objective_types/constraints.jl")
 include("interface.jl")
+include("linsolve.jl")
 
 end # module
