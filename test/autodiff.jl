@@ -45,6 +45,59 @@
             dtype == TwiceDifferentiable && hessian!(differentiable, rand(2))
         end
     end
+    @testset "autodiff ℝ → ℝᴺ" begin
+        function f!(F, x)
+            F[1] = 1.0 - x[1]
+            F[2] = 10.0*(x[2] - x[1]^2)
+            F
+        end
+        function j!(J, x)
+            J[1,1] = -1.0
+            J[1,2] = 0.0
+            J[2,1] = -20.0*x[1]
+            J[2,2] = 10.0
+            J
+        end
+        # Some random x
+        x = rand(2)
+        # A type and shape-correct F vector
+        F = similar(x)
+        # A type and shape-correct J matrix
+        J = NLSolversBase.alloc_DF(x, F)
+        # Default, should be :central
+        od_fd = OnceDifferentiable(f!, x, F)
+        value_jacobian!(od_fd, x)
+        @test value(od_fd) == f!(F, x)
+        # Can't test equality here
+        @test jacobian(od_fd) ≈ j!(J, x)
+        # Specifically :central
+        od_fd_2 = OnceDifferentiable(f!, x, F, :central)
+        @test value!(od_fd_2, x) == f!(F, x)
+        # Can't test equality here
+        @test jacobian!(od_fd_2, x) ≈ j!(J, x)
+        # Test that they're identical -> they used the same scheme
+        @test jacobian(od_fd) == jacobian(od_fd_2)
+
+        od_ad = OnceDifferentiable(f!, x, F, :forward)
+        @test value!(od_ad, x) == f!(F, x)
+        # Can't test equality here
+        @test jacobian!(od_ad, x) ≈ j!(J, x)
+
+        od_ad_2 = OnceDifferentiable(f!, x, F, :forward)
+        @test value!(od_ad_2, x) == f!(F, x)
+        # Can't test equality here
+        @test jacobian!(od_ad_2, x) ≈ j!(J, x)
+        # Test that they're identical -> they used the same scheme
+        @test jacobian(od_ad) == jacobian(od_ad_2)
+        @testset "error handling" begin
+            x = rand(2)
+            F = similar(x)
+            # Wrong symbol
+            @test_throws ErrorException OnceDifferentiable(f!, x, F, :foo)
+            # Wrong bool
+            @test_throws ErrorException OnceDifferentiable(f!, x, F, false)
+        end
+    end
 end
 @testset "value/grad" begin
     a = 3.0

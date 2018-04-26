@@ -95,7 +95,21 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T}, F::Union{Real,AbstractA
     end
 end
 
-function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::Union{Symbol, Bool} = :central, chunk = ForwardDiff.Chunk(x))
+# Below is to catch what was supposed to be an attempt at using autodiff, but the
+# type of `autodiff` is wrong.
+OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)) = throw(ErrorException)
+has_not_dep_symbol_in_ad = Ref{Bool}(true)
+function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray,
+                            autodiff::Bool, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x))
+    if autodiff == false
+        throw(ErrorException("It is not possible to set the `autodiff` keyword to `false` when constructing a OnceDifferentiable instance from only one function. Pass in the (partial) derivative or specify a valid `autodiff` symbol."))
+    elseif has_not_dep_symbol_in_ad[]
+        warn("Setting the `autodiff` keyword to `true` is deprecated. Please use a valid symbol instead.")
+        has_not_dep_symbol_in_ad[] = false
+    end
+    OnceDifferentiable(f, x, F, :forward, chunk)
+end
+function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::Symbol = :central, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x))
 
     if  typeof(f) <: Union{InplaceObjective, NotInplaceObjective}
         DF = alloc_DF(x, F)
