@@ -1,6 +1,13 @@
 @testset "autodiff" begin
     # Should throw, as :wah is not a proper autodiff choice
     @test_throws ErrorException OnceDifferentiable(x->x, rand(10); autodiff=:wah)
+    @test_throws ErrorException OnceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
+    @test_throws ErrorException TwiceDifferentiable(x->x, rand(10); autodiff=:wah)
+    @test_throws ErrorException TwiceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
+    #@test_throws ErrorException TwiceDifferentiable(x->x, rand(10), 0.0, rand(10); autodiff=:wah)
+    @test_throws ErrorException TwiceDifferentiable(x->x, x->x, rand(10); autodiff=:wah)
+    @test_throws ErrorException TwiceDifferentiable(x->x, x->x, rand(10), 0.0; autodiff=:wah)
+    #@test_throws ErrorException TwiceDifferentiable(x->x, x->x, rand(10), 0.0, rand(10); autodiff=:wah)
 
     for T in (OnceDifferentiable, TwiceDifferentiable)
         odad1 = T(x->5.0, rand(1); autodiff = :finite)
@@ -44,6 +51,14 @@
             gradient!(differentiable, rand(2))
             dtype == TwiceDifferentiable && hessian!(differentiable, rand(2))
         end
+    end
+    for autodiff in (:finite, :forward)
+        td = TwiceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), rand(2); autodiff = autodiff)
+        value(td)
+        value!(td, rand(2))
+        value_gradient!(td, rand(2))
+        gradient!(td, rand(2))
+        hessian!(td, rand(2))
     end
     @testset "autodiff ℝ → ℝᴺ" begin
         function f!(F, x)
