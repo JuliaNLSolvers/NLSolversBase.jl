@@ -81,9 +81,8 @@ function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::Abstr
     TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
 end
 
-function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractVector) where {TH}
-    F = real(zero(eltype(x)))
-    G = similar(x)
+function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractVector, F::Real = real(zero(eltype(x))), G::AbstractVector = similar(x)) where {TH}
+
     H = alloc_H(x)
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
