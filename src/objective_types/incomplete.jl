@@ -73,18 +73,21 @@ function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::A
 end
 
 
-function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray, F = real(zero(eltype(x))), G::AbstractArray = similar(x), H = alloc_H(x)) where {TH}
+function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray, F::Real = real(zero(eltype(x))), G::AbstractArray = similar(x), H = alloc_H(x)) where {TH}
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
-    h   = (H, x) -> t.fgh(H, nothing, F, x)
+    h   = (H, x) -> t.fgh(F, nothing, H, x)
     TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
 end
 
-function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractArray, F, G::AbstractVector, H = alloc_H(x)) where {TH}
+function TwiceDifferentiable(t::InplaceObjective{<: Void, <: Void, TH}, x::AbstractVector) where {TH}
+    F = real(zero(eltype(x)))
+    G = similar(x)
+    H = alloc_H(x)
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
-    h   = (H, x) -> t.fgh(H, nothing, F, x)
+    h   = (H, x) -> t.fgh(F, nothing, H, x)
     TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
 end

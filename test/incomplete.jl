@@ -7,6 +7,9 @@
     g!(G, x) = copyto!(G, 2 .* x)
     g(x) = 2 .* x
 
+    h!(H, x) = copy!(H, Diagonal(fill(2, length(n))))
+    h(x) = Diagonal(fill(2, length(n)))
+
     function fg!(G, x)
         copyto!(G, 2 .* x)
         sum(x->x^2,x)
@@ -16,7 +19,12 @@
         !(F == nothing) && sum(x->x^2,x)
     end
     fg(x) = f(x), g(x)
-
+    function just_fgh!(F, G, H, x)
+        !(H == nothing) && copy!(H, Diagonal(fill(2, length(n))))
+        !(G == nothing) && copyto!(G, 2 .* x)
+        !(F == nothing) && sum(x->x^2,x)
+    end
+    fgh(x) = f(x), g(x), h(x)
     fdf!_real = only_fg!(just_fg!)
     fdf_real = only_fg(fg)
 
@@ -57,7 +65,9 @@
     end
     od_fg = OnceDifferentiable(only_fg(fg), x)
     od_fg! = OnceDifferentiable(only_fg!(just_fg!), x)
-    for OD in (od_fg, od_fg!)
+    od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x)
+#    od_fgh = TwiceDifferentiable(only_fgh(fgh), x)
+    for OD in (od_fg, od_fg!, od_fgh!)#, od_fgh)
         value!(OD, x)
         @test value(OD) == f(x)
         gradient!(OD, x)
@@ -67,6 +77,7 @@
         @test value(OD) == f(2 .* x)
         @test gradient(OD) == g(2 .* x)
     end
+
 
 end
 @testset "incomplete objectives vectors" begin

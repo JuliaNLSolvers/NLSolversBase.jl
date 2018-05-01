@@ -23,7 +23,7 @@ function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T = real(zero(eltype(x)))
                                         [0,], [0,], [0,])
 end
 
-function TwiceDifferentiable(f, g!, h!, x::AbstractVector{TX}, F::T = real(zero(eltype(x))), G = similar(x), H = alloc_H(x)) where {TX, T}
+function TwiceDifferentiable(f, g!, h!, x::AbstractVector{TX}, F::Real = real(zero(eltype(x))), G = similar(x), H = alloc_H(x)) where {TX}
     fg! = make_fdf(x, F, f, g!)
     return TwiceDifferentiable(f, g!, fg!, h!, x, F, G, H)
 end
