@@ -53,17 +53,19 @@
     for dtype in (OnceDifferentiable, TwiceDifferentiable)
         for autodiff in (:finite, :forward)
             # :forward should be exact, but :finite will not be
-            comp_op = autodiff == :finite ? isapprox : ==
             differentiable = dtype(f, copy(x); autodiff = autodiff)
             value!(differentiable, copy(x))
-            @test comp_op(value(differentiable), fx)
-            value_gradient!(differentiable, copy(x))
-            @test comp_op(value(differentiable), fx)
-            @test comp_op(gradient(differentiable), gx)
-            gradient!(differentiable, copy(x))
-            @test comp_op(gradient(differentiable), gx)
+            @test isapprox(value(differentiable), fx)
+            clear!(differentiable)
+            value_gradient!(differentiable, x)
+            @test isapprox(value(differentiable), fx)
+            @test isapprox(gradient(differentiable), gx)
+            clear!(differentiable)
+            gradient!(differentiable, x)
+            @test isapprox(gradient(differentiable), gx)
+            clear!(differentiable)
             if dtype == TwiceDifferentiable
-                hessian!(differentiable, copy(x))
+                hessian!(differentiable, x)
                 if autodiff == :finite
                     # we have to increase the tolerance here, as the hessian is
                     # not very accurate
