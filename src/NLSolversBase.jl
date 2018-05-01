@@ -37,7 +37,8 @@ export AbstractObjective,
        clear!,
        f_calls,
        g_calls,
-       h_calls
+       h_calls,
+       hv_calls
 
 export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds

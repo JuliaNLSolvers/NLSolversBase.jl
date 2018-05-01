@@ -159,7 +159,7 @@
                     end
                     fg!(G::Vector, x::Vector) = begin
                         MVP.gradient(prob)(G, x)
-                        MVP.objective(prob)(x)
+                        MVP.objective(prob)(x), G
                     end
                     ddf = TwiceDifferentiableHV(MVP.objective(prob), fg!, hv!, prob.initial_x)
                     x = rand(prob.initial_x, length(prob.initial_x))
@@ -170,8 +170,18 @@
                     @test hv_product!(ddf, x, v) == H*v
                     @test hv_product(ddf) == H*v
                     @test hv_product(ddf) == ddf.Hv
-                    fg!(G, x)
+                    F, G = fg!(G, x)
                     @test gradient!(ddf, x) == G
+                    @test value!(ddf, x) == F
+                    @test f_calls(ddf) == 1
+                    @test g_calls(ddf) == 1
+                    @test h_calls(ddf) == 0
+                    @test hv_calls(ddf) == 1
+                    clear!(ddf)
+                    @test f_calls(ddf) == 0
+                    @test g_calls(ddf) == 0
+                    @test h_calls(ddf) == 0
+                    @test hv_calls(ddf) == 0
                 end
             end
         end
@@ -181,12 +191,14 @@
         function f!(F::Vector, x::Vector)
             F[1] = 1 - x[1]
             F[2] = 10(x[2]-x[1]^2)
+            F
         end
         function j!(J::Matrix, x::Vector)
             J[1,1] = -1
             J[1,2] = 0
             J[2,1] = -20x[1]
             J[2,2] = 10
+            J
         end
 
         x_seed = [0.0, 0.0]
@@ -277,5 +289,25 @@
         @test nd.f_calls == [0,]
         @test od.f_calls == [0,]
         @test od.df_calls == [0,]
+
+        # Test that the correct branch gets called if jacobian hasn't been
+        # calculated yet
+        xx = rand(2)
+        @test jacobian!(od, xx) == j!(NLSolversBase.alloc_DF(xx, xx), xx)
+        @test od.x_df == xx
+
+        # Test the branching in value_jacobian! works as expected
+        xxx = rand(2)
+        value_jacobian!(od, xxx)
+        @test xxx == od.x_f == od.x_df
+        xxx2 = rand(2)
+        value!(od, xxx2)
+        @test xxx2 == od.x_f
+        @test xxx == od.x_df
+        xxx3 = rand(2)
+        jacobian!(od, xxx3)
+        @test xxx2 == od.x_f
+        @test xxx3 == od.x_df
+
     end
 end

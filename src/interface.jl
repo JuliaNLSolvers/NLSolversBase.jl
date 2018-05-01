@@ -201,7 +201,7 @@ function _clear_hv!(d::NLSolversBase.AbstractObjective)
     d.hv_calls .= 0
     d.Hv .= eltype(d.Hv)(NaN)
     d.x_hv .= eltype(d.x_hv)(NaN)
-    d.v_hv .= eltype(d.v_h)(NaN)
+    d.v_hv .= eltype(d.v_hv)(NaN)
     nothing
 end
 
@@ -232,4 +232,6 @@ h_calls(d::Union{NonDifferentiable, OnceDifferentiable}) = 0
 f_calls(d) = first(d.f_calls)
 g_calls(d) = first(d.df_calls)
 h_calls(d) = first(d.h_calls)
-h_calls(d::TwiceDifferentiableHV) = first(d.hv_calls)
+hv_calls(d) = 0
+h_calls(d::TwiceDifferentiableHV) = 0
+hv_calls(d::TwiceDifferentiableHV) = first(d.hv_calls)
