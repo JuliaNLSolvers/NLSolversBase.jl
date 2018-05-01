@@ -42,40 +42,62 @@
         @test gradient(odad2) == 2.0*a*xa
     #    @test odad3.g == 2.0*a*xa
     end
+    nx = 2
+    x = rand(nx)
+    f(x) = sum(x.^3)
+    fx = f(x)
+    g(G, x) = copyto!(G, 3.*x.^2)
+    gx = g(NLSolversBase.alloc_DF(x, 0.0), x)
+    h(H, x) = copyto!(H, Diagonal(6.*x))
+    hx = h(fill(0.0, nx, nx), x)
     for dtype in (OnceDifferentiable, TwiceDifferentiable)
         for autodiff in (:finite, :forward)
-            differentiable = dtype(x->sum(x), rand(2); autodiff = autodiff)
-            value(differentiable)
-            value!(differentiable, rand(2))
-            value_gradient!(differentiable, rand(2))
-            gradient!(differentiable, rand(2))
-            dtype == TwiceDifferentiable && hessian!(differentiable, rand(2))
+            # :forward should be exact, but :finite will not be
+            comp_op = autodiff == :finite ? isapprox : ==
+            differentiable = dtype(f, copy(x); autodiff = autodiff)
+            value!(differentiable, copy(x))
+            @test comp_op(value(differentiable), fx)
+            value_gradient!(differentiable, copy(x))
+            @test comp_op(value(differentiable), fx)
+            @test comp_op(gradient(differentiable), gx)
+            gradient!(differentiable, copy(x))
+            @test comp_op(gradient(differentiable), gx)
+            if dtype == TwiceDifferentiable
+                hessian!(differentiable, copy(x))
+                if autodiff == :finite
+                    # we have to increase the tolerance here, as the hessian is
+                    # not very accurate
+                    @test isapprox(hessian(differentiable), hx; atol = 1e-6)
+                else
+                    @test hessian(differentiable) == hx
+                end
+            end
         end
     end
     for autodiff in (:finite, :forward)
-        td = TwiceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), rand(2); autodiff = autodiff)
+        td = TwiceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), copy(x); autodiff = autodiff)
         value(td)
-        value!(td, rand(2))
-        value_gradient!(td, rand(2))
-        gradient!(td, rand(2))
-        hessian!(td, rand(2))
+        value!(td, x)
+        value_gradient!(td, x)
+        gradient!(td, x)
+        hessian!(td, x)
     end
     for autodiff in (:finite, :forward)
-        for nd = (NonDifferentiable(x->sum(x), rand(2)), NonDifferentiable(x->sum(x), rand(2), 0.0))
+        for nd = (NonDifferentiable(x->sum(x), copy(x)), NonDifferentiable(x->sum(x), copy(x), 0.0))
             td = TwiceDifferentiable(nd; autodiff = autodiff)
             value(td)
-            value!(td, rand(2))
-            value_gradient!(td, rand(2))
-            gradient!(td, rand(2))
-            hessian!(td, rand(2))
+            value!(td, x)
+            value_gradient!(td, x)
+            gradient!(td, x)
+            hessian!(td, x)
         end
-        for od = (OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)),rand(2)), OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), rand(2), 0.0))
+        for od = (OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), copy(x)), OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), copy(x), 0.0))
             td = TwiceDifferentiable(od; autodiff = autodiff)
             value(td)
-            value!(td, rand(2))
-            value_gradient!(td, rand(2))
-            gradient!(td, rand(2))
-            hessian!(td, rand(2))
+            value!(td, x)
+            value_gradient!(td, x)
+            gradient!(td, x)
+            hessian!(td, x)
         end
     end
     @testset "autodiff ℝᴺ → ℝᴺ" begin
