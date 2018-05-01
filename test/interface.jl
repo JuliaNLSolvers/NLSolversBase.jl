@@ -157,16 +157,21 @@
                         MVP.hessian(prob)(H, x)
                         storage .= H * v
                     end
-                    fg!(g::Vector, x::Vector) = begin
-                        MVP.gradient(prob)(g,x)
+                    fg!(G::Vector, x::Vector) = begin
+                        MVP.gradient(prob)(G, x)
                         MVP.objective(prob)(x)
                     end
                     ddf = TwiceDifferentiableHV(MVP.objective(prob), fg!, hv!, prob.initial_x)
                     x = rand(prob.initial_x, length(prob.initial_x))
                     v = rand(prob.initial_x, length(prob.initial_x))
+                    G = NLSolversBase.alloc_DF(x, 0.0)
                     H = NLSolversBase.alloc_H(x)
                     MVP.hessian(prob)(H, x)
                     @test hv_product!(ddf, x, v) == H*v
+                    @test hv_product(ddf) == H*v
+                    @test hv_product(ddf) == ddf.Hv
+                    fg!(G, x)
+                    @test gradient!(ddf, x) == G
                 end
             end
         end
