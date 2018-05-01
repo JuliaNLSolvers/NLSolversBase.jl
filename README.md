@@ -191,5 +191,5 @@ the objective.
 [cov-img]: http://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl/coverage.svg?branch=master
 [cov-url]: http://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl?branch=master
 
-[coveralls-img]: https://coveralls.io/repos/JuliaNLSolvers/NLSolversBase.jl/badge.svg?branch=master&service=github
+[coveralls-img]: https://coveralls.io/repos/JuliaNLSolvers/NLSolversBase.jl/badge.svg?branch=master
 [coveralls-url]: https://coveralls.io/github/JuliaNLSolvers/NLSolversBase.jl?branch=master
