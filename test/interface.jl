@@ -147,6 +147,29 @@
         @test od.df_calls == [0,]
         @test td.df_calls == [0,]
         @test td.h_calls == [0,]
+
+        @testset "TwiceDifferentiableHV" begin
+            for (name, prob) in MultivariateProblems.UnconstrainedProblems.examples
+                if prob.istwicedifferentiable
+                    hv!(storage::Vector, x::Vector, v::Vector) = begin
+                        n = length(x)
+                        H = Matrix{Float64}(n, n)
+                        MVP.hessian(prob)(H, x)
+                        storage .= H * v
+                    end
+                    fg!(g::Vector, x::Vector) = begin
+                        MVP.gradient(prob)(g,x)
+                        MVP.objective(prob)(x)
+                    end
+                    ddf = TwiceDifferentiableHV(MVP.objective(prob), fg!, hv!, prob.initial_x)
+                    x = rand(prob.initial_x, length(prob.initial_x))
+                    v = rand(prob.initial_x, length(prob.initial_x))
+                    H = NLSolversBase.alloc_H(x)
+                    MVP.hessian(prob)(H, x)
+                    @test hv_product!(ddf, x, v) == H*v
+                end
+            end
+        end
     end
     @testset "multivalued" begin
         # Test example: Rosenbrock MINPACK

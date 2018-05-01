@@ -31,13 +31,14 @@ end
 function gradient!!(obj::TwiceDifferentiableHV, x)
     obj.df_calls .+= 1
     copy!(obj.x_df, x)
-    obj.fdf(obj.DF, x)    
+    obj.fdf(obj.DF, x)
 end
 
 function hv_product!(obj::AbstractObjective, x, v)
     if x != obj.x_hv ||  v != obj.v_hv
         hv_product!!(obj, x, v)
     end
+    obj.Hv
 end
 function hv_product!!(obj::AbstractObjective, x, v)
     obj.hv_calls .+= 1
