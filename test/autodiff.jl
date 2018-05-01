@@ -38,7 +38,7 @@
     #    odad3 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = :reverse)
         gradient!(odad1, xa)
         gradient!(odad2, xa)
-     @test gradient(odad1) ≈ 2.0*a*xa
+        @test gradient(odad1) ≈ 2.0*a*xa
         @test gradient(odad2) == 2.0*a*xa
     #    @test odad3.g == 2.0*a*xa
     end
@@ -60,7 +60,25 @@
         gradient!(td, rand(2))
         hessian!(td, rand(2))
     end
-    @testset "autodiff ℝ → ℝᴺ" begin
+    for autodiff in (:finite, :forward)
+        for nd = (NonDifferentiable(x->sum(x), rand(2)), NonDifferentiable(x->sum(x), rand(2), 0.0))
+            td = TwiceDifferentiable(nd; autodiff = autodiff)
+            value(td)
+            value!(td, rand(2))
+            value_gradient!(td, rand(2))
+            gradient!(td, rand(2))
+            hessian!(td, rand(2))
+        end
+        for od = (OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)),rand(2)), OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), rand(2), 0.0))
+            td = TwiceDifferentiable(od; autodiff = autodiff)
+            value(td)
+            value!(td, rand(2))
+            value_gradient!(td, rand(2))
+            gradient!(td, rand(2))
+            hessian!(td, rand(2))
+        end
+    end
+    @testset "autodiff ℝᴺ → ℝᴺ" begin
         function f!(F, x)
             F[1] = 1.0 - x[1]
             F[2] = 10.0*(x[2] - x[1]^2)
