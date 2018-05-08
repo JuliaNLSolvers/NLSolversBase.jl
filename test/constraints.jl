@@ -98,7 +98,7 @@
         @test odc.bounds.bx == [lx, ux]
         @test isempty(odc.bounds.bc)
 
-        prob = MVP.ConstrainedProblems.examples["HS9"]
+        prob = MVP.ConstrainedProblems.examples["HS39"]
         cbd = prob.constraintdata
         cb = ConstraintBounds(cbd.lx, cbd.ux, cbd.lc, cbd.uc)
 
@@ -106,10 +106,52 @@
         @test odc.bounds == cb
 
         odc = TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!, cbd.h!,
-                                            cbd.lx, cbd.ux, cbd.lc, cbd.uc)
+                                             cbd.lx, cbd.ux, cbd.lc, cbd.uc)
         @test isempty(odc.bounds.bx)
         @test isempty(odc.bounds.bc)
-        @test odc.bounds.valc == [0.0]
+        @test odc.bounds.valc == [0.0, 0.0]
 
+        @testset "autodiff" begin
+            # This throws because cbd.lc is empty (when using problem "HS9")
+            @test_throws ArgumentError TwiceDifferentiableConstraints(cbd.c!, cbd.lx, cbd.ux,
+                                                                      cbd.lc, cbd.uc)
+
+            lx, ux, lc, uc = cbd.lx, cbd.ux, cbd.lc, cbd.uc
+            nx = length(prob.initial_x)
+            nc = length(cbd.lc)
+            if isempty(lx)
+                lx = fill(-Inf, nx)
+                ux = fill(Inf, nx)
+            end
+
+            for autodiff in (:finite,:forward)
+                odca = TwiceDifferentiableConstraints(cbd.c!, lx, ux,
+                                                      lc, uc, autodiff)
+
+                T = eltype(odca.bounds)
+                carr = zeros(T, nc)
+                carra = similar(carr)
+                odc.c!(carr, prob.initial_x)
+                odca.c!(carra, prob.initial_x)
+                @test carr == carra
+
+                Jarr  = zeros(T, nc, nx)
+                Jarra = similar(Jarr)
+                odc.jacobian!(Jarr, prob.initial_x)
+                odca.jacobian!(Jarra, prob.initial_x)
+                @test isapprox(Jarr, Jarra, atol=1e-10)
+
+                Harr  = zeros(T, nx, nx)
+                Harra = similar(Harr)
+                λ = ones(nc)
+                odc.h!(Harr, prob.initial_x, λ)
+                odca.h!(Harra, prob.initial_x, λ)
+                @test_broken isapprox(Harr, Harra, atol=1e-10)
+                λ *= 0.5
+                odc.h!(Harr, prob.initial_x, λ)
+                odca.h!(Harra, prob.initial_x, λ)
+                @test_broken isapprox(Harr, Harra, atol=1e-10)
+            end
+        end
     end
 end

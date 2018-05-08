@@ -175,10 +175,74 @@ function TwiceDifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
 end
 
 function TwiceDifferentiableConstraints(bounds::ConstraintBounds)
-    c! = (x,c)->nothing
-    J! = (x,J)->nothing
-    h! = (x,λ,h)->nothing
+    c! = (c,x)->nothing
+    J! = (J,x)->nothing
+    h! = (h,x,λ)->nothing
     TwiceDifferentiableConstraints(c!, J!, h!, bounds)
+end
+
+function TwiceDifferentiableConstraints(c!, jacobian!,
+                                        lx::AbstractVector, ux::AbstractVector,
+                                        lc::AbstractVector, uc::AbstractVector,
+                                        autodiff::Symbol = :central,
+                                        chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(lx))
+    if isempty(lx)
+        throw(ArgumentError("autodiff on constraints require the full lower bound vector `lx`."))
+    end
+    error("Not implemented")
+end
+
+function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVector,
+                                        lc::AbstractVector, uc::AbstractVector,
+                                        autodiff::Symbol = :central,
+                                        chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(lx))
+    if isempty(lx)
+        throw(ArgumentError("autodiff on constraints require the full lower bound vector `lx`."))
+    end
+    bounds = ConstraintBounds(lx, ux, lc, uc)
+    T = eltype(bounds)
+    sizex = size(lx)
+    sizec = size(lc)
+
+    xcache = zeros(T,sizex)
+    ccache = zeros(T,sizec)
+    ccache2 = similar(ccache)
+
+    # TODO: It may be more efficient to calculate the Lagrangian hessions
+    #       from the sum of Jacobians instead of sum of constraints?
+    function lagrange_c(x, λ)
+        c!(ccache2, x)
+        return vecdot(ccache2, λ)
+    end
+
+    if any(autodiff .== (:finite, :central))
+        ccache3 = similar(ccache)
+        central_cache = DiffEqDiffTools.JacobianCache(xcache, ccache,
+                                                      ccache3)
+        function jfinite!(J, x)
+            DiffEqDiffTools.finite_difference_jacobian!(J, c!, x, central_cache)
+            J
+        end
+
+        hfinite! = (h,x,λ) -> (warn("Not implemented"); h)
+
+        return TwiceDifferentiableConstraints(c!, jfinite!, hfinite!, bounds)
+    elseif autodiff == :forward
+        jac_cfg = ForwardDiff.JacobianConfig(c!, ccache, xcache, chunk)
+        ForwardDiff.checktag(jac_cfg, c!, xcache)
+
+        function jforward!(J, x)
+            ForwardDiff.jacobian!(J, c!, ccache, x, jac_cfg, Val{false}())
+            J
+        end
+
+        #hcfg = ForwardDiff.HessianConfig(lagrange_c, xcache)
+        hforward! = (out, x, λ) -> ForwardDiff.hessian!(out, z->lagrange_c(z,λ), x)#, hcfg)
+
+        return TwiceDifferentiableConstraints(c!, jforward!, hforward!, bounds)
+    else
+        error("The autodiff value $autodiff is not support. Use :finite or :forward.")
+    end
 end
 
 
