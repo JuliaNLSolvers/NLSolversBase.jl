@@ -56,6 +56,40 @@
         @test odc.bounds.valc == [0.0]
 
         #TODO: add tests calling c! and jacobian!
+
+        @testset "autodiff" begin
+            # This throws because cbd.lc is empty (when using problem "HS9")
+            @test_throws ArgumentError OnceDifferentiableConstraints(cbd.c!, cbd.lx, cbd.ux,
+                                                                     cbd.lc, cbd.uc)
+
+            lx, ux, lc, uc = cbd.lx, cbd.ux, cbd.lc, cbd.uc
+            nx = length(prob.initial_x)
+            nc = length(cbd.lc)
+            if isempty(lx)
+                lx = fill(-Inf, nx)
+                ux = fill(Inf, nx)
+            end
+
+            for autodiff in (:finite, :forward)
+                odca = OnceDifferentiableConstraints(cbd.c!, lx, ux,
+                                                     lc, uc, autodiff)
+
+                T = eltype(odca.bounds)
+                carr = zeros(T, nc)
+                carra = similar(carr)
+                odc.c!(carr, prob.initial_x)
+                odca.c!(carra, prob.initial_x)
+
+                @test carr == carra
+
+                Jarr  = zeros(T, nc, nx)
+                Jarra = similar(Jarr)
+                odc.jacobian!(Jarr, prob.initial_x)
+                odca.jacobian!(Jarra, prob.initial_x)
+
+                @test isapprox(Jarr, Jarra, atol=1e-10)
+            end
+        end
     end
 
     @testset "Twice differentiable constraints" begin
