@@ -17,18 +17,18 @@
 # additional variables. See `parse_constraints` for details.
 
 struct ConstraintBounds{T}
-    nc::Int          # Number of linear/nonlinear constraints supplied by user
+    nc::Int            # Number of linear/nonlinear constraints supplied by user
     # Box-constraints on variables (i.e., directly on x)
-    eqx::Vector{Int} # index-vector of equality-constrained x (not actually variable...)
-    valx::Vector{T}  # value of equality-constrained x
-    ineqx::Vector{Int}  # index-vector of other inequality-constrained variables
-    σx::Vector{Int8}    # ±1, in constraints σ(v-b) ≥ 0 (sign depends on whether v>b or v<b)
-    bx::Vector{T}       # bound (upper or lower) on variable
+    eqx::Vector{Int}   # index-vector of equality-constrained x (not actually variable...)
+    valx::Vector{T}    # value of equality-constrained x
+    ineqx::Vector{Int} # index-vector of other inequality-constrained variables
+    σx::Vector{Int8}   # ±1, in constraints σ(v-b) ≥ 0 (sign depends on whether v>b or v<b)
+    bx::Vector{T}      # bound (upper or lower) on variable
     # Linear/nonlinear constraint functions and bounds
-    eqc::Vector{Int}    # index-vector equality-constrained entries in c
-    valc::Vector{T}     # value of the equality-constraint
-    ineqc::Vector{Int}  # index-vector of inequality-constraints
-    σc::Vector{Int8}    # same as σx, bx except for the nonlinear constraints
+    eqc::Vector{Int}   # index-vector equality-constrained entries in c
+    valc::Vector{T}    # value of the equality-constraint
+    ineqc::Vector{Int} # index-vector of inequality-constraints
+    σc::Vector{Int8}   # same as σx, bx except for the nonlinear constraints
     bc::Vector{T}
 end
 function ConstraintBounds(lx, ux, lc, uc)
@@ -101,7 +101,9 @@ struct OnceDifferentiableConstraints{F,J,T} <: AbstractConstraints
     bounds::ConstraintBounds{T}
 end
 
-function OnceDifferentiableConstraints(c!, jacobian!, lx, ux, lc, uc)
+function OnceDifferentiableConstraints(c!, jacobian!,
+                                       lx::AbstractArray, ux::AbstractArray,
+                                       lc::AbstractArray, uc::AbstractArray)
     b = ConstraintBounds(lx, ux, lc, uc)
     OnceDifferentiableConstraints(c!, jacobian!, b)
 end
@@ -112,10 +114,49 @@ function OnceDifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
 end
 
 function OnceDifferentiableConstraints(bounds::ConstraintBounds)
-    c! = (x,c)->nothing
-    J! = (x,J)->nothing
+    c! = (c,x)->nothing
+    J! = (J,x)->nothing
     OnceDifferentiableConstraints(c!, J!, bounds)
 end
+
+function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVector,
+                                       lc::AbstractVector, uc::AbstractVector,
+                                       autodiff::Symbol = :central,
+                                       chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(lx))
+    if isempty(lx)
+        throw(ArgumentError("autodiff on constraints require the full lower bound vector `lx`."))
+    end
+    bounds = ConstraintBounds(lx, ux, lc, uc)
+    T = eltype(bounds)
+    sizex = size(lx)
+    sizec = size(lc)
+
+    xcache = zeros(T,sizex)
+    ccache = zeros(T,sizec)
+
+    if any(autodiff .== (:finite, :central))
+        ccache2 = similar(ccache)
+        central_cache = DiffEqDiffTools.JacobianCache(xcache, ccache,
+                                                      ccache2)
+        function jfinite!(J, x)
+            DiffEqDiffTools.finite_difference_jacobian!(J, c!, x, central_cache)
+            J
+        end
+        return OnceDifferentiableConstraints(c!, jfinite!, bounds)
+    elseif autodiff == :forward
+        jac_cfg = ForwardDiff.JacobianConfig(c!, ccache, xcache, chunk)
+        ForwardDiff.checktag(jac_cfg, c!, xcache)
+
+        function jforward!(J, x)
+            ForwardDiff.jacobian!(J, c!, ccache, x, jac_cfg, Val{false}())
+            J
+        end
+        return OnceDifferentiableConstraints(c!, jforward!, bounds)
+    else
+        error("The autodiff value $autodiff is not support. Use :finite or :forward.")
+    end
+end
+
 
 struct TwiceDifferentiableConstraints{F,J,H,T} <: AbstractConstraints
     c!::F # c!(storage, x) stores the value of the constraint-functions at x
