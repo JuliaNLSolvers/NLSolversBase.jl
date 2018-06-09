@@ -10,6 +10,12 @@
     @test value!(f1, xr) ≈ value!(fia1, xr) ≈ value!(fi1, xr) ≈ value!(fi2, xr) ≈ value!(fi3, xr)
     @test gradient!(f1, xr) ≈ gradient!(fia1, xr)
     @test gradient!(fia1, xr) ≈ gradient!(fi1, xr) ≈ gradient!(fi2, xr) ≈ gradient!(fi3, xr)
+    vg1 = value_gradient!(fia1, xr)
+    vg2 = value_gradient!(fi1, xr)
+    vg3 = value_gradient!(fi2, xr)
+    vg4 = value_gradient!(fi3, xr)
+    @test vg1[1] ≈ vg2[1] ≈ vg3[1] ≈ vg4[1]
+    @test vg1[2] ≈ vg2[2] ≈ vg3[2] ≈ vg4[2]
     # R^N → R^N
     f1 = OnceDifferentiable(exponential_gradient!, rand(2), rand(2))
     fia1 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false)
