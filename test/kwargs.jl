@@ -27,6 +27,14 @@
     xr = fill(2.0, 2)
     @test value!(f1, xr) ≈ value!(fia1, xr) ≈ value!(fia2, xr) ≈ value!(fi1, xr) ≈ value!(fi2, xr) ≈ value!(fi3, xr)
     @test jacobian!(f1, xr) ≈ jacobian!(fia1, xr) ≈ jacobian!(fia2, xr) ≈ jacobian!(fi1, xr) ≈ jacobian!(fi2, xr) ≈ jacobian!(fi3, xr)
+    vj1 = value_jacobian!(f1, xr)
+    vj2 = value_jacobian!(fia1, xr)
+    vj3 = value_jacobian!(fia2, xr)
+    vj4 = value_jacobian!(fi1, xr)
+    vj5 = value_jacobian!(fi2, xr)
+    vj6 = value_jacobian!(fi3, xr)
+    @test vj1[1] ≈ vj2[1] ≈ vj3[1] ≈ vj4[1] ≈ vj5[1] ≈ vj6[1]
+    @test vj1[2] ≈ vj2[2] ≈ vj3[2] ≈ vj4[2] ≈ vj5[2] ≈ vj6[2]
     # Finite doesn't cut it here, so had to split it up
     xr = [1.0, 3.4]
     @test value!(f1, xr) ≈ value!(fia1, xr) ≈ value!(fi1, xr) ≈ value!(fi2, xr) ≈ value!(fi3, xr)
