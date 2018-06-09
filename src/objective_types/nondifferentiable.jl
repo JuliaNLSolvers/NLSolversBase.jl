@@ -7,10 +7,11 @@ mutable struct NonDifferentiable{TF,TX} <: AbstractObjective
 end
 
 # These could be the same if we could restrict g below not to be an AbstractArray
-function NonDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x))))
+function NonDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x))); inplace = true)
     NonDifferentiable{typeof(F),typeof(x)}(f, F, x_of_nans(x), [0,])
 end
-function NonDifferentiable(f, x::AbstractArray, F::AbstractArray)
+function NonDifferentiable(f, x::AbstractArray, F::AbstractArray; inplace = true)
+    f = !inplace && (F isa AbstractArray) ? f!_from_f(f, x, F) : f
     NonDifferentiable{typeof(F),typeof(x)}(f, F, x_of_nans(x), [0,])
 end
 
