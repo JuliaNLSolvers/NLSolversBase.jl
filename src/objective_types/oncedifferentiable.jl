@@ -11,54 +11,60 @@ mutable struct OnceDifferentiable{TF, TDF, TX} <: AbstractObjective
     df_calls::Vector{Int}
 end
 
-### BUGG?? INPLACE IS NOT USED
-function OnceDifferentiable(f, df, fdf,
-    x::AbstractArray,
-    F::Real = real(zero(eltype(x))),
-    DF::AbstractArray = alloc_DF(x, F);
-    inplace = true)
-    x_f, x_df = x_of_nans(x), x_of_nans(x)
-    OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df, fdf,
-    copy(F), copy(DF),
-    x_f, x_df,
-    [0,], [0,])
+# This should be refactored to be reused in incomplete.jl
+function f!_from_f(f, x, F::AbstractArray)
+    return function ff!(F, x)
+        copyto!(F, f(x))
+        F
+    end
 end
-function OnceDifferentiable(f, df, fdf,
-                            x::AbstractArray,
-                            F::AbstractArray,
-                            DF::AbstractArray = alloc_DF(x, F);
-                            inplace = true)
-    x_f, x_df = x_of_nans(x), x_of_nans(x)
-    OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df, fdf,
-                                                copy(F), copy(DF),
-                                                x_f, x_df,
-                                                [0,], [0,])
+function df!_from_df(g, x, F::Real)
+    return function gg!(G, x)
+        gx = g(x)
+        copyto!(G, gx)
+        G
+    end
 end
-
-OnceDifferentiable(f, df,
-                   x::AbstractArray,
-                   F::Real = real(zero(eltype(x))),
-                   DF::AbstractArray = alloc_DF(x, F);
-                   inplace = true) =
-    OnceDifferentiable(f, df, make_fdf(x, F, f, df), x, F, DF)
-
-OnceDifferentiable(f, df,
-                   x::AbstractArray,
-                   F::AbstractArray,
-                   DF::AbstractArray = alloc_DF(x, F);
-                   inplace = true) =
-    OnceDifferentiable(f, df, make_fdf(x, F, f, df), x, F, DF)
-
+function df!_from_df(j, x, F::AbstractArray)
+    return function jj!(J, x)
+        jx = j(x)
+        copyto!(J, jx)
+        J
+    end
+end
+function fdf!_from_fdf(fg, x, F::Real)
+    return function ffgg!(G, x)
+        f, g = fg(x)
+        copyto!(G, g)
+        f
+    end
+end
+function fdf!_from_fdf(fj, x, F::AbstractArray)
+    return function ffjj!(F, J, x)
+        f, j = fj(x)
+        copyto!(J, j)
+        copyto!(F, f)
+    end
+end
+### Only the objective
 # Ambiguity
-OnceDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x))), DF::AbstractArray = alloc_DF(x, F); autodiff = :finite) =
+OnceDifferentiable(f, x::AbstractArray,
+                   F::Real = real(zero(eltype(x))),
+                   DF::AbstractArray = alloc_DF(x, F); inplace = true, autodiff = :finite) =
     OnceDifferentiable(f, x, F, DF, autodiff)
 #OnceDifferentiable(f, x::AbstractArray, F::AbstractArray; autodiff = :finite) =
 #    OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, alloc_DF(x, F))
-OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractArray; autodiff = :finite) =
-    OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF, autodiff)
+function OnceDifferentiable(f, x::AbstractArray,
+                   F::AbstractArray, DF::AbstractArray = alloc_DF(x, F);
+                   inplace = true, autodiff = :finite)
+    f! = inplace ? f : f!_from_f(f, x, F)
+
+    OnceDifferentiable(f!, x::AbstractArray, F::AbstractArray, DF, autodiff)
+end
 
 
-function OnceDifferentiable(f, x_seed::AbstractArray{T}, F::Union{Real,AbstractArray},
+function OnceDifferentiable(f, x_seed::AbstractArray{T},
+                            F::Real,
                             DF::AbstractArray,
                             autodiff) where T
 
@@ -95,10 +101,9 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T}, F::Union{Real,AbstractA
     end
 end
 
-# Below is to catch what was supposed to be an attempt at using autodiff, but the
-# type of `autodiff` is wrong.
-OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)) = throw(ErrorException)
 has_not_dep_symbol_in_ad = Ref{Bool}(true)
+OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::Symbol, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)) =
+OnceDifferentiable(f, x, F, alloc_DF(x, F), autodiff, chunk)
 function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray,
                             autodiff::Bool, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x))
     if autodiff == false
@@ -107,18 +112,17 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray,
         warn("Setting the `autodiff` keyword to `true` is deprecated. Please use a valid symbol instead.")
         has_not_dep_symbol_in_ad[] = false
     end
-    OnceDifferentiable(f, x, F, :forward, chunk)
+    OnceDifferentiable(f, x, F, alloc_DF(x, F), :forward, chunk)
 end
-function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::Symbol = :central, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x))
-
+function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractArray,
+    autodiff::Symbol , chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x))
     if  typeof(f) <: Union{InplaceObjective, NotInplaceObjective}
-        DF = alloc_DF(x, F)
         fF = make_f(f, x, F)
         dfF = make_df(f, x, F)
         fdfF = make_fdf(f, x, F)
         return OnceDifferentiable(fF, dfF, fdfF, x, F, DF)
     else
-        if autodiff == :central
+        if autodiff == :central || autodiff == :finite
             central_cache = DiffEqDiffTools.JacobianCache(similar(x), similar(x), similar(x))
             function fj!(F, J, x)
                 f(F, x)
@@ -129,7 +133,7 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::Sym
                 F = similar(x)
                 fj!(F, J, x)
             end
-            return OnceDifferentiable(f, j!, fj!, x, x)
+            return OnceDifferentiable(f, j!, fj!, x, x, DF)
         elseif autodiff == :forward || autodiff == true
             jac_cfg = ForwardDiff.JacobianConfig(f, x, x, chunk)
             ForwardDiff.checktag(jac_cfg, f, x)
@@ -144,9 +148,74 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::Sym
                 DiffBase.value(jac_res)
             end
 
-            return OnceDifferentiable(f, g!, fg!, x, x)
+            return OnceDifferentiable(f, g!, fg!, x, x, DF)
         else
             error("The autodiff value $(autodiff) is not supported. Use :central or :forward.")
         end
     end
+end
+
+### Objective and derivative
+function OnceDifferentiable(f, df,
+                   x::AbstractArray,
+                   F::Real = real(zero(eltype(x))),
+                   DF::AbstractArray = alloc_DF(x, F);
+                   inplace = true)
+
+
+    df! = inplace ? df : df!_from_df(df, x, F)
+    fdf! = make_fdf(x, F, f, df!)
+
+    OnceDifferentiable(f, df!, fdf!, x, F, DF)
+end
+
+function OnceDifferentiable(f, j,
+                   x::AbstractArray,
+                   F::AbstractArray,
+                   J::AbstractArray = alloc_DF(x, F);
+                   inplace = true)
+
+    f! = inplace ? f : f!_from_f(f, x, F)
+    j! = inplace ? j : df!_from_df(j, x, F)
+    fj! = make_fdf(x, F, f!, j!)
+
+    OnceDifferentiable(f!, j!, fj!, x, F, J)
+end
+
+
+### Objective, derivative and combination
+function OnceDifferentiable(f, df, fdf,
+    x::AbstractArray,
+    F::Real = real(zero(eltype(x))),
+    DF::AbstractArray = alloc_DF(x, F);
+    inplace = true)
+
+    # f is never "inplace" since F is scalar
+    df! = inplace ? df : df!_from_df(df, x, F)
+    fdf! = inplace ? fdf : fdf!_from_fdf(fdf, x, F)
+
+    x_f, x_df = x_of_nans(x), x_of_nans(x)
+
+    OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df!, fdf!,
+    copy(F), copy(DF),
+    x_f, x_df,
+    [0,], [0,])
+end
+
+function OnceDifferentiable(f, df, fdf,
+                            x::AbstractArray,
+                            F::AbstractArray,
+                            DF::AbstractArray = alloc_DF(x, F);
+                            inplace = true)
+
+    f = inplace ? f : f!_from_f(f, x, F)
+    df! = inplace ? df : df!_from_df(df, x, F)
+    fdf! = inplace ? fdf : fdf!_from_fdf(fdf, x, F)
+
+    x_f, x_df = x_of_nans(x), x_of_nans(x)
+
+    OnceDifferentiable(f, df!, fdf!,
+                                                copy(F), copy(DF),
+                                                x_f, x_df,
+                                                [0,], [0,])
 end
