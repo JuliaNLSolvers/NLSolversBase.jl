@@ -15,27 +15,44 @@ mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective
     h_calls::Vector{Int}
 end
 # compatibility with old constructor
-function TwiceDifferentiable(f, g!, fg!, h!, x::TX, F::T = real(zero(eltype(x))), G::TG = similar(x), H::TH = alloc_H(x)) where {T, TG, TH, TX}
+function TwiceDifferentiable(f, g, fg, h, x::TX, F::T = real(zero(eltype(x))), G::TG = similar(x), H::TH = alloc_H(x); inplace = true) where {T, TG, TH, TX}
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
+
+    g! = df!_from_df(g, F, inplace)
+    fg! = fdf!_from_fdf(fg, F, inplace)
+    h! = h!_from_h(h, F, inplace)
+
     TwiceDifferentiable{T,TG,TH,TX}(f, g!, fg!, h!,
                                         copy(F), similar(G), copy(H),
                                         x_f, x_df, x_h,
                                         [0,], [0,], [0,])
 end
 
-function TwiceDifferentiable(f, g!, h!, x::AbstractVector{TX}, F::Real = real(zero(eltype(x))), G = similar(x), H = alloc_H(x)) where {TX}
+function TwiceDifferentiable(f, g, h,
+                             x::AbstractVector{TX},
+                             F::Real = real(zero(eltype(x))),
+                             G = similar(x),
+                             H = alloc_H(x); inplace = true) where {TX}
+
+    g! = df!_from_df(g, F, inplace)
+    h! = h!_from_h(h, F, inplace)
+
     fg! = make_fdf(x, F, f, g!)
+
     return TwiceDifferentiable(f, g!, fg!, h!, x, F, G, H)
 end
 
 
 
-function TwiceDifferentiable(f, g!, x_seed::AbstractVector{T}, F::Real = real(zero(T)); autodiff = :finite) where T
+function TwiceDifferentiable(f, g,
+                             x_seed::AbstractVector{T},
+                             F::Real = real(zero(T)); autodiff = :finite, inplace = true) where T
     n_x = length(x_seed)
-    function fg!(storage, x)
-        g!(storage, x)
-        return f(x)
-    end
+
+    g! = df!_from_df(g, F, inplace)
+
+    fg! = make_fdf(x_seed, F, f, g!)
+
     if autodiff == :finite
         # TODO: Create / request Hessian functionality in DiffEqDiffTools?
         #       (Or is it better to use the finite difference Jacobian of a gradient?)
@@ -78,7 +95,7 @@ function TwiceDifferentiable(d::OnceDifferentiable, x_seed::AbstractVector{T} = 
 end
 
 function TwiceDifferentiable(f, x::AbstractVector, F::Real = real(zero(eltype(x)));
-                             autodiff = :finite)
+                             autodiff = :finite, inplace = true)
     if autodiff == :finite
         # TODO: Allow user to specify Val{:central}, Val{:forward}, Val{:complex}
         gcache = DiffEqDiffTools.GradientCache(x, x, Val{:central})

@@ -16,6 +16,30 @@
     vg4 = value_gradient!(fi3, xr)
     @test vg1[1] ≈ vg2[1] ≈ vg3[1] ≈ vg4[1]
     @test vg1[2] ≈ vg2[2] ≈ vg3[2] ≈ vg4[2]
+
+    ft1 = TwiceDifferentiable(exponential, rand(2), 0.0)
+    ftia1 = TwiceDifferentiable(exponential, rand(2); inplace = false)
+    fti1 = TwiceDifferentiable(exponential, exponential_gradient, rand(2); inplace = false)
+    fti2 = TwiceDifferentiable(exponential, exponential_gradient, rand(2); inplace = false)
+    fti3 = TwiceDifferentiable(exponential, exponential_gradient, exponential_hessian,
+                               rand(2); inplace = false)
+    fti4 = TwiceDifferentiable(exponential, exponential_gradient, exponential_value_gradient,
+                               exponential_hessian, rand(2); inplace = false)
+
+    @test value!(ft1, xr) ≈ value!(ftia1, xr) ≈ value!(fti1, xr) ≈ value!(fti2, xr) ≈ value!(fti3, xr) ≈ value!(fti4, xr)
+    @test gradient!(ft1, xr) ≈ gradient!(ftia1, xr)
+    @test gradient!(ftia1, xr) ≈ gradient!(fti1, xr) ≈ gradient!(fti2, xr) ≈ gradient!(fti3, xr) ≈ gradient!(fti4, xr)
+    vg1 = value_gradient!(ftia1, xr)
+    vg2 = value_gradient!(fti1, xr)
+    vg3 = value_gradient!(fti2, xr)
+    vg4 = value_gradient!(fti3, xr)
+    vg5 = value_gradient!(fti4, xr)
+    @test vg1[1] ≈ vg2[1] ≈ vg3[1] ≈ vg4[1] ≈ vg5[1]
+    @test vg1[2] ≈ vg2[2] ≈ vg3[2] ≈ vg4[2] ≈ vg5[2]
+    @test hessian!(ft1, xr) ≈ hessian!(ftia1, xr)
+    @test hessian!(fti1, xr) ≈ hessian!(fti2, xr)
+    @test hessian!(fti3, xr) ≈ hessian!(fti4, xr)
+
     # R^N → R^N
     f1 = OnceDifferentiable(exponential_gradient!, rand(2), rand(2))
     fia1 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false)

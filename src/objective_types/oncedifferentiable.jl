@@ -11,41 +11,6 @@ mutable struct OnceDifferentiable{TF, TDF, TX} <: AbstractObjective
     df_calls::Vector{Int}
 end
 
-# This should be refactored to be reused in incomplete.jl
-function f!_from_f(f, x, F::AbstractArray)
-    return function ff!(F, x)
-        copyto!(F, f(x))
-        F
-    end
-end
-function df!_from_df(g, x, F::Real)
-    return function gg!(G, x)
-        gx = g(x)
-        copyto!(G, gx)
-        G
-    end
-end
-function df!_from_df(j, x, F::AbstractArray)
-    return function jj!(J, x)
-        jx = j(x)
-        copyto!(J, jx)
-        J
-    end
-end
-function fdf!_from_fdf(fg, x, F::Real)
-    return function ffgg!(G, x)
-        f, g = fg(x)
-        copyto!(G, g)
-        f
-    end
-end
-function fdf!_from_fdf(fj, x, F::AbstractArray)
-    return function ffjj!(F, J, x)
-        f, j = fj(x)
-        copyto!(J, j)
-        copyto!(F, f)
-    end
-end
 ### Only the objective
 # Ambiguity
 OnceDifferentiable(f, x::AbstractArray,
@@ -57,7 +22,7 @@ OnceDifferentiable(f, x::AbstractArray,
 function OnceDifferentiable(f, x::AbstractArray,
                    F::AbstractArray, DF::AbstractArray = alloc_DF(x, F);
                    inplace = true, autodiff = :finite)
-    f! = inplace ? f : f!_from_f(f, x, F)
+    f! = f!_from_f(f, F, inplace)
 
     OnceDifferentiable(f!, x::AbstractArray, F::AbstractArray, DF, autodiff)
 end
@@ -163,7 +128,8 @@ function OnceDifferentiable(f, df,
                    inplace = true)
 
 
-    df! = inplace ? df : df!_from_df(df, x, F)
+    df! = df!_from_df(df, F, inplace)
+
     fdf! = make_fdf(x, F, f, df!)
 
     OnceDifferentiable(f, df!, fdf!, x, F, DF)
@@ -175,8 +141,8 @@ function OnceDifferentiable(f, j,
                    J::AbstractArray = alloc_DF(x, F);
                    inplace = true)
 
-    f! = inplace ? f : f!_from_f(f, x, F)
-    j! = inplace ? j : df!_from_df(j, x, F)
+    f! = f!_from_f(f, F, inplace)
+    j! = df!_from_df(j, F, inplace)
     fj! = make_fdf(x, F, f!, j!)
 
     OnceDifferentiable(f!, j!, fj!, x, F, J)
@@ -191,8 +157,8 @@ function OnceDifferentiable(f, df, fdf,
     inplace = true)
 
     # f is never "inplace" since F is scalar
-    df! = inplace ? df : df!_from_df(df, x, F)
-    fdf! = inplace ? fdf : fdf!_from_fdf(fdf, x, F)
+    df! = df!_from_df(df, F, inplace)
+    fdf! = fdf!_from_fdf(fdf, F, inplace)
 
     x_f, x_df = x_of_nans(x), x_of_nans(x)
 
@@ -208,9 +174,9 @@ function OnceDifferentiable(f, df, fdf,
                             DF::AbstractArray = alloc_DF(x, F);
                             inplace = true)
 
-    f = inplace ? f : f!_from_f(f, x, F)
-    df! = inplace ? df : df!_from_df(df, x, F)
-    fdf! = inplace ? fdf : fdf!_from_fdf(fdf, x, F)
+    f = f!_from_f(f, F, inplace)
+    df! = df!_from_df(df, F, inplace)
+    fdf! = fdf!_from_fdf(fdf, F, inplace)
 
     x_f, x_df = x_of_nans(x), x_of_nans(x)
 
