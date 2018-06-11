@@ -49,6 +49,7 @@ function x_of_nans(x)
     x_out
 end
 
+include("objective_types/inplace_factory.jl")
 include("objective_types/abstract.jl")
 include("objective_types/nondifferentiable.jl")
 include("objective_types/oncedifferentiable.jl")
