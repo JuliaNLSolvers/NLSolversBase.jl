@@ -150,7 +150,7 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractA
 
             return OnceDifferentiable(f, g!, fg!, x, x, DF)
         else
-            error("The autodiff value $(autodiff) is not supported. Use :central or :forward.")
+            error("The autodiff value $(autodiff) is not supported. Use :finite or :forward.")
         end
     end
 end
