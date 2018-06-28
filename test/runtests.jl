@@ -1,11 +1,11 @@
-using NLSolversBase
-using Compat, Test, Compat.Random, Compat.LinearAlgebra
+using NLSolversBase, Test
+using Compat, Compat.Random, Compat.LinearAlgebra
 using OptimTestProblems
 using RecursiveArrayTools
 MVP = OptimTestProblems.MultivariateProblems
 
-# TODO: Use OptimTestProblems
-# TODO: MultivariateProblems.UnconstrainedProblems.exampples["Exponential"]
+# TODO: Use OptimTestProblems (but it does not have exponential_gradient_hession etc.)
+# TODO: MultivariateProblems.UnconstrainedProblems.examples["Exponential"]
 
 # Test example
 function exponential(x)
