@@ -30,7 +30,7 @@ end
 
 function gradient!!(obj::TwiceDifferentiableHV, x)
     obj.df_calls .+= 1
-    copy!(obj.x_df, x)
+    copyto!(obj.x_df, x)
     obj.fdf(obj.DF, x)
 end
 

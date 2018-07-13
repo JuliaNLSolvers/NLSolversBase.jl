@@ -71,8 +71,8 @@ function nconstraints_x(cb::ConstraintBounds)
     me = isempty(cb.eqx) ? 0 : maximum(cb.eqx)
     nmax = max(mi, me)
     hasconstraint = falses(nmax)
-    hasconstraint[cb.ineqx] = true
-    hasconstraint[cb.eqx] = true
+    hasconstraint[cb.ineqx] .= true
+    hasconstraint[cb.eqx] .= true
     sum(hasconstraint)
 end
 
