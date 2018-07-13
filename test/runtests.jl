@@ -1,5 +1,7 @@
 using NLSolversBase, Test
-using Compat, Compat.Random, Compat.LinearAlgebra
+using Random
+using LinearAlgebra: Diagonal, I
+using SparseArrays
 using OptimTestProblems
 using RecursiveArrayTools
 MVP = OptimTestProblems.MultivariateProblems

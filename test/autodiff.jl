@@ -46,9 +46,9 @@
     x = rand(nx)
     f(x) = sum(x.^3)
     fx = f(x)
-    g(G, x) = copyto!(G, 3.*x.^2)
+    g(G, x) = copyto!(G, 3 .* x.^2)
     gx = g(NLSolversBase.alloc_DF(x, 0.0), x)
-    h(H, x) = copyto!(H, Diagonal(6.*x))
+    h(H, x) = copyto!(H, Diagonal(6 .* x))
     hx = h(fill(0.0, nx, nx), x)
     for dtype in (OnceDifferentiable, TwiceDifferentiable)
         for autodiff in (:finite, :forward)
@@ -77,7 +77,7 @@
         end
     end
     for autodiff in (:finite, :forward)
-        td = TwiceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), copy(x); autodiff = autodiff)
+        td = TwiceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x); autodiff = autodiff)
         value(td)
         value!(td, x)
         value_gradient!(td, x)
@@ -93,7 +93,7 @@
             gradient!(td, x)
             hessian!(td, x)
         end
-        for od = (OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), copy(x)), OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, ones(x)), copy(x), 0.0))
+        for od = (OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x)), OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x), 0.0))
             td = TwiceDifferentiable(od; autodiff = autodiff)
             value(td)
             value!(td, x)
