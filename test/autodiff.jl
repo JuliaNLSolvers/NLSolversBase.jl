@@ -1,4 +1,6 @@
 @testset "autodiff" begin
+    srand(0)
+
     # Should throw, as :wah is not a proper autodiff choice
     @test_throws ErrorException OnceDifferentiable(x->x, rand(10); autodiff=:wah)
     @test_throws ErrorException OnceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
@@ -69,7 +71,9 @@
                 if autodiff == :finite
                     # we have to increase the tolerance here, as the hessian is
                     # not very accurate
-                    @test isapprox(hessian(differentiable), hx; atol = 2e-6)
+                    @show hessian(differentiable)-hx
+                    @test isapprox(hessian(differentiable), hx; atol = 1e-5)
+
                 else
                     @test hessian(differentiable) == hx
                 end
