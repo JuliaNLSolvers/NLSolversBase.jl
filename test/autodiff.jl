@@ -71,9 +71,7 @@
                 if autodiff == :finite
                     # we have to increase the tolerance here, as the hessian is
                     # not very accurate
-                    @show hessian(differentiable)-hx
-                    @test isapprox(hessian(differentiable), hx; atol = 1e-5)
-
+                    @test isapprox(hessian(differentiable), hx; atol = 1e-6)
                 else
                     @test hessian(differentiable) == hx
                 end
