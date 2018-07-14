@@ -85,7 +85,6 @@
 
 end
 @testset "incomplete objectives vectors" begin
-    import Compat: copyto!
     function tf(x)
         x.^2
     end

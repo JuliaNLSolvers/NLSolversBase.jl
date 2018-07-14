@@ -17,7 +17,7 @@
     @test od.df_calls == [0]
     od.x_df .= x_seed
     gold = copy(od.DF)
-    xnew = rand(size(x_seed))
+    xnew = rand(eltype(x_seed), size(x_seed))
     gnew = gradient(od, xnew)
     @test od.x_df == x_seed
     @test od.DF == gold
