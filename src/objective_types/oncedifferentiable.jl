@@ -74,7 +74,7 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray,
     if autodiff == false
         throw(ErrorException("It is not possible to set the `autodiff` keyword to `false` when constructing a OnceDifferentiable instance from only one function. Pass in the (partial) derivative or specify a valid `autodiff` symbol."))
     elseif has_not_dep_symbol_in_ad[]
-        warn("Setting the `autodiff` keyword to `true` is deprecated. Please use a valid symbol instead.")
+        @warn("Setting the `autodiff` keyword to `true` is deprecated. Please use a valid symbol instead.")
         has_not_dep_symbol_in_ad[] = false
     end
     OnceDifferentiable(f, x, F, alloc_DF(x, F), :forward, chunk)
