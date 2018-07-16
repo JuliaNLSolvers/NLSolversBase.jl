@@ -42,8 +42,7 @@ export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds
 
 function x_of_nans(x)
-    x_out = similar(x)
-    x_out .= (eltype(x))(NaN)
+    x_out = fill!(similar(x), NaN)
     x_out
 end
 
