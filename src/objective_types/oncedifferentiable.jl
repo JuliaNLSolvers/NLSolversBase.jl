@@ -55,9 +55,9 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T},
             g! = (out, x) -> ForwardDiff.gradient!(out, f, x, gcfg)
 
             fg! = (out, x) -> begin
-                gr_res = DiffBase.DiffResult(zero(T), out)
+                gr_res = DiffResults.DiffResult(zero(T), out)
                 ForwardDiff.gradient!(gr_res, f, x, gcfg)
-                DiffBase.value(gr_res)
+                DiffResults.value(gr_res)
             end
         else
             error("The autodiff value $autodiff is not support. Use :finite or :forward.")
@@ -108,9 +108,9 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractA
                 ForwardDiff.jacobian!(J, f, F2, x, jac_cfg, Val{false}())
             end
             function fg!(F, J, x)
-                jac_res = DiffBase.DiffResult(F, J)
+                jac_res = DiffResults.DiffResult(F, J)
                 ForwardDiff.jacobian!(jac_res, f, F2, x, jac_cfg, Val{false}())
-                DiffBase.value(jac_res)
+                DiffResults.value(jac_res)
             end
 
             return OnceDifferentiable(f, g!, fg!, x, x, DF)
