@@ -118,9 +118,9 @@ function TwiceDifferentiable(f, x::AbstractVector, F::Real = real(zero(eltype(x)
         g! = (out, x) -> ForwardDiff.gradient!(out, f, x, gcfg)
 
         fg! = (out, x) -> begin
-            gr_res = DiffBase.DiffResult(zero(eltype(x)), out)
+            gr_res = DiffResults.DiffResult(zero(eltype(x)), out)
             ForwardDiff.gradient!(gr_res, f, x, gcfg)
-            DiffBase.value(gr_res)
+            DiffResults.value(gr_res)
         end
 
         hcfg = ForwardDiff.HessianConfig(f, x)
