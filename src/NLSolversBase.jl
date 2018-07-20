@@ -2,7 +2,7 @@ __precompile__(true)
 
 module NLSolversBase
 
-using DiffEqDiffTools, ForwardDiff, Calculus
+using DiffEqDiffTools, ForwardDiff, Calculus, DiffBase
 import Distributed: clear!
 export AbstractObjective,
        NonDifferentiable,
