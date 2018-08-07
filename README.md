@@ -23,7 +23,7 @@ There are currently three main types: `NonDifferentiable`, `OnceDifferentiable`,
  - Optimization: ![Objective for optimization](https://user-images.githubusercontent.com/8431156/33996090-6224581c-e0e0-11e7-8737-5dd659745dcb.gif)
  - Solving systems of equations: ![Objective for systems of equations](https://user-images.githubusercontent.com/8431156/33996088-60760c4a-e0e0-11e7-96ca-470f2731f1c7.gif)
 
-The words in front of `Differentiable` in the type names (`Non`, `Once`, `Twice`) are not meant to indicate and specific classification of the function as such, but more the requirement of the algorithms used.
+The words in front of `Differentiable` in the type names (`Non`, `Once`, `Twice`) are not meant to indicate a specific classification of the function as such (a `OnceDifferentiable` might be constructed for an infinitely differentiable function), but signals to an algorithm if the correct functions have been constructed or if automatic differentiation should be used to further differentiate the function.
 
 ## Examples
 #### Optimization
