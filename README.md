@@ -57,7 +57,7 @@ end
 ```
 The `NDifferentiable` interface can be used as shown below to create various objectives:
 ```julia
-x = zeros(4)
+x = zeros(2)
 nd   = NonDifferentiable(f, x)
 od   = OnceDifferentiable(f, g!, x)
 odfg = OnceDifferentiable(f, g!, fg! x)
@@ -87,8 +87,8 @@ end
 ```
 The `NDifferentiable` interface can be used as shown below to create various objectives:
 ```julia
-x = zeros(4)
-F = zeros(4)
+x = zeros(2)
+F = zeros(2)
 nd   = NonDifferentiable(f!, x, F)
 od   = OnceDifferentiable(f!, j!, x, F)
 odfj = OnceDifferentiable(f!, j!, fj! x, F)
