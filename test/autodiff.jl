@@ -175,3 +175,16 @@ end
     end
     @test gradient(odad1) ≈ 2 .* a .* (x_seed .+ 1.0)
 end
+
+@testset "jacobian of residual function" begin
+    function f!(F, x)
+        F[1] = (x[1]^3 - 7.0 * x[1]^2 + 14.0 * x[1] - 8)* x[2]^2 * exp(-x[2])
+        F[2] = 2.0 * (1.0 - 8.0 * x[1] + 7.0 * x[1]^2 - (7.0 / 3.0) * x[1]^3 + (1.0 / 4.0) * x[1]^4) * x[2] * exp(-x[2]) - (1.0 - 8.0 * x[1] + 7.0 * x[1]^2 - (7.0 / 3.0) * x[1]^3 + (1.0 / 4.0) * x[1]^4) * x[2]^2 * exp(-x[2])
+    end
+
+    x = zeros(4)
+    F = zeros(2)
+    od = OnceDifferentiable(f!, x, F)
+    # This failed before, now it runs!
+    value_jacobian!!(od, [0., 8., 1., 1.])
+end
