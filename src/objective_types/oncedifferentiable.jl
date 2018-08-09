@@ -88,7 +88,7 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractA
         return OnceDifferentiable(fF, dfF, fdfF, x, F, DF)
     else
         if autodiff == :central || autodiff == :finite
-            central_cache = DiffEqDiffTools.JacobianCache(similar(x), similar(F), similar(x))
+            central_cache = DiffEqDiffTools.JacobianCache(similar(x), similar(F), similar(F))
             function fj!(F, J, x)
                 f(F, x)
                 DiffEqDiffTools.finite_difference_jacobian!(J, f, x, central_cache)
