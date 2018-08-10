@@ -1,5 +1,5 @@
 @testset "autodiff" begin
-    srand(0)
+    Random.seed!(0)
 
     # Should throw, as :wah is not a proper autodiff choice
     @test_throws ErrorException OnceDifferentiable(x->x, rand(10); autodiff=:wah)

@@ -29,7 +29,7 @@
     fdf_real = only_fg(fg)
 
     df_fdf_real = only_g_and_fg(g, fg)
-    srand(3259)
+    Random.seed!(3259)
     x = rand(10)
     G_cache = similar(x)
     G_cache2 = similar(G_cache)
@@ -109,7 +109,7 @@ end
     fdf_real = only_fj(tfj)
 
     df_fdf_real = only_j_and_fj(tj, tfj)
-    srand(3259)
+    Random.seed!(3259)
     x = rand(10)
     J_cache = similar(Matrix(Diagonal(x)))
     J_cache2 = similar(Matrix(Diagonal(x)))

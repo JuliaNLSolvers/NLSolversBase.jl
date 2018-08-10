@@ -32,7 +32,7 @@
     @test td.h_calls == [0]
 
     @testset "no fg!" begin
-        srand(324)
+        Random.seed!(324)
         od = OnceDifferentiable(exponential, exponential_gradient!, x_seed, 0.0, g_seed)
         xrand = rand(2)
         value_gradient!(od, xrand)
