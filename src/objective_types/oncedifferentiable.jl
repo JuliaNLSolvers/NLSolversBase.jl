@@ -98,7 +98,7 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractA
                 F = similar(x)
                 fj!(F, J, x)
             end
-            return OnceDifferentiable(f, j!, fj!, x, x, DF)
+            return OnceDifferentiable(f, j!, fj!, x, F, DF)
         elseif autodiff == :forward || autodiff == true
             jac_cfg = ForwardDiff.JacobianConfig(f, F, x, chunk)
             ForwardDiff.checktag(jac_cfg, f, x)
@@ -113,7 +113,7 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractA
                 DiffResults.value(jac_res)
             end
 
-            return OnceDifferentiable(f, g!, fg!, x, x, DF)
+            return OnceDifferentiable(f, g!, fg!, x, F, DF)
         else
             error("The autodiff value $(autodiff) is not supported. Use :finite or :forward.")
         end
@@ -180,8 +180,5 @@ function OnceDifferentiable(f, df, fdf,
 
     x_f, x_df = x_of_nans(x), x_of_nans(x)
 
-    OnceDifferentiable(f, df!, fdf!,
-                                                copy(F), copy(DF),
-                                                x_f, x_df,
-                                                [0,], [0,])
+    OnceDifferentiable(f, df!, fdf!, copy(F), copy(DF), x_f, x_df, [0,], [0,])
 end
