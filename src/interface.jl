@@ -162,9 +162,19 @@ function jacobian(obj::AbstractObjective, x)
     obj.DF
 end
 
+value(obj::NonDifferentiable{TF, TX}, x) where {TF<:AbstractArray, TX} = value(obj, copy(obj.F), x)
+value(obj::OnceDifferentiable{TF, TDF, TX}, x) where {TF<:AbstractArray, TDF, TX} = value(obj, copy(obj.F), x)
+function value(obj::AbstractObjective, F, x)
+    if x != obj.x_f
+        obj.f_calls .+= 1
+        return obj.f(F, x)
+    end
+    value(obj)
+end
+
 value!!(obj::NonDifferentiable{TF, TX}, x) where {TF<:AbstractArray, TX} = value!!(obj, obj.F, x)
 value!!(obj::OnceDifferentiable{TF, TDF, TX}, x) where {TF<:AbstractArray, TDF, TX} = value!!(obj, obj.F, x)
-function value!!(obj, F, x)
+function value!!(obj::AbstractObjective, F, x)
     obj.f(F, x)
     copyto!(obj.x_f, x)
     obj.f_calls .+= 1
