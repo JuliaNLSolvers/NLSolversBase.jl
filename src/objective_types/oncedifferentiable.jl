@@ -95,8 +95,8 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractA
                 F
             end
             function j!(J, x)
-                F = similar(x)
-                fj!(F, J, x)
+                F_cache = similar(F)
+                fj!(F_cache, J, x)
             end
             return OnceDifferentiable(f, j!, fj!, x, F, DF)
         elseif autodiff == :forward || autodiff == true
