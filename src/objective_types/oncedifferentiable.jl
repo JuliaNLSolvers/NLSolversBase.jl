@@ -95,15 +95,15 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractA
                 F
             end
             function j!(J, x)
-                F = similar(x)
-                fj!(F, J, x)
+                F_cache = similar(F)
+                fj!(F_cache, J, x)
             end
             return OnceDifferentiable(f, j!, fj!, x, F, DF)
         elseif autodiff == :forward || autodiff == true
             jac_cfg = ForwardDiff.JacobianConfig(f, F, x, chunk)
             ForwardDiff.checktag(jac_cfg, f, x)
 
-            F2 = copy(x)
+            F2 = copy(F)
             function g!(J, x)
                 ForwardDiff.jacobian!(J, f, F2, x, jac_cfg, Val{false}())
             end
