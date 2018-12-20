@@ -119,13 +119,18 @@ function OnceDifferentiableConstraints(bounds::ConstraintBounds)
     OnceDifferentiableConstraints(c!, J!, bounds)
 end
 
-function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVector,
-                                       lc::AbstractVector, uc::AbstractVector,
-                                       autodiff::Symbol = :central,
-                                       chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(lx))
+function checked_chunk(lx)
     if isempty(lx)
         throw(ArgumentError("autodiff on constraints require the full lower bound vector `lx`."))
     end
+    ForwardDiff.Chunk(lx)
+end
+
+function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVector,
+                                       lc::AbstractVector, uc::AbstractVector,
+                                       autodiff::Symbol = :central,
+                                       chunk::ForwardDiff.Chunk = checked_chunk(lx))
+                                       
     bounds = ConstraintBounds(lx, ux, lc, uc)
     T = eltype(bounds)
     sizex = size(lx)
