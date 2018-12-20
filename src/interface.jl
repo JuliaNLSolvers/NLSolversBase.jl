@@ -15,11 +15,8 @@ Evaluates the objective value at `x`.
 Returns `f(x)`, but does *not* store the value in `obj.F`
 """
 function value(obj::AbstractObjective, x)
-    if x != obj.x_f
-        obj.f_calls .+= 1
-        return obj.f(x)
-    end
-    value(obj)
+    obj.f_calls .+= 1
+    return obj.f(x)
 end
 """
 Evaluates the objective value at `x`.
@@ -39,13 +36,10 @@ Evaluates the gradient value at `x`
 This does *not* update `obj.DF` or `obj.x_df`.
 """
 function gradient(obj::AbstractObjective, x)
-    if x != obj.x_df
-        newdf = copy(obj.DF)
-        obj.df(newdf, x)
-        obj.df_calls .+= 1
-        return newdf
-    end
-    gradient(obj)
+    newdf = copy(obj.DF)
+    obj.df(newdf, x)
+    obj.df_calls .+= 1
+    return newdf
 end
 """
 Evaluates the gradient value at `x`.
@@ -152,24 +146,18 @@ function jacobian!!(obj, J, x)
     J
 end
 function jacobian(obj::AbstractObjective, x)
-    if x != obj.x_df
-        tmp = copy(obj.DF)
-        jacobian!!(obj, x)
-        newdf = copy(obj.DF)
-        copyto!(obj.DF, tmp)
-        return newdf
-    end
-    obj.DF
+    tmp = copy(obj.DF)
+    jacobian!!(obj, x)
+    newdf = copy(obj.DF)
+    copyto!(obj.DF, tmp)
+    return newdf
 end
 
 value(obj::NonDifferentiable{TF, TX}, x) where {TF<:AbstractArray, TX} = value(obj, copy(obj.F), x)
 value(obj::OnceDifferentiable{TF, TDF, TX}, x) where {TF<:AbstractArray, TDF, TX} = value(obj, copy(obj.F), x)
 function value(obj::AbstractObjective, F, x)
-    if x != obj.x_f
-        obj.f_calls .+= 1
-        return obj.f(F, x)
-    end
-    value(obj)
+    obj.f_calls .+= 1
+    return obj.f(F, x)
 end
 
 value!!(obj::NonDifferentiable{TF, TX}, x) where {TF<:AbstractArray, TX} = value!!(obj, obj.F, x)
