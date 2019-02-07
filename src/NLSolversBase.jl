@@ -41,6 +41,20 @@ export AbstractObjective,
 export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds
 
+function diffeqdiff_fdtype(autodiff)
+    if autodiff == :finiteforward
+        fdtype = Val{:forward}
+    elseif autodiff == :finitecomplex
+        fdtype = Val{:complex}
+    elseif any(autodiff .== (:finite, :central, :finitecentral))
+        fdtype = Val{:central}
+    end
+    fdtype
+end
+
+is_finitediff(autodiff) = autodiff ∈ (:central, :finite, :finiteforward, :finitecomplex)
+is_forwarddiff(autodiff) = autodiff ∈ (:forward, :forwarddiff, true)
+
 function x_of_nans(x)
     x_out = fill!(similar(x), NaN)
     x_out

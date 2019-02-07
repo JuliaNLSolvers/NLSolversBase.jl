@@ -34,14 +34,20 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T},
                             autodiff) where T
 
     if  typeof(f) <: Union{InplaceObjective, NotInplaceObjective}
+
         fF = make_f(f, x_seed, F)
         dfF = make_df(f, x_seed, F)
         fdfF = make_fdf(f, x_seed, F)
+
         return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
     else
-        if any(autodiff .== (:finite, :central))
-            # TODO: Allow user to specify Val{:central}, Val{:forward}, :Val{:complex} (requires care when using :forward I think)
-            gcache = DiffEqDiffTools.GradientCache(x_seed, x_seed, Val{:central})
+        if is_finitediff(autodiff)
+
+            # Figure out which Val-type to use for DiffEqDiffTools based on our
+            # symbol interface.
+            fdtype = diffeqdiff_fdtype(autodiff)
+            gcache = DiffEqDiffTools.GradientCache(x_seed, x_seed, fdtype)
+
             function g!(storage, x)
                 DiffEqDiffTools.finite_difference_gradient!(storage, f, x, gcache)
                 return
@@ -50,7 +56,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T},
                 g!(storage, x)
                 return f(x)
             end
-        elseif autodiff == :forward
+        elseif is_forwarddiff(autodiff)
             gcfg = ForwardDiff.GradientConfig(f, x_seed)
             g! = (out, x) -> ForwardDiff.gradient!(out, f, x, gcfg)
 
@@ -62,6 +68,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T},
         else
             error("The autodiff value $autodiff is not support. Use :finite or :forward.")
         end
+
         return OnceDifferentiable(f, g!, fg!, x_seed, F, DF)
     end
 end
@@ -87,33 +94,40 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, DF::AbstractA
         fdfF = make_fdf(f, x, F)
         return OnceDifferentiable(fF, dfF, fdfF, x, F, DF)
     else
-        if autodiff == :central || autodiff == :finite
-            central_cache = DiffEqDiffTools.JacobianCache(similar(x), similar(F), similar(F))
-            function fj!(F, J, x)
+        if is_finitediff(autodiff)
+
+            # Figure out which Val-type to use for DiffEqDiffTools based on our
+            # symbol interface.
+            fdtype = diffeqdiff_fdtype(autodiff)
+
+            central_cache = DiffEqDiffTools.JacobianCache(similar(x), similar(F), similar(F), fdtype)
+            function fj_finitediff!(F, J, x)
                 f(F, x)
                 DiffEqDiffTools.finite_difference_jacobian!(J, f, x, central_cache)
                 F
             end
-            function j!(J, x)
+            function j_finitediff!(J, x)
                 F_cache = similar(F)
-                fj!(F_cache, J, x)
+                fj_finitediff!(F_cache, J, x)
             end
-            return OnceDifferentiable(f, j!, fj!, x, F, DF)
-        elseif autodiff == :forward || autodiff == true
+            return OnceDifferentiable(f, j_finitediff!, fj_finitediff!, x, F, DF)
+
+        elseif is_forwarddiff(autodiff)
+
             jac_cfg = ForwardDiff.JacobianConfig(f, F, x, chunk)
             ForwardDiff.checktag(jac_cfg, f, x)
 
             F2 = copy(F)
-            function g!(J, x)
+            function j_forwarddiff!(J, x)
                 ForwardDiff.jacobian!(J, f, F2, x, jac_cfg, Val{false}())
             end
-            function fg!(F, J, x)
+            function fj_forwarddiff!(F, J, x)
                 jac_res = DiffResults.DiffResult(F, J)
                 ForwardDiff.jacobian!(jac_res, f, F2, x, jac_cfg, Val{false}())
                 DiffResults.value(jac_res)
             end
 
-            return OnceDifferentiable(f, g!, fg!, x, F, DF)
+            return OnceDifferentiable(f, j_forwarddiff!, fj_forwarddiff!, x, F, DF)
         else
             error("The autodiff value $(autodiff) is not supported. Use :finite or :forward.")
         end
