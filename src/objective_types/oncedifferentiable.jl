@@ -118,7 +118,6 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
 
                     # if at least one element of x_f is different from x, update
                     if any(x_f .!= x)
-                        Fx = similar(Fx)
                         f(Fx, x)
                         f_calls .+= 1
                     end
@@ -131,7 +130,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
                 end
 
 
-                return OnceDifferentiable(f, j_finiteforward!, fj_finiteforward!, copy(F), copy(DF), x_f, x_df, f_calls, j_calls)
+                return OnceDifferentiable(f, j_finiteforward!, fj_finiteforward!, Fx, DF, x_f, x_df, f_calls, j_calls)
             end
 
             function fj_finitediff!(F, J, x)
