@@ -11,7 +11,7 @@ function NonDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x)));
     NonDifferentiable{typeof(F),typeof(x)}(f, F, x_of_nans(x), [0,])
 end
 function NonDifferentiable(f, x::AbstractArray, F::AbstractArray; inplace = true)
-    f = !inplace && (F isa AbstractArray) ? f!_from_f(f, x, F) : f
+    f = !inplace && (F isa AbstractArray) ? f!_from_f(f, F, inplace) : f
     NonDifferentiable{typeof(F),typeof(x)}(f, F, x_of_nans(x), [0,])
 end
 
