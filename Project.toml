@@ -11,6 +11,7 @@ ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 
 [compat]
 julia = "1"
+DiffEqDiffTools = ">=0.14"
 
 [extras]
 OptimTestProblems = "cec144fc-5a64-5bc6-99fb-dde8f63e154c"
