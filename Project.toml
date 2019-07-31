@@ -1,0 +1,21 @@
+name = "NLSolversBase"
+uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
+version = "7.4.0"
+
+[deps]
+Calculus = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
+DiffEqDiffTools = "01453d9d-ee7c-5054-8395-0335cb756afa"
+DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+
+[compat]
+julia = "1"
+
+[extras]
+OptimTestProblems = "cec144fc-5a64-5bc6-99fb-dde8f63e154c"
+RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["OptimTestProblems", "RecursiveArrayTools", "Test"]
