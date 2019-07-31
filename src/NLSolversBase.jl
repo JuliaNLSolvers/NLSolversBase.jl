@@ -55,10 +55,7 @@ end
 is_finitediff(autodiff) = autodiff ∈ (:central, :finite, :finiteforward, :finitecomplex)
 is_forwarddiff(autodiff) = autodiff ∈ (:forward, :forwarddiff, true)
 
-function x_of_nans(x)
-    x_out = fill!(similar(x), NaN)
-    x_out
-end
+x_of_nans(x) = fill!(similar(x), eltype(x)(NaN))
 
 include("objective_types/inplace_factory.jl")
 include("objective_types/abstract.jl")
