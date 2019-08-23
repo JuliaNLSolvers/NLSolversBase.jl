@@ -106,7 +106,7 @@ function TwiceDifferentiableHV(t::InPlaceFG_HV, x::AbstractVector)
 end
 
 function TwiceDifferentiableHV(t::InPlaceFGHV, x::AbstractVector, F::Real = real(zero(eltype(x))))
-    fg  =     (G, x) -> t.fghv(F, G, nothing, x, nothing)
+    fg  =  (F, G, x) -> t.fghv(F, G, nothing, x, nothing)
     Hv  = (Hv, x, v) -> t.fghv(nothing, nothing, Hv, x, v)
     TwiceDifferentiableHV(nothing, fg, Hv, x)
 end
