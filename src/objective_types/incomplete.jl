@@ -23,7 +23,7 @@ end
 # Mutating version
 only_fg!(fg)     = InplaceObjective(fdf=fg)
 only_fgh!(fgh)   = InplaceObjective(fgh=fgh)
-only_fj!(fj)     = InplaceObjective(fg=fj)
+only_fj!(fj)     = InplaceObjective(fdf=fj)
 
 only_fg_and_hv!(fg, hv) = InplaceObjective(fdf=fg, hv=hv)
 only_fghv!(fghv)        = InplaceObjective(fghv=fghv)
