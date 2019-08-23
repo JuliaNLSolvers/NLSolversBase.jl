@@ -157,7 +157,7 @@
                         MVP.hessian(prob)(H, x)
                         storage .= H * v
                     end
-                    fg!(_, G::Vector, x::Vector) = begin
+                    fg!(G::Vector, x::Vector) = begin
                         MVP.gradient(prob)(G, x)
                         MVP.objective(prob)(x), G
                     end
@@ -170,7 +170,7 @@
                     @test hv_product!(ddf, x, v) == H*v
                     @test hv_product(ddf) == H*v
                     @test hv_product(ddf) == ddf.Hv
-                    F, G = fg!(nothing, G, x)
+                    F, G = fg!(G, x)
                     @test gradient!(ddf, x) == G
                     @test value!(ddf, x) == F
                     @test f_calls(ddf) == 1
