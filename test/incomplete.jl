@@ -18,6 +18,10 @@
         !(G == nothing) && copyto!(G, 2 .* x)
         !(F == nothing) && sum(x->x^2,x)
     end
+    function just_fg2!(G, x)
+        copyto!(G, 2 .* x)
+        sum(x->x^2,x)
+    end
     fg(x) = f(x), g(x)
     function just_fgh!(F, G, H, x)
         !(H == nothing) && copy!(H, Diagonal(fill(2, length(n))))
@@ -93,7 +97,7 @@
 
     # Incomplete TwiceDifferentiableHv
     v = randn(10)
-    od_fg_and_hv = TwiceDifferentiableHV(only_fg_and_hv!(just_fg!, just_hv!), x)
+    od_fg_and_hv = TwiceDifferentiableHV(only_fg_and_hv!(just_fg2!, just_hv!), x)
     od_fghv      = TwiceDifferentiableHV(only_fghv!(just_fghv!), x)
     for OD in (od_fg_and_hv, od_fghv)
         gradient!(OD, x)
