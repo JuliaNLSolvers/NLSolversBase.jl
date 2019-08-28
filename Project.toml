@@ -1,6 +1,6 @@
 name = "NLSolversBase"
 uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
-version = "7.4.0"
+version = "7.4.1"
 
 [deps]
 Calculus = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
@@ -14,9 +14,12 @@ julia = "1"
 DiffEqDiffTools = ">=0.14"
 
 [extras]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 OptimTestProblems = "cec144fc-5a64-5bc6-99fb-dde8f63e154c"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["OptimTestProblems", "RecursiveArrayTools", "Test"]
+test = ["LinearAlgebra", "OptimTestProblems", "Random", "RecursiveArrayTools", "SparseArrays", "Test"]
