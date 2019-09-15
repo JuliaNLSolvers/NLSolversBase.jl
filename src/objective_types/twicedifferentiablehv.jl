@@ -34,16 +34,18 @@ function gradient!!(obj::TwiceDifferentiableHV, x)
     obj.fdf(obj.DF, x)
 end
 
-function hv_product!(obj::AbstractObjective, x, v)
+function hv_product!(obj::TwiceDifferentiableHV, x, v)
     if x != obj.x_hv ||  v != obj.v_hv
         hv_product!!(obj, x, v)
     end
     obj.Hv
 end
-function hv_product!!(obj::AbstractObjective, x, v)
+function hv_product!!(obj::TwiceDifferentiableHV, x, v)
     obj.hv_calls .+= 1
     copyto!(obj.x_hv, x)
     copyto!(obj.v_hv, v)
     obj.hv(obj.Hv, x, v)
 end
-hv_product(obj) = obj.Hv
+# Deprecate the following?
+# Using it makes code non-generic (it requires storage for the result)
+hv_product(obj::TwiceDifferentiableHV) = obj.Hv

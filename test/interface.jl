@@ -32,6 +32,9 @@
         @test gradient(od) == gradient(td) == g_x_seed
         # Test that the Hessian matches the intended value
         @test hessian(td) == h_x_seed
+        # Test hv_product! for TwiceDifferentiable
+        v = [0.111, -1234]
+        @test hv_product!(td, x_seed, v) == h_x_seed * v
 
         # Test that the call counters got incremented
         @test nd.f_calls == od.f_calls == td.f_calls == [2]

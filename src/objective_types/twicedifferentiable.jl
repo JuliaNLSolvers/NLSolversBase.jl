@@ -79,7 +79,7 @@ TwiceDifferentiable(d::NonDifferentiable, x_seed::AbstractVector{T} = d.x_f, F::
 function TwiceDifferentiable(d::OnceDifferentiable, x_seed::AbstractVector{T} = d.x_f,
                              F::Real = real(zero(T)); autodiff = :finite) where T<:Real
     if is_finitediff(autodiff)
-        
+
         # Figure out which Val-type to use for DiffEqDiffTools based on our
         # symbol interface.
         fdtype = diffeqdiff_fdtype(autodiff)
@@ -138,4 +138,9 @@ function TwiceDifferentiable(f, x::AbstractVector, F::Real = real(zero(eltype(x)
         error("The autodiff value $(autodiff) is not supported. Use :finite or :forward.")
     end
     TwiceDifferentiable(f, g!, fg!, h!, x, F)
+end
+
+function hv_product!(obj::TwiceDifferentiable, x, v)
+    H = hessian!(obj, x)
+    return H*v
 end
