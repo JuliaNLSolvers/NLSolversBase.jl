@@ -28,6 +28,13 @@ function TwiceDifferentiableHV(f, fdf, h, x::AbstractVector{T}) where T
     return TwiceDifferentiableHV(f, fdf, h, x, real(zero(T)))
 end
 
+# assumption: fg takes (f, g, x)
+function TwiceDifferentiableHV(::Nothing, fg, hv, x::AbstractVector{T}) where T
+    f   =     x  -> fg(0, nothing, x)
+    fg! = (g, x) -> fg(0, g, x)
+    return TwiceDifferentiableHV(f, fg!, hv, x)
+end
+
 function gradient!!(obj::TwiceDifferentiableHV, x)
     obj.df_calls .+= 1
     copyto!(obj.x_df, x)

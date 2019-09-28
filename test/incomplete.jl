@@ -22,11 +22,20 @@
     function just_fgh!(F, G, H, x)
         !(H == nothing) && copy!(H, Diagonal(fill(2, length(n))))
         !(G == nothing) && copyto!(G, 2 .* x)
-        !(F == nothing) && sum(x->x^2,x)
+        !(F == nothing) && return sum(x->x^2,x)
     end
     fgh(x) = f(x), g(x), h(x)
     fdf!_real = only_fg!(just_fg!)
     fdf_real = only_fg(fg)
+
+    function just_hv!(Hv, x, v)
+        copyto!(Hv, 2 .* v)
+    end
+    function just_fghv!(F, G, Hv, x, v)
+        G  === nothing || copyto!(G, 2 .* x)
+        Hv === nothing || copyto!(Hv, 2 .* v)
+        F  === nothing || return sum(x->x^2, x)
+    end
 
     df_fdf_real = only_g_and_fg(g, fg)
     Random.seed!(3259)
@@ -82,7 +91,21 @@
         @test gradient(OD) == g(2 .* x)
     end
 
-
+    # Incomplete TwiceDifferentiableHv
+    v = randn(10)
+    od_fg_and_hv = TwiceDifferentiableHV(only_fg_and_hv!(just_fg!, just_hv!), x)
+    od_fghv      = TwiceDifferentiableHV(only_fghv!(just_fghv!), x)
+    for OD in (od_fg_and_hv, od_fghv)
+        gradient!(OD, x)
+        @test gradient(OD) == g(x)
+        hv_product!(OD, x, v)
+        @test OD.Hv == 2v
+        OD.f(x) == f(x)
+        _g = similar(x)
+        OD.fdf(_g, x)
+        @test _g == g(x)
+        @test OD.fdf(_g, x) == f(x)
+    end
 end
 @testset "incomplete objectives vectors" begin
     function tf(x)

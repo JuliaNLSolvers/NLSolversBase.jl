@@ -6,27 +6,34 @@
 # Note, that for TwiceDifferentiable we cannot provide con-
 # structors if h == nothing, as that requires automatic dif-
 # fferentiation of some sort.
-struct InplaceObjective{DF, FDF, FGH}
+struct InplaceObjective{DF, FDF, FGH, Hv, FGHv}
     df::DF
     fdf::FDF
     fgh::FGH
+    hv::Hv
+    fghv::FGHv
 end
+InplaceObjective(;df=nothing, fdf=nothing, fgh=nothing, hv=nothing, fghv=nothing) = InplaceObjective(df, fdf, fgh, hv, fghv)
+
 struct NotInplaceObjective{DF, FDF, FGH}
     df::DF
     fdf::FDF
     fgh::FGH
 end
 # Mutating version
-only_fg!(fg)   = InplaceObjective(nothing, fg,      nothing)
-only_fgh!(fgh) = InplaceObjective(nothing, nothing, fgh)
-only_fj!(fj)   = InplaceObjective(nothing, fj,      nothing)
+only_fg!(fg)     = InplaceObjective(fdf=fg)
+only_fgh!(fgh)   = InplaceObjective(fgh=fgh)
+only_fj!(fj)     = InplaceObjective(fdf=fj)
+
+only_fg_and_hv!(fg, hv) = InplaceObjective(fdf=fg, hv=hv)
+only_fghv!(fghv)        = InplaceObjective(fghv=fghv)
 
 # Non-mutating version
-only_fg(fg)  = NotInplaceObjective(nothing, fg,      nothing)
-only_fj(fj)  = NotInplaceObjective(nothing, fj,      nothing)
+only_fg(fg)     = NotInplaceObjective(nothing, fg, nothing)
+only_fj(fj)     = NotInplaceObjective(nothing, fj, nothing)
 
-only_g_and_fg(g, fg) = NotInplaceObjective(g, fg, nothing)
-only_j_and_fj(j, fj) = NotInplaceObjective(j, fj, nothing)
+only_g_and_fg(g, fg)    = NotInplaceObjective(g, fg, nothing)
+only_j_and_fj(j, fj)    = NotInplaceObjective(j, fj, nothing)
 
 df(t::Union{InplaceObjective, NotInplaceObjective}) = t.df
 fdf(t::Union{InplaceObjective, NotInplaceObjective}) = t.fdf
@@ -72,8 +79,11 @@ function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::A
     NonDifferentiable(f, x, F)
 end
 
+const InPlaceFGH = InplaceObjective{<:Nothing,<:Nothing,TH,<:Nothing,<:Nothing} where {TH}
+const InPlaceFG_HV = InplaceObjective{<:Nothing,TFG,<:Nothing,THv,<:Nothing} where {TFG,THv}
+const InPlaceFGHV = InplaceObjective{<:Nothing,<:Nothing,<:Nothing,<:Nothing,TFGHv} where {TFGHv}
 
-function TwiceDifferentiable(t::InplaceObjective{<: Nothing, <: Nothing, TH}, x::AbstractArray, F::Real = real(zero(eltype(x))), G::AbstractArray = similar(x), H = alloc_H(x)) where {TH}
+function TwiceDifferentiable(t::InPlaceFGH, x::AbstractArray, F::Real = real(zero(eltype(x))), G::AbstractArray = similar(x), H = alloc_H(x)) where {TH}
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
@@ -81,7 +91,7 @@ function TwiceDifferentiable(t::InplaceObjective{<: Nothing, <: Nothing, TH}, x:
     TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
 end
 
-function TwiceDifferentiable(t::InplaceObjective{<: Nothing, <: Nothing, TH}, x::AbstractVector, F::Real = real(zero(eltype(x))), G::AbstractVector = similar(x)) where {TH}
+function TwiceDifferentiable(t::InPlaceFGH, x::AbstractVector, F::Real = real(zero(eltype(x))), G::AbstractVector = similar(x)) where {TH}
 
     H = alloc_H(x)
     f   =     x  -> t.fgh(F, nothing, nothing, x)
@@ -89,4 +99,14 @@ function TwiceDifferentiable(t::InplaceObjective{<: Nothing, <: Nothing, TH}, x:
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
     h   = (H, x) -> t.fgh(F, nothing, H, x)
     TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
+end
+
+function TwiceDifferentiableHV(t::InPlaceFG_HV, x::AbstractVector)
+    TwiceDifferentiableHV(nothing, t.fdf, t.hv, x)
+end
+
+function TwiceDifferentiableHV(t::InPlaceFGHV, x::AbstractVector, F::Real = real(zero(eltype(x))))
+    fg  =  (F, G, x) -> t.fghv(F, G, nothing, x, nothing)
+    Hv  = (Hv, x, v) -> t.fghv(nothing, nothing, Hv, x, v)
+    TwiceDifferentiableHV(nothing, fg, Hv, x)
 end
