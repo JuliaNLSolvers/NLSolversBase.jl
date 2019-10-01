@@ -1,6 +1,6 @@
 name = "NLSolversBase"
 uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
-version = "7.5.1"
+version = "7.5.0"
 
 [deps]
 Calculus = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
