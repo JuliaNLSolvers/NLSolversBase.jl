@@ -2,7 +2,7 @@ __precompile__(true)
 
 module NLSolversBase
 
-using DiffEqDiffTools, ForwardDiff, Calculus, DiffResults
+using FiniteDiff, ForwardDiff, DiffResults
 import Distributed: clear!
 export AbstractObjective,
        NonDifferentiable,
@@ -43,7 +43,7 @@ export AbstractObjective,
 export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds
 
-function diffeqdiff_fdtype(autodiff)
+function finitediff_fdtype(autodiff)
     if autodiff == :finiteforward
         fdtype = Val{:forward}
     elseif autodiff == :finitecomplex

@@ -141,10 +141,10 @@ function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVecto
 
     if any(autodiff .== (:finite, :central))
         ccache2 = similar(ccache)
-        central_cache = DiffEqDiffTools.JacobianCache(xcache, ccache,
+        central_cache = FiniteDiff.JacobianCache(xcache, ccache,
                                                       ccache2)
         function jfinite!(J, x)
-            DiffEqDiffTools.finite_difference_jacobian!(J, c!, x, central_cache)
+            FiniteDiff.finite_difference_jacobian!(J, c!, x, central_cache)
             J
         end
         return OnceDifferentiableConstraints(c!, jfinite!, bounds)

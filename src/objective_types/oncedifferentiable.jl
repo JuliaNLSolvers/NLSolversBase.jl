@@ -44,16 +44,16 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T},
     else
         if is_finitediff(autodiff)
 
-            # Figure out which Val-type to use for DiffEqDiffTools based on our
+            # Figure out which Val-type to use for FiniteDiff based on our
             # symbol interface.
-            fdtype = diffeqdiff_fdtype(autodiff)
+            fdtype = finitediff_fdtype(autodiff)
             df_array_spec = DF
             x_array_spec = x_seed
             return_spec = typeof(F)
-            gcache = DiffEqDiffTools.GradientCache(df_array_spec, x_array_spec, fdtype, return_spec)
+            gcache = FiniteDiff.GradientCache(df_array_spec, x_array_spec, fdtype, return_spec)
 
             function g!(storage, x)
-                DiffEqDiffTools.finite_difference_gradient!(storage, f, x, gcache)
+                FiniteDiff.finite_difference_gradient!(storage, f, x, gcache)
                 return
             end
             function fg!(storage, x)
@@ -99,11 +99,11 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
         return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
     else
         if is_finitediff(autodiff)
-            # Figure out which Val-type to use for DiffEqDiffTools based on our
+            # Figure out which Val-type to use for FiniteDiff based on our
             # symbol interface.
-            fdtype = diffeqdiff_fdtype(autodiff)
+            fdtype = finitediff_fdtype(autodiff)
             # Apparently only the third input is aliased.
-            j_diffeqdiff_cache = DiffEqDiffTools.JacobianCache(similar(x_seed), similar(F), similar(F), fdtype)
+            j_finitediff_cache = FiniteDiff.JacobianCache(similar(x_seed), similar(F), similar(F), fdtype)
             if autodiff == :finiteforward
                 # These copies can be done away with if we add a keyword for
                 # reusing arrays instead for overwriting them.
@@ -122,11 +122,11 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
                         f_calls .+= 1
                     end
 
-                    DiffEqDiffTools.finite_difference_jacobian!(J, f, x, j_diffeqdiff_cache, Fx)
+                    FiniteDiff.finite_difference_jacobian!(J, f, x, j_finitediff_cache, Fx)
                 end
                 function fj_finiteforward!(F, J, x)
                     f(F, x)
-                    DiffEqDiffTools.finite_difference_jacobian!(J, f, x, j_diffeqdiff_cache, F)
+                    FiniteDiff.finite_difference_jacobian!(J, f, x, j_finitediff_cache, F)
                 end
 
 
@@ -135,7 +135,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
 
             function fj_finitediff!(F, J, x)
                 f(F, x)
-                DiffEqDiffTools.finite_difference_jacobian!(J, f, x, j_diffeqdiff_cache)
+                FiniteDiff.finite_difference_jacobian!(J, f, x, j_finitediff_cache)
                 F
             end
             function j_finitediff!(J, x)
