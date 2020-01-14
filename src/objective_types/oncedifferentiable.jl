@@ -15,8 +15,9 @@ end
 # Ambiguity
 OnceDifferentiable(f, x::AbstractArray,
                    F::Real = real(zero(eltype(x))),
-                   DF::AbstractArray = alloc_DF(x, F); inplace = true, autodiff = :finite) =
-    OnceDifferentiable(f, x, F, DF, autodiff)
+                   DF::AbstractArray = alloc_DF(x, F); inplace = true, autodiff = :finite,  
+                   chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)) =
+    OnceDifferentiable(f, x, F, DF, autodiff, chunk)
 #OnceDifferentiable(f, x::AbstractArray, F::AbstractArray; autodiff = :finite) =
 #    OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, alloc_DF(x, F))
 function OnceDifferentiable(f, x::AbstractArray,
@@ -31,7 +32,7 @@ end
 function OnceDifferentiable(f, x_seed::AbstractArray{T},
                             F::Real,
                             DF::AbstractArray,
-                            autodiff) where T
+                            autodiff, chunk) where T
     # When here, at the constructor with positional autodiff, it should already
     # be the case, that f is inplace.
     if  typeof(f) <: Union{InplaceObjective, NotInplaceObjective}
@@ -61,7 +62,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T},
                 return f(x)
             end
         elseif is_forwarddiff(autodiff)
-            gcfg = ForwardDiff.GradientConfig(f, x_seed)
+            gcfg = ForwardDiff.GradientConfig(f, x_seed, chunk)
             g! = (out, x) -> ForwardDiff.gradient!(out, f, x, gcfg)
 
             fg! = (out, x) -> begin
