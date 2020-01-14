@@ -54,13 +54,13 @@ function TwiceDifferentiable(f, g,
 
     if is_finitediff(autodiff)
 
-        # Figure out which Val-type to use for DiffEqDiffTools based on our
+        # Figure out which Val-type to use for FiniteDiff based on our
         # symbol interface.
-        fdtype = diffeqdiff_fdtype(autodiff)
+        fdtype = finitediff_fdtype(autodiff)
 
-        jcache = DiffEqDiffTools.JacobianCache(x_seed, fdtype)
+        jcache = FiniteDiff.JacobianCache(x_seed, fdtype)
         function h!(storage, x)
-            DiffEqDiffTools.finite_difference_jacobian!(storage, g!, x, jcache)
+            FiniteDiff.finite_difference_jacobian!(storage, g!, x, jcache)
             return
         end
 
@@ -80,13 +80,13 @@ function TwiceDifferentiable(d::OnceDifferentiable, x_seed::AbstractVector{T} = 
                              F::Real = real(zero(T)); autodiff = :finite) where T<:Real
     if is_finitediff(autodiff)
 
-        # Figure out which Val-type to use for DiffEqDiffTools based on our
+        # Figure out which Val-type to use for FiniteDiff based on our
         # symbol interface.
-        fdtype = diffeqdiff_fdtype(autodiff)
+        fdtype = finitediff_fdtype(autodiff)
 
-        jcache = DiffEqDiffTools.JacobianCache(x_seed, fdtype)
+        jcache = FiniteDiff.JacobianCache(x_seed, fdtype)
         function h!(storage, x)
-            DiffEqDiffTools.finite_difference_jacobian!(storage, d.df, x, jcache)
+            FiniteDiff.finite_difference_jacobian!(storage, d.df, x, jcache)
             return
         end
     elseif is_forwarddiff(autodiff)
@@ -102,13 +102,13 @@ function TwiceDifferentiable(f, x::AbstractVector, F::Real = real(zero(eltype(x)
                              autodiff = :finite, inplace = true)
     if is_finitediff(autodiff)
 
-        # Figure out which Val-type to use for DiffEqDiffTools based on our
+        # Figure out which Val-type to use for FiniteDiff based on our
         # symbol interface.
-        fdtype = diffeqdiff_fdtype(autodiff)
-        gcache = DiffEqDiffTools.GradientCache(x, x, fdtype)
+        fdtype = finitediff_fdtype(autodiff)
+        gcache = FiniteDiff.GradientCache(x, x, fdtype)
 
         function g!(storage, x)
-            DiffEqDiffTools.finite_difference_gradient!(storage, f, x, gcache)
+            FiniteDiff.finite_difference_gradient!(storage, f, x, gcache)
             return
         end
         function fg!(storage::Vector, x::Vector)
@@ -117,8 +117,7 @@ function TwiceDifferentiable(f, x::AbstractVector, F::Real = real(zero(eltype(x)
         end
 
         function h!(storage::Matrix, x::Vector)
-            # TODO: Wait to use DiffEqDiffTools until they introduce the Hessian feature
-            Calculus.finite_difference_hessian!(f, x, storage)
+            FiniteDiff.finite_difference_hessian!(storage, f, x)
             return
         end
     elseif is_forwarddiff(autodiff)
