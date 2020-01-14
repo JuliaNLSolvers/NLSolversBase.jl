@@ -15,7 +15,7 @@ mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective
     h_calls::Vector{Int}
 end
 # compatibility with old constructor
-function TwiceDifferentiable(f, g, fg, h, x::TX, F::T = real(zero(eltype(x))), G::TG = similar(x), H::TH = alloc_H(x); inplace = true) where {T, TG, TH, TX}
+function TwiceDifferentiable(f, g, fg, h, x::TX, F::T = real(zero(eltype(x))), G::TG = alloc_DF(x, F), H::TH = alloc_H(x, F); inplace = true) where {T, TG, TH, TX}
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
 
     g! = df!_from_df(g, F, inplace)
@@ -31,8 +31,8 @@ end
 function TwiceDifferentiable(f, g, h,
                              x::AbstractVector{TX},
                              F::Real = real(zero(eltype(x))),
-                             G = similar(x),
-                             H = alloc_H(x); inplace = true) where {TX}
+                             G = alloc_DF(x, F),
+                             H = alloc_H(x, F); inplace = true) where {TX}
 
     g! = df!_from_df(g, F, inplace)
     h! = h!_from_h(h, F, inplace)
