@@ -6,11 +6,11 @@ Base functionality for optimization and solving systems of equations in Julia.
 NLSolversBase.jl is the core, common dependency of several packages in the [JuliaNLSolvers](https://github.com/JuliaNLSolvers/) family.
 
 
-| **PackageEvaluator**            |**Build Status**                                   |
-|:-------------------------------:|:-------------------------------------------------:|
-| [![][pkg-0.4-img]][pkg-0.4-url] | [![Build Status][build-img]][build-url]           |
-| [![][pkg-0.5-img]][pkg-0.5-url] | [![Codecov branch][cov-img]][cov-url]             |
-| [![][pkg-0.6-img]][pkg-0.6-url] | [![Coverage Status][coveralls-img]][coveralls-url]|
+|**Build Status**                                   |
+|:-------------------------------------------------:|
+| [![Build Status][build-img]][build-url]           |
+| [![Codecov branch][cov-img]][cov-url]             |
+| [![Coverage Status][coveralls-img]][coveralls-url]|
 
 
 # Purpose
