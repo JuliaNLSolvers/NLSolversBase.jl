@@ -10,6 +10,7 @@ ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 
 [compat]
 DiffResults = "1.0"
+ForwardDiff = "0.10"
 FiniteDiff = "2.0"
 julia = "1.2"
 
