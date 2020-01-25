@@ -139,7 +139,7 @@ function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVecto
     xcache = zeros(T, sizex)
     ccache = zeros(T, sizec)
 
-    if any(autodiff .== (:finite, :central))
+    if is_finitediff(autodiff)
         ccache2 = similar(ccache)
         central_cache = FiniteDiff.JacobianCache(xcache, ccache,
                                                       ccache2)
@@ -148,7 +148,7 @@ function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVecto
             J
         end
         return OnceDifferentiableConstraints(c!, jfinite!, bounds)
-    elseif autodiff == :forward
+    elseif is_forwarddiff(autodiff)
         jac_cfg = ForwardDiff.JacobianConfig(c!, ccache, xcache, chunk)
         ForwardDiff.checktag(jac_cfg, c!, xcache)
 
@@ -179,9 +179,9 @@ function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVect
     lc::AbstractVector, uc::AbstractVector,
     autodiff::Symbol = :central,
     chunk::ForwardDiff.Chunk = checked_chunk(lx))
-       if any(autodiff .== (:finite, :central))
+       if is_finitediff(autodiff)
         return twicediff_constraints_finite(c!,lx,ux,lc,uc,nothing)
-    elseif autodiff == :forward
+    elseif is_forwarddiff(autodiff)
         return twicediff_constraints_forward(c!,lx,ux,lc,uc,chunk,nothing)
     else
         error("The autodiff value $autodiff is not support. Use :finite or :forward.")
@@ -192,9 +192,9 @@ function TwiceDifferentiableConstraints(c!, con_jac!,lx::AbstractVector, ux::Abs
     lc::AbstractVector, uc::AbstractVector,
     autodiff::Symbol = :central,
     chunk::ForwardDiff.Chunk = checked_chunk(lx))
-       if any(autodiff .== (:finite, :central))
+       if is_finitediff(autodiff)
         return twicediff_constraints_finite(c!,lx,ux,lc,uc,con_jac!)
-    elseif autodiff == :forward
+    elseif is_forwarddiff(autodiff)
         return  twicediff_constraints_forward(c!,lx,ux,lc,uc,chunk,con_jac!)
     else
         error("The autodiff value $autodiff is not support. Use :finite or :forward.")
