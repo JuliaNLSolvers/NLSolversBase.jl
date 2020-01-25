@@ -1,17 +1,17 @@
 ### Constraints
-#
+# 
 # Constraints are specified by the user as
 #    lx_i ≤   x[i]  ≤ ux_i  # variable (box) constraints
 #    lc_i ≤ c(x)[i] ≤ uc_i  # linear/nonlinear constraints
 # and become equality constraints with l_i = u_i. ±∞ are allowed for l
 # and u, in which case the relevant side(s) are unbounded.
-#
+# 
 # The user supplies functions to calculate c(x) and its derivatives.
-#
+# 
 # Of course we could unify the box-constraints into the
 # linear/nonlinear constraints, but that would force the user to
 # provide the variable-derivatives manually, which would be silly.
-#
+# 
 # This parametrization of the constraints gets "parsed" into a form
 # that speeds and simplifies the IPNewton algorithm, at the cost of many
 # additional variables. See `parse_constraints` for details.
@@ -35,7 +35,7 @@ function ConstraintBounds(lx, ux, lc, uc)
     _cb(symmetrize(lx, ux)..., symmetrize(lc, uc)...)
 end
 function _cb(lx::AbstractArray{Tx}, ux::AbstractArray{Tx}, lc::AbstractVector{Tc}, uc::AbstractVector{Tc}) where {Tx,Tc}
-    T = promote_type(Tx,Tc)
+    T = promote_type(Tx, Tc)
     ConstraintBounds{T}(length(lc), parse_constraints(T, lx, ux)..., parse_constraints(T, lc, uc)...)
 end
 
@@ -114,8 +114,8 @@ function OnceDifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
 end
 
 function OnceDifferentiableConstraints(bounds::ConstraintBounds)
-    c! = (c,x)->nothing
-    J! = (J,x)->nothing
+    c! = (c, x)->nothing
+    J! = (J, x)->nothing
     OnceDifferentiableConstraints(c!, J!, bounds)
 end
 
@@ -136,8 +136,8 @@ function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVecto
     sizex = size(lx)
     sizec = size(lc)
 
-    xcache = zeros(T,sizex)
-    ccache = zeros(T,sizec)
+    xcache = zeros(T, sizex)
+    ccache = zeros(T, sizec)
 
     if any(autodiff .== (:finite, :central))
         ccache2 = similar(ccache)
@@ -169,20 +169,136 @@ struct TwiceDifferentiableConstraints{F,J,H,T} <: AbstractConstraints
     h!::H   # h!(storage, x) stores the hessian of the constraint functions
     bounds::ConstraintBounds{T}
 end
+
 function TwiceDifferentiableConstraints(c!, jacobian!, h!, lx, ux, lc, uc)
     b = ConstraintBounds(lx, ux, lc, uc)
     TwiceDifferentiableConstraints(c!, jacobian!, h!, b)
 end
+
+function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVector,
+    lc::AbstractVector, uc::AbstractVector,
+    autodiff::Symbol = :central,
+    chunk::ForwardDiff.Chunk = checked_chunk(lx))
+       if any(autodiff .== (:finite, :central))
+        return twicediff_constraints_finite(c!,lx,ux,lc,uc,nothing)
+    elseif autodiff == :forward
+        return twicediff_constraints_forward(c!,lx,ux,lc,uc,chunk,nothing)
+    else
+        error("The autodiff value $autodiff is not support. Use :finite or :forward.")
+    end
+end
+
+function TwiceDifferentiableConstraints(c!, con_jac!,lx::AbstractVector, ux::AbstractVector,
+    lc::AbstractVector, uc::AbstractVector,
+    autodiff::Symbol = :central,
+    chunk::ForwardDiff.Chunk = checked_chunk(lx))
+       if any(autodiff .== (:finite, :central))
+        return twicediff_constraints_finite(c!,lx,ux,lc,uc,con_jac!)
+    elseif autodiff == :forward
+        return  twicediff_constraints_forward(c!,lx,ux,lc,uc,chunk,con_jac!)
+    else
+        error("The autodiff value $autodiff is not support. Use :finite or :forward.")
+    end
+end
+
+
 
 function TwiceDifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
     bounds = ConstraintBounds(lx, ux, [], [])
     TwiceDifferentiableConstraints(bounds)
 end
 
+
+function twicediff_constraints_forward(fn!, lx, ux, lc, uc,chunk,con_jac! = nothing)
+    bounds = ConstraintBounds(lx, ux, lc, uc)
+    T = eltype(bounds)
+    nc = length(lc)
+    nx = length(lx)
+    ccache = zeros(T, nc)
+    xcache = zeros(T, nx)
+    cache_check =  Ref{DataType}(Missing) #the datatype Missing, not the singleton
+    ref_f= Ref{Any}() #cache for intermediate jacobian used in the hessian
+    cxxcache = zeros(T, nx * nc, nx) #output cache for hessian
+    h = reshape(cxxcache, (nc, nx, nx)) #reshaped output 
+    hi = [@view h[i,:,:] for i in 1:nc]
+        #ref_f caches the closure function with its caches. other aproaches include using a Dict, but the 
+        #cost of switching happens just once per optimize call. 
+        
+    if isnothing(con_jac!) #if the jacobian is not provided, generate one
+        jac_cfg = ForwardDiff.JacobianConfig(fn!, ccache, xcache, chunk)
+        ForwardDiff.checktag(jac_cfg, fn!, xcache)
+        con_jac! = (J, x) -> begin
+            ForwardDiff.jacobian!(J, fn!, ccache, x, jac_cfg, Val{false}())
+            J
+        end
+
+   
+        #here, the cache should also include a JacobianConfig
+        function con_jac_intermediate(x)
+            exists_cache = (cache_check[] == eltype(x))
+            if exists_cache
+                f = ref_f[]
+                return f(x)
+            else
+                jcache = zeros(eltype(x), nc)
+                out_cache = zeros(eltype(x), nc, nx)
+                cfg_cache = ForwardDiff.JacobianConfig(fn!,jcache,x)
+                f = z->ForwardDiff.jacobian!(out_cache, fn!, jcache, z,cfg_cache,Val{false}())
+                ref_f[] = f
+                cache_check[]= eltype(x)
+                return f(x)
+            end
+        end
+    
+        hess_config_cache = ForwardDiff.JacobianConfig(typeof(con_jac_intermediate),lx)
+        function con_hess2!(hess, x, λ)
+            ForwardDiff.jacobian!(cxxcache, con_jac_intermediate, x,hess_config_cache,Val{false}()) 
+            for i = 1:nc  #hot hessian loop
+                hess+=λ[i].*hi[i]
+            end
+            return hess
+        end
+
+        return TwiceDifferentiableConstraints(fn!, con_jac!, con_hess2!, bounds)
+    else 
+        #in this case, the cache is simpler, as its just the output
+        function con_jac_cached(x)
+            exists_cache = (cache_check[] == eltype(x))
+            if exists_cache
+                f = ref_f[]
+                return f(x)
+            else
+                out_cache = zeros(eltype(x), nc, nx)
+                f = z->con_jac!(out_cache,x)
+                ref_f[] = f
+                cache_check[]= eltype(x)
+                return f(x)
+            end
+        end
+
+        hess_config_cache = ForwardDiff.JacobianConfig(typeof(con_jac_cached),lx)
+        function con_hess!(hess, x, λ)
+            ForwardDiff.jacobian!(cxxcache, con_jac_cached, x,hess_config_cache,Val{false}()) 
+            for i = 1:nc  
+                hi = @view h[i,:,:]
+                hess+=λ[i].*hi
+            end
+            return hess
+        end
+       
+        return TwiceDifferentiableConstraints(fn!, con_jac!, con_hess!, bounds)
+    end
+end
+
+
+function twicediff_constraints_finite(c!,lx,ux,lc,uc)
+    return nothing
+end
+
 function TwiceDifferentiableConstraints(bounds::ConstraintBounds)
-    c! = (x,c)->nothing
-    J! = (x,J)->nothing
-    h! = (x,λ,h)->nothing
+    c! = (x, c)->nothing
+    J! = (x, J)->nothing
+    h! = (x, λ, h)->nothing
     TwiceDifferentiableConstraints(c!, J!, h!, bounds)
 end
 
@@ -278,11 +394,11 @@ function showeq(io, indent, eq, val, chr, style)
     if !isempty(eq)
         print(io, '\n', indent)
         if style == :bracket
-            eqstrs = map((i,v) -> "$chr[$i]=$v", eq, val)
+            eqstrs = map((i, v)->"$chr[$i]=$v", eq, val)
         else
-            eqstrs = map((i,v) -> "$(chr)_$i=$v", eq, val)
+            eqstrs = map((i, v)->"$(chr)_$i=$v", eq, val)
         end
-        foreach(s->print(io, s*", "), eqstrs[1:end-1])
+        foreach(s->print(io, s * ", "), eqstrs[1:end - 1])
         print(io, eqstrs[end])
     end
 end
@@ -291,12 +407,12 @@ function showineq(io, indent, ineqs, σs, bs, chr, style)
     if !isempty(ineqs)
         print(io, '\n', indent)
         if style == :bracket
-            ineqstrs = map((i,σ,b) -> "$chr[$i]"*ineqstr(σ,b), ineqs, σs, bs)
+            ineqstrs = map((i, σ, b)->"$chr[$i]" * ineqstr(σ, b), ineqs, σs, bs)
         else
-            ineqstrs = map((i,σ,b) -> "$(chr)_$i"*ineqstr(σ,b), ineqs, σs, bs)
+            ineqstrs = map((i, σ, b)->"$(chr)_$i" * ineqstr(σ, b), ineqs, σs, bs)
         end
-        foreach(s->print(io, s*", "), ineqstrs[1:end-1])
+        foreach(s->print(io, s * ", "), ineqstrs[1:end - 1])
         print(io, ineqstrs[end])
     end
 end
-ineqstr(σ,b) = σ>0 ? "≥$b" : "≤$b"
+ineqstr(σ, b) = σ > 0 ? "≥$b" : "≤$b"
