@@ -141,10 +141,10 @@ function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVecto
 
     if is_finitediff(autodiff)
         ccache2 = similar(ccache)
-        central_cache = FiniteDiff.JacobianCache(xcache, ccache,
-                                                      ccache2)
+        fdtype = finitediff_fdtype(autodiff)
+        jacobian_cache = FiniteDiff.JacobianCache(xcache, ccache,ccache2,fdtype)
         function jfinite!(J, x)
-            FiniteDiff.finite_difference_jacobian!(J, c!, x, central_cache)
+            FiniteDiff.finite_difference_jacobian!(J, c!, x, jacobian_cache)
             J
         end
         return OnceDifferentiableConstraints(c!, jfinite!, bounds)
@@ -193,7 +193,8 @@ function TwiceDifferentiableConstraints(c!, con_jac!,lx::AbstractVector, ux::Abs
     autodiff::Symbol = :central,
     chunk::ForwardDiff.Chunk = checked_chunk(lx))
        if is_finitediff(autodiff)
-        return twicediff_constraints_finite(c!,lx,ux,lc,uc,con_jac!)
+        fdtype = finitediff_fdtype(autodiff)
+        return twicediff_constraints_finite(c!,lx,ux,lc,uc,fdtype,con_jac!)
     elseif is_forwarddiff(autodiff)
         return  twicediff_constraints_forward(c!,lx,ux,lc,uc,chunk,con_jac!)
     else
@@ -291,8 +292,17 @@ function twicediff_constraints_forward(fn!, lx, ux, lc, uc,chunk,con_jac! = noth
 end
 
 
-function twicediff_constraints_finite(c!,lx,ux,lc,uc)
-    return nothing
+function twicediff_constraints_finite(c!,lx,ux,lc,uc,fdtype,con_jac!=nothing)
+    
+    if isnothing(con_jac!)
+    ccache2 = similar(ccache)
+        jacobian_cache = FiniteDiff.JacobianCache(xcache, ccache,ccache2,fdtype)
+        function con_jac!(J, x)
+            FiniteDiff.finite_difference_jacobian!(J, c!, x, jacobian_cache)
+            J
+        end
+    else
+    
 end
 
 function TwiceDifferentiableConstraints(bounds::ConstraintBounds)
