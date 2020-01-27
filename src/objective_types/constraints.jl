@@ -180,7 +180,8 @@ function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVect
     autodiff::Symbol = :central,
     chunk::ForwardDiff.Chunk = checked_chunk(lx))
        if is_finitediff(autodiff)
-        return twicediff_constraints_finite(c!,lx,ux,lc,uc,nothing)
+        fdtype = finitediff_fdtype(autodiff)
+        return twicediff_constraints_finite(c!,lx,ux,lc,uc,fdtype,nothing)
     elseif is_forwarddiff(autodiff)
         return twicediff_constraints_forward(c!,lx,ux,lc,uc,chunk,nothing)
     else
@@ -210,7 +211,7 @@ function TwiceDifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
 end
 
 
-function twicediff_constraints_forward(fn!, lx, ux, lc, uc,chunk,con_jac! = nothing)
+function twicediff_constraints_forward(c!, lx, ux, lc, uc,chunk,con_jac! = nothing)
     bounds = ConstraintBounds(lx, ux, lc, uc)
     T = eltype(bounds)
     nc = length(lc)
@@ -226,16 +227,15 @@ function twicediff_constraints_forward(fn!, lx, ux, lc, uc,chunk,con_jac! = noth
         #cost of switching happens just once per optimize call. 
         
     if isnothing(con_jac!) #if the jacobian is not provided, generate one
-        jac_cfg = ForwardDiff.JacobianConfig(fn!, ccache, xcache, chunk)
-        ForwardDiff.checktag(jac_cfg, fn!, xcache)
-        con_jac! = (J, x) -> begin
-            ForwardDiff.jacobian!(J, fn!, ccache, x, jac_cfg, Val{false}())
+        jac_cfg = ForwardDiff.JacobianConfig(c!, ccache, xcache, chunk)
+        ForwardDiff.checktag(jac_cfg, c!, xcache)
+        
+        jac! = (J, x) -> begin
+            ForwardDiff.jacobian!(J, c!, ccache, x, jac_cfg, Val{false}())
             J
         end
 
-   
-        #here, the cache should also include a JacobianConfig
-        function con_jac_intermediate(x)
+        con_jac_cached = x -> begin
             exists_cache = (cache_check[] == eltype(x))
             if exists_cache
                 f = ref_f[]
@@ -243,67 +243,88 @@ function twicediff_constraints_forward(fn!, lx, ux, lc, uc,chunk,con_jac! = noth
             else
                 jcache = zeros(eltype(x), nc)
                 out_cache = zeros(eltype(x), nc, nx)
-                cfg_cache = ForwardDiff.JacobianConfig(fn!,jcache,x)
-                f = z->ForwardDiff.jacobian!(out_cache, fn!, jcache, z,cfg_cache,Val{false}())
+                cfg_cache = ForwardDiff.JacobianConfig(c!,jcache,x)
+                f = z->ForwardDiff.jacobian!(out_cache, c!, jcache, z,cfg_cache,Val{false}())
                 ref_f[] = f
                 cache_check[]= eltype(x)
                 return f(x)
             end
         end
-    
-        hess_config_cache = ForwardDiff.JacobianConfig(typeof(con_jac_intermediate),lx)
-        function con_hess2!(hess, x, λ)
-            ForwardDiff.jacobian!(cxxcache, con_jac_intermediate, x,hess_config_cache,Val{false}()) 
-            for i = 1:nc  #hot hessian loop
-                hess+=λ[i].*hi[i]
-            end
-            return hess
-        end
 
-        return TwiceDifferentiableConstraints(fn!, con_jac!, con_hess2!, bounds)
-    else 
-        #in this case, the cache is simpler, as its just the output
-        function con_jac_cached(x)
+    else
+        jac! = (J,x) = con_jac!(J,x)
+   
+        #here, the cache should also include a JacobianConfig
+         con_jac_cached = x -> begin
             exists_cache = (cache_check[] == eltype(x))
             if exists_cache
                 f = ref_f[]
                 return f(x)
             else
                 out_cache = zeros(eltype(x), nc, nx)
-                f = z->con_jac!(out_cache,x)
+                f = z->jac!(out_cache,x)
                 ref_f[] = f
                 cache_check[]= eltype(x)
                 return f(x)
             end
         end
+    end
+    
+    hess_config_cache = ForwardDiff.JacobianConfig(typeof(con_jac_cached),lx)
+    function con_hess!(hess, x, λ)
+        ForwardDiff.jacobian!(cxxcache, con_jac_cached, x,hess_config_cache,Val{false}()) 
+        for i = 1:nc  #hot hessian loop
+            hess+=λ[i].*hi[i]
+        end
+        return hess
+    end
+    
+    return TwiceDifferentiableConstraints(c!, jac!, con_hess!, bounds) 
+end
 
-        hess_config_cache = ForwardDiff.JacobianConfig(typeof(con_jac_cached),lx)
+
+function twicediff_constraints_finite(c!,lx,ux,lc,uc,fdtype,con_jac! = nothing)
+    bounds = ConstraintBounds(lx, ux, lc, uc)
+    T = eltype(bounds)
+    nx = length(lx)
+    nc = length(lc)
+    xcache = zeros(T, nx)
+    ccache = zeros(T, nc)
+    
+    if isnothing(con_jac!)   
+        jac_ccache = similar(ccache)
+        jacobian_cache = FiniteDiff.JacobianCache(xcache, ccache,jac_ccache,fdtype)
+        function jac!(J, x)
+            FiniteDiff.finite_difference_jacobian!(J, c!, x, jacobian_cache)
+            J
+        end
+    else
+        jac! = (J,x) -> con_jac(J,x)
+    end
+        cxxcache = zeros(T,nc*nx,nx) # to create cached jacobian
+        h = reshape(cxxcache, (nc, nx, nx)) #reshaped output 
+        hi = [@view h[i,:,:] for i in 1:nc]
+
+        function jac_vec!(J,x) #to evaluate the jacobian of a jacobian, FiniteDiff needs a vector version of that
+            j_mat = reshape(J,nc,nx)
+            return jac!(j_mat,x)
+            return J
+        end
+        hess_xcache =similar(xcache)
+        hess_cxcache =zeros(T,nc*nx) #output of jacobian, as a vector
+        hess_cxxcache =similar(hess_cxcache)
+        hess_config_cache = FiniteDiff.JacobianCache(hess_xcache,hess_cxcache,hess_cxxcache,fdtype)
         function con_hess!(hess, x, λ)
-            ForwardDiff.jacobian!(cxxcache, con_jac_cached, x,hess_config_cache,Val{false}()) 
+            FiniteDiff.finite_difference_jacobian!(cxxcache, jac_vec!, x,hess_config_cache) 
             for i = 1:nc  
                 hi = @view h[i,:,:]
                 hess+=λ[i].*hi
             end
             return hess
-        end
-       
-        return TwiceDifferentiableConstraints(fn!, con_jac!, con_hess!, bounds)
-    end
+        end 
+        return TwiceDifferentiableConstraints(c!, jac!, con_hess!, bounds)
 end
 
-
-function twicediff_constraints_finite(c!,lx,ux,lc,uc,fdtype,con_jac!=nothing)
-    
-    if isnothing(con_jac!)
-    ccache2 = similar(ccache)
-        jacobian_cache = FiniteDiff.JacobianCache(xcache, ccache,ccache2,fdtype)
-        function con_jac!(J, x)
-            FiniteDiff.finite_difference_jacobian!(J, c!, x, jacobian_cache)
-            J
-        end
-    else
-    
-end
 
 function TwiceDifferentiableConstraints(bounds::ConstraintBounds)
     c! = (x, c)->nothing
