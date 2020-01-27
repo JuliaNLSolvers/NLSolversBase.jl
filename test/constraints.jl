@@ -118,7 +118,6 @@ end
 @testset "Twice differentiable constraints autodiff" begin
 
 
-
 prob = MVP.ConstrainedProblems.examples["HS9"]
 cbd = prob.constraintdata
 
@@ -132,10 +131,10 @@ odc = TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!, cbd.h!,
 T = eltype(odca.bounds)
 nx = length()
 jac_result = zeros(T, nc,nx)
-jac_result_autodiff = = zeros(T, nc,nx)
+jac_result_autodiff = zeros(T, nc,nx)
 
 hess_result = zeros(T, nx,nx)
-hess_result_autodiff = = zeros(T, nx,nx)
+hess_result_autodiff = zeros(T, nx,nx)
 λ = rand(T,nc)
 
 for autodiff in (:finite, :forward) #testing double differentiation
