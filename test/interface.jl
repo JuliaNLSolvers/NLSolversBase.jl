@@ -168,7 +168,7 @@
                     x = rand(prob.initial_x, length(prob.initial_x))
                     v = rand(prob.initial_x, length(prob.initial_x))
                     G = NLSolversBase.alloc_DF(x, 0.0)
-                    H = NLSolversBase.alloc_H(x, 0.0)
+                    H = NLSolversBase.alloc_H(x)
                     MVP.hessian(prob)(H, x)
                     @test hv_product!(ddf, x, v) == H*v
                     @test hv_product(ddf) == H*v
