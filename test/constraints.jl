@@ -5,7 +5,7 @@
         @test NLSolversBase.nconstraints_x(cb) == 0
         @test cb.valc == [0.0]
         @test eltype(cb) == Float64
-
+        @test eltype(cb) == eltype(typeof(cb))
         cb = ConstraintBounds([0], [0], [], [])
         @test NLSolversBase.nconstraints(cb) == 0
         @test NLSolversBase.nconstraints_x(cb) == 1
@@ -69,7 +69,8 @@
                 lx = fill(-Inf, nx)
                 ux = fill(Inf, nx)
             end
-
+            @test_throws ErrorException OnceDifferentiableConstraints(cbd.c!, lx, ux,
+            lc, uc, :wuoah)
             for autodiff in (:finite, :forward)
                 odca = OnceDifferentiableConstraints(cbd.c!, lx, ux,
                                                      lc, uc, autodiff)
@@ -129,25 +130,36 @@
             hess_result = zeros(T, nx,nx)
             hess_result_autodiff = zeros(T, nx,nx)
             λ = rand(T,nc)
-
+            λ0 = zeros(T,nc)
+            @test_throws ErrorException TwiceDifferentiableConstraints(cbd.c!,lx, ux, cbd.lc, cbd.uc,:campanario)
             for autodiff in (:finite,:forward) #testing double differentiation
                 odca2 = TwiceDifferentiableConstraints(cbd.c!,lx, ux, cbd.lc, cbd.uc,autodiff)
                 
                 odca2.jacobian!(jac_result_autodiff,prob.initial_x) 
                 odc.jacobian!(jac_result,prob.initial_x)
-                
+                odca2.h!(hess_result_autodiff,prob.initial_x,λ0) #warmup,λ0 means no modification 
                 odca2.h!(hess_result_autodiff,prob.initial_x,λ) 
+
                 odc.h!(hess_result,prob.initial_x,λ)
 
-                #@test isapprox(jac_result, jac_result_autodiff, atol=1e-10) 
-                #@test isapprox(hess_result, hess_result_autodiff, atol=1e-10) 
-            end
 
+                @test isapprox(jac_result, jac_result_autodiff, atol=1e-10) 
+                @test isapprox(hess_result, hess_result_autodiff, atol=1e-10) 
+                
+                fill!(hess_result_autodiff,zero(T))
+                fill!(hess_result,zero(T))
+                fill!(jac_result_autodiff,zero(T))
+                fill!(jac_result,zero(T))
+            end
+            @test_throws ErrorException TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!,lx, ux, cbd.lc, cbd.uc,:qloctm)
             for autodiff in (:finite,:forward) #testing autodiff hessian from constraint jacobian
                 odca2 = TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!,lx, ux, cbd.lc, cbd.uc,autodiff)
+                odca2.h!(hess_result_autodiff,prob.initial_x,λ0) #warmup,λ0 means no modification 
                 odca2.h!(hess_result_autodiff,prob.initial_x,λ) 
                 odc.h!(hess_result,prob.initial_x,λ)
-                @test isapprox(hess_result, hess_result_autodiff, atol=1e-10) 
+                @test isapprox(hess_result, hess_result_autodiff, atol=1e-10)
+                fill!(hess_result_autodiff,zero(T))
+                fill!(hess_result,zero(T))
             end
         end
     end
