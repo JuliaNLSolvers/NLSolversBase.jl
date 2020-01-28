@@ -111,54 +111,48 @@
         @test isempty(odc.bounds.bc)
         @test odc.bounds.valc == [0.0]
 
-    end
+        @testset "autodiff" begin
 
+            cb = ConstraintBounds(cbd.lx, cbd.ux, cbd.lc, cbd.uc)
+            nc = length(cbd.lc)
+            nx = length(prob.initial_x)
 
+            odc = TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!, cbd.h!,
+                                                cbd.lx, cbd.ux, cbd.lc, cbd.uc)
 
-    @testset "Twice differentiable constraints autodiff" begin
+            T = eltype(odca.bounds)
+            nx = length()
+            jac_result = zeros(T, nc,nx)
+            jac_result_autodiff = zeros(T, nc,nx)
 
-        prob = MVP.ConstrainedProblems.examples["HS9"]
-        cbd = prob.constraintdata
+            hess_result = zeros(T, nx,nx)
+            hess_result_autodiff = zeros(T, nx,nx)
+            λ = rand(T,nc)
 
-        cb = ConstraintBounds(cbd.lx, cbd.ux, cbd.lc, cbd.uc)
-        nc = length(cbd.lc)
-        nx =  length(cbd.lx)
+            for autodiff in (:finite, :forward) #testing double differentiation
+                odca2 = TwiceDifferentiableConstraints(cbd.c!, lx, ux,
+                lc, uc, autodiff)
+                
+                odca2.jacobian!(jac_result_autodiff,prob.initial_x) 
+                odc.jacobian!(jac_result,prob.initial_x)
+                
+                odca2.h!(hess_result_autodiff,λ,prob.initial_x) 
+                odc.h!(hess_result,λ,prob.initial_x)
 
-        odc = TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!, cbd.h!,
-                                            cbd.lx, cbd.ux, cbd.lc, cbd.uc)
+                @test isapprox(jac_result, jac_result_autodiff, atol=1e-10) 
+                @test isapprox(hess_result, hess_result_autodiff, atol=1e-10) 
 
-        T = eltype(odca.bounds)
-        nx = length()
-        jac_result = zeros(T, nc,nx)
-        jac_result_autodiff = zeros(T, nc,nx)
+            end
 
-        hess_result = zeros(T, nx,nx)
-        hess_result_autodiff = zeros(T, nx,nx)
-        λ = rand(T,nc)
+            for autodiff in (:finite, :forward) #testing autodiff hessian from constraint jacobian
+                odca2 = TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!,lx, ux,lc, uc, autodiff)
+                
+                odca2.h!(hess_result_autodiff,λ,prob.initial_x) 
+                odc.h!(hess_result,λ,prob.initial_x)
 
-        for autodiff in (:finite, :forward) #testing double differentiation
-            odca2 = TwiceDifferentiableConstraints(cbd.c!, lx, ux,
-            lc, uc, autodiff)
-            
-            odca2.jacobian!(jac_result_autodiff,prob.initial_x) 
-            odc.jacobian!(jac_result,prob.initial_x)
-            
-            odca2.h!(hess_result_autodiff,λ,prob.initial_x) 
-            odc.h!(hess_result,λ,prob.initial_x)
-
-            @test isapprox(jac_result, jac_result_autodiff, atol=1e-10) 
-            @test isapprox(hess_result, hess_result_autodiff, atol=1e-10) 
-
+                @test isapprox(hess_result, hess_result_autodiff, atol=1e-10) 
+            end
         end
-
-        for autodiff in (:finite, :forward) #testing autodiff hessian from constraint jacobian
-            odca2 = TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!,lx, ux,lc, uc, autodiff)
-            
-            odca2.h!(hess_result_autodiff,λ,prob.initial_x) 
-            odc.h!(hess_result,λ,prob.initial_x)
-
-            @test isapprox(hess_result, hess_result_autodiff, atol=1e-10) 
-        end
-
     end
 end
+
