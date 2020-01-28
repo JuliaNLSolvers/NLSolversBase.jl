@@ -252,7 +252,7 @@ function twicediff_constraints_forward(c!, lx, ux, lc, uc,chunk,con_jac! = nothi
         end
 
     else
-        jac! = (J,x) = con_jac!(J,x)
+        jac! = (J,x) -> con_jac!(J,x)
    
         #here, the cache should also include a JacobianConfig
          con_jac_cached = x -> begin
@@ -299,7 +299,7 @@ function twicediff_constraints_finite(c!,lx,ux,lc,uc,fdtype,con_jac! = nothing)
             J
         end
     else
-        jac! = (J,x) -> con_jac(J,x)
+        jac! = (J,x) -> con_jac!(J,x)
     end
         cxxcache = zeros(T,nc*nx,nx) # to create cached jacobian
         h = reshape(cxxcache, (nc, nx, nx)) #reshaped output 
