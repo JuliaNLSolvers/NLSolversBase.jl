@@ -61,8 +61,8 @@ x = zeros(2)
 nd   = NonDifferentiable(f, x)
 od   = OnceDifferentiable(f, g!, x)
 odfg = OnceDifferentiable(f, g!, fg!, x)
-td1  = Twicedifferentiable(f, g!, h!, x)
-tdfg = Twicedifferentiable(f, g!, fg!, h!, x)
+td1  = TwiceDifferentiable(f, g!, h!, x)
+tdfg = TwiceDifferentiable(f, g!, fg!, h!, x)
 ```
 #### Multivalued objective
 If we consider the gradient of the Himmelblau function above, we can try to solve ![FOCs](https://user-images.githubusercontent.com/8431156/34005673-f7bc5b52-e0fb-11e7-8bd9-86efad17cb95.gif) without caring about the objective value. Then we can still create `NDifferentiable`s, but we need to specify the cache to hold the value of ![Multivalued objective](https://user-images.githubusercontent.com/8431156/34006586-2de39a3a-e0ff-11e7-8453-48aad94c6b5e.gif). Currently, the only relevant ones are `NonDifferentiable` and `OnceDifferentiable`. `TwiceDifferentiable` could be used for higher order (tensor) methods, though they are rarely worth the cost. The relevant functions coded in Julia are:
