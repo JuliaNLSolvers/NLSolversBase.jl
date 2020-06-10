@@ -16,8 +16,15 @@ function make_fdf(x, F::Number, f, g!)
 end
 
 # Initialize an n-by-n Jacobian
-alloc_DF(x, F) = fill(eltype(F)(NaN), length(F), length(x))
+function alloc_DF(x, F)
+  a = (Base.OneTo(length(F)), Base.OneTo(length(x)))
+  df = similar(F, a)
+  fill!(df, NaN)
+  return df
+end
 # Initialize a gradient shaped like x
 alloc_DF(x, F::T) where T<:Number = x_of_nans(x, promote_type(eltype(x), T))
 # Initialize an n-by-n Hessian
-alloc_H(x, F::T) where T<:Number = alloc_DF(x, promote_type(eltype(x), T).(x))
+function alloc_H(x, F::T) where T<:Number
+  eltype(x)(NaN).*x*x'
+end
