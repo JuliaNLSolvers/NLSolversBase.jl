@@ -89,7 +89,7 @@ function Base.show(io::IO, cb::ConstraintBounds)
 end
 
 # Synonym constructor for ConstraintBounds with no c(x)
-BoxConstraints(lx, ux) = ConstraintBounds(lx, ux)
+BoxConstraints(lx, ux) = ConstraintBounds(lx, ux, [], [])
 
 abstract type AbstractConstraints end
 
