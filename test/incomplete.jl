@@ -194,7 +194,9 @@ end
       H[1, 2] = -400.0 * x[1]
       H[2, 1] = -400.0 * x[1]
       H[2, 2] = 200.0
-    end
+    endIndirect response models.. I think there is a PR.. let me check
+￼
+
     function fg!(F,G,x)
       G == nothing || g!(G,x)
       F == nothing || return f(x)
@@ -212,8 +214,10 @@ end
 
     @test NLSolversBase.make_f(only_fgh!(fgh!),[0.0,0.0],0.0)(x) == 1.0
     @test NLSolversBase.make_df(only_fgh!(fgh!),[0.0,0.0],0.0)(gx, x) == nothing
-    gx == [-2.0, 0.0]
+    @test gx == [-2.0, 0.0]
 
     gx = [0.0,0.0]
     @test NLSolversBase.make_fdf(only_fgh!(fgh!),[0.0,0.0],0.0)(gx, x) == 1.0
+    @test gx == [-2.0, 0.0]
+
 end
