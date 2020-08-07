@@ -194,8 +194,7 @@ end
       H[1, 2] = -400.0 * x[1]
       H[2, 1] = -400.0 * x[1]
       H[2, 2] = 200.0
-    endIndirect response models.. I think there is a PR.. let me check
-￼
+    end
 
     function fg!(F,G,x)
       G == nothing || g!(G,x)
