@@ -14,7 +14,7 @@ struct InplaceObjective{DF, FDF, FGH, Hv, FGHv}
     fghv::FGHv
 end
 InplaceObjective(;df=nothing, fdf=nothing, fgh=nothing, hv=nothing, fghv=nothing) = InplaceObjective(df, fdf, fgh, hv, fghv)
-
+const InPlaceObjectiveFGH = InplaceObjective{<:Nothing, <:Nothing, <:Any, <:Any, <:Any}
 struct NotInplaceObjective{DF, FDF, FGH}
     df::DF
     fdf::FDF
@@ -41,8 +41,14 @@ fdf(t::Union{InplaceObjective, NotInplaceObjective}) = t.fdf
 # Mutating version
 make_f(t::InplaceObjective, x, F::Real) = x -> fdf(t)(F, nothing, x)
 make_f(t::InplaceObjective, x, F) =  (F, x) -> fdf(t)(F, nothing, x)
+make_f(t::InPlaceObjectiveFGH, x, F::Real) = x -> t.fgh(F, nothing, nothing, x)
+
+
 make_df(t::InplaceObjective, x, F) = (DF, x) -> fdf(t)(nothing, DF, x)
+make_df(t::InPlaceObjectiveFGH, x, F) = (DF, x) -> t.fgh(nothing, DF, nothing, x)
+
 make_fdf(t::InplaceObjective, x, F::Real) = (G, x) -> fdf(t)(F, G, x)
+make_fdf(t::InPlaceObjectiveFGH, x, F::Real) = (G, x) -> t.fgh(F, G, nothing, x)
 make_fdf(t::InplaceObjective, x, F) = fdf(t)
 
 # Non-mutating version

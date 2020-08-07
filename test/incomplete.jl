@@ -182,3 +182,38 @@ end
     end
 
 end
+
+@testset "https://github.com/JuliaNLSolvers/Optim.jl/issues/718" begin
+    f(x) = (1.0 - x[1])^2 + 100.0 * (x[2] - x[1]^2)^2
+    function g!(G, x)
+      G[1] = -2.0 * (1.0 - x[1]) - 400.0 * (x[2] - x[1]^2) * x[1]
+      G[2] = 200.0 * (x[2] - x[1]^2)
+    end
+    function h!(H, x)
+      H[1, 1] = 2.0 - 400.0 * x[2] + 1200.0 * x[1]^2
+      H[1, 2] = -400.0 * x[1]
+      H[2, 1] = -400.0 * x[1]
+      H[2, 2] = 200.0
+    end
+    function fg!(F,G,x)
+      G == nothing || g!(G,x)
+      F == nothing || return f(x)
+      nothing
+    end
+    function fgh!(F,G,H,x)
+      G == nothing || g!(G,x)
+      H == nothing || h!(H,x)
+      F == nothing || return f(x)
+      nothing
+    end
+    
+    gx = [0.0,0.0]
+    x=[0.0,0.0]
+
+    @test NLSolversBase.make_f(only_fgh!(fgh!),[0.0,0.0],0.0)(x) == 1.0
+    @test NLSolversBase.make_df(only_fgh!(fgh!),[0.0,0.0],0.0)(gx, x) == nothing
+    gx == [-2.0, 0.0]
+
+    gx = [0.0,0.0]
+    @test NLSolversBase.make_fdf(only_fgh!(fgh!),[0.0,0.0],0.0)(gx, x) == 1.0
+end
