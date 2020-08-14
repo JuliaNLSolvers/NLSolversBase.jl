@@ -16,10 +16,10 @@ mutable struct TwiceDifferentiableHV{T,TDF,THv,TX} <: AbstractObjective
 end
 
 # compatibility with old constructor
-function TwiceDifferentiableHV(f, fdf, h, x::TX, F::T, G::TG = similar(x), H::THv = similar(x)) where {T, TG, THv, TX}
+function TwiceDifferentiableHV(f, fdf, h, x::TX, F::T, G::TG = copy(x), H::THv = copy(x)) where {T, TG, THv, TX}
     x_f, x_df, x_hv, v_hv = x_of_nans(x), x_of_nans(x), x_of_nans(x), x_of_nans(x)
     TwiceDifferentiableHV{T,TG, THv, TX}(f, fdf, h,
-                                        copy(F), similar(G), copy(H),
+                                        copy(F), copy(G), copy(H),
                                         x_f, x_df, x_hv, v_hv,
                                         [0,], [0,], [0,])
 end

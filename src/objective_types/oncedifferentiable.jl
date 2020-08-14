@@ -104,7 +104,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
             # symbol interface.
             fdtype = finitediff_fdtype(autodiff)
             # Apparently only the third input is aliased.
-            j_finitediff_cache = FiniteDiff.JacobianCache(similar(x_seed), similar(F), similar(F), fdtype)
+            j_finitediff_cache = FiniteDiff.JacobianCache(copy(x_seed), copy(F), copy(F), fdtype)
             if autodiff == :finiteforward
                 # These copies can be done away with if we add a keyword for
                 # reusing arrays instead for overwriting them.
@@ -140,7 +140,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
                 F
             end
             function j_finitediff!(J, x)
-                F_cache = similar(F)
+                F_cache = copy(F)
                 fj_finitediff!(F_cache, J, x)
             end
 
