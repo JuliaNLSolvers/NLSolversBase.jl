@@ -34,6 +34,11 @@
         s = String(take!(io))
         @test s == "ConstraintBounds:\n  Variables:\n    x[1]≥1.0, x[1]≤3.0, x[2]≥2.0, x[2]≤4.0\n  Linear/nonlinear constraints:\n    c_1≤10.0, c_2≤20.0, c_3≤30.0"
 
+        for i = 1:5
+            cb = NLSolversBase.BoxConstraints(fill(0, i), fill(0, i))
+            @test NLSolversBase.nconstraints(cb) == 0
+            @test NLSolversBase.nconstraints_x(cb) == i
+        end
     end
 
     @testset "Once differentiable constraints" begin
