@@ -16,7 +16,7 @@ end
 InplaceObjective(;df=nothing, fdf=nothing, fgh=nothing, hv=nothing, fghv=nothing) = InplaceObjective(df, fdf, fgh, hv, fghv)
 const InPlaceObjectiveFGH = InplaceObjective{<:Nothing, <:Nothing, <:Any, <:Nothing, <: Nothing}
 const InPlaceObjectiveFG_Hv = InplaceObjective{<:Nothing, <:Any, <:Nothing, <:Any, <:Nothing}
-const InPlaceObjectiveFGHv = InplaceObjective{<:Nothing, <:Nothing, <:Nothing, <:Any, <:Any}
+const InPlaceObjectiveFGHv = InplaceObjective{<:Nothing, <:Nothing, <:Nothing, <:Nothing, <:Any}
 struct NotInplaceObjective{DF, FDF, FGH}
     df::DF
     fdf::FDF
