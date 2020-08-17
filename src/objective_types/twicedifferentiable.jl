@@ -23,7 +23,7 @@ function TwiceDifferentiable(f, g, fg, h, x::TX, F::T = real(zero(eltype(x))), G
     h! = h!_from_h(h, F, inplace)
 
     TwiceDifferentiable{T,TG,TH,TX}(f, g!, fg!, h!,
-                                        copy(F), similar(G), copy(H),
+                                        copy(F), copy(G), copy(H),
                                         x_f, x_df, x_h,
                                         [0,], [0,], [0,])
 end
@@ -33,13 +33,13 @@ function TwiceDifferentiable(f, g, h,
                              F::Real = real(zero(eltype(x))),
                              G = alloc_DF(x, F),
                              H = alloc_H(x, F); inplace = true) where {TX}
-
     g! = df!_from_df(g, F, inplace)
     h! = h!_from_h(h, F, inplace)
 
     fg! = make_fdf(x, F, f, g!)
+    x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
 
-    return TwiceDifferentiable(f, g!, fg!, h!, x, F, G, H)
+    return TwiceDifferentiable(f, g!, fg!, h!, F, G, H, x_f, x_df, x_h, [0,], [0,], [0,])
 end
 
 
@@ -65,7 +65,7 @@ function TwiceDifferentiable(f, g,
         end
 
     elseif is_forwarddiff(autodiff)
-        hcfg = ForwardDiff.HessianConfig(f, similar(x_seed))
+        hcfg = ForwardDiff.HessianConfig(f, copy(x_seed))
         h! = (out, x) -> ForwardDiff.hessian!(out, f, x, hcfg)
     else
         error("The autodiff value $(autodiff) is not supported. Use :finite or :forward.")
@@ -90,7 +90,7 @@ function TwiceDifferentiable(d::OnceDifferentiable, x_seed::AbstractVector{T} = 
             return
         end
     elseif is_forwarddiff(autodiff)
-        hcfg = ForwardDiff.HessianConfig(d.f, similar(gradient(d)))
+        hcfg = ForwardDiff.HessianConfig(d.f, copy(gradient(d)))
         h! = (out, x) -> ForwardDiff.hessian!(out, d.f, x, hcfg)
     else
         error("The autodiff value $(autodiff) is not supported. Use :finite or :forward.")
