@@ -69,4 +69,7 @@ include("objective_types/incomplete.jl")
 include("objective_types/constraints.jl")
 include("interface.jl")
 
+NonDifferentiable(f::OnceDifferentiable, x::AbstractArray) = NonDifferentiable(f.f, x, copy(f.F))
+NonDifferentiable(f::TwiceDifferentiable, x::AbstractArray) = NonDifferentiable(f.f, x, copy(f.F))
+NonDifferentiable(f::TwiceDifferentiableHV, x::AbstractArray) = NonDifferentiable(f.f, x, copy(f.F))
 end # module

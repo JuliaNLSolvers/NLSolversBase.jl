@@ -36,6 +36,8 @@
         od = OnceDifferentiable(exponential, exponential_gradient!, x_seed, 0.0, g_seed)
         xrand = rand(2)
         value_gradient!(od, xrand)
+        ndod = NonDifferentiable(od, xrand)
+        @test value(ndod, xrand) === value(od, xrand)
         fcache = value(od)
         gcache = copy(gradient(od))
         value_gradient!(od, zeros(2))
@@ -58,6 +60,9 @@
         td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x_seed, 0.0, g_seed)
         xrand = rand(2)
         value_gradient!(td, xrand)
+        ndtd = NonDifferentiable(td, xrand)
+        @test value(ndtd, xrand) === value(td, xrand)
+
         fcache = value(td)
         gcache = copy(gradient(td))
         value_gradient!(td, zeros(2))

@@ -95,6 +95,9 @@
     v = randn(10)
     od_fg_and_hv = TwiceDifferentiableHV(only_fg_and_hv!(just_fg!, just_hv!), x)
     od_fghv      = TwiceDifferentiableHV(only_fghv!(just_fghv!), x)
+    ndtdhv = NonDifferentiable(od_fghv, v)
+    @test value(ndtdhv, v) === value(od_fghv, v)
+
     for OD in (od_fg_and_hv, od_fghv)
         gradient!(OD, x)
         @test gradient(OD) == g(x)
