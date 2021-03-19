@@ -3,6 +3,8 @@ mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective
     f
     df
     fdf
+    dfh
+    fdfh
     h
     F::T
     DF::TDF
@@ -22,7 +24,7 @@ function TwiceDifferentiable(f, g, fg, h, x::TX, F::T = real(zero(eltype(x))), G
     fg! = fdf!_from_fdf(fg, F, inplace)
     h! = h!_from_h(h, F, inplace)
 
-    TwiceDifferentiable{T,TG,TH,TX}(f, g!, fg!, h!,
+    TwiceDifferentiable{T,TG,TH,TX}(f, g!, fg!, nothing, nothing, h!,
                                         copy(F), copy(G), copy(H),
                                         x_f, x_df, x_h,
                                         [0,], [0,], [0,])
@@ -39,7 +41,7 @@ function TwiceDifferentiable(f, g, h,
     fg! = make_fdf(x, F, f, g!)
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
 
-    return TwiceDifferentiable(f, g!, fg!, h!, F, G, H, x_f, x_df, x_h, [0,], [0,], [0,])
+    return TwiceDifferentiable(f, g!, fg!, nothing, nothing, h!, F, G, H, x_f, x_df, x_h, [0,], [0,], [0,])
 end
 
 
@@ -98,7 +100,7 @@ function TwiceDifferentiable(d::OnceDifferentiable, x_seed::AbstractVector{T} = 
     return TwiceDifferentiable(d.f, d.df, d.fdf, h!, x_seed, F, gradient(d))
 end
 
-function TwiceDifferentiable(f, x::AbstractVector, F::Real = real(zero(eltype(x)));
+function TwiceDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x)));
                              autodiff = :finite, inplace = true)
     if is_finitediff(autodiff)
 

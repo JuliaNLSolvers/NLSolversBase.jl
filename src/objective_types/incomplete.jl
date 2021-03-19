@@ -93,23 +93,55 @@ end
 const InPlaceFGH = InplaceObjective{<:Nothing,<:Nothing,TH,<:Nothing,<:Nothing} where {TH}
 const InPlaceFG_HV = InplaceObjective{<:Nothing,TFG,<:Nothing,THv,<:Nothing} where {TFG,THv}
 const InPlaceFGHV = InplaceObjective{<:Nothing,<:Nothing,<:Nothing,<:Nothing,TFGHv} where {TFGHv}
-
 function TwiceDifferentiable(t::InPlaceFGH, x::AbstractArray, F::Real = real(zero(eltype(x))), G::AbstractArray = alloc_DF(x, F), H = alloc_H(x, F)) where {TH}
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
+    fdfh = (G, H, x) -> t.fgh(F, G, H, x)
+    dfh = (G, H, x) -> t.fgh(nothing, G, H, x)
     h   = (H, x) -> t.fgh(F, nothing, H, x)
-    TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
+
+    x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
+
+    TwiceDifferentiable(f, df, fdf, dfh, fdfh, h,
+                                        copy(F), copy(G), copy(H),
+                                        x_f, x_df, x_h,
+                                        [0,], [0,], [0,])
 end
-
-function TwiceDifferentiable(t::InPlaceFGH, x::AbstractVector, F::Real = real(zero(eltype(x))), G::AbstractVector = similar(x)) where {TH}
-
-    H = alloc_H(x, F)
+function TwiceDifferentiable(t::InPlaceFGH, x::AbstractVector{T}, F::Real = real(zero(eltype(x))), G::AbstractVector{Tx} = alloc_DF(x, F)) where {T, Tx}
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
+    fdfh = (G, H, x) -> t.fgh(F, G, H, x)
+    dfh = (G, H, x) -> t.fgh(nothing, G, H, x)
     h   = (H, x) -> t.fgh(F, nothing, H, x)
-    TwiceDifferentiable(f, df, fdf, h, x, F, G, H)
+
+    H = alloc_H(x, F)
+    x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
+
+    TwiceDifferentiable(f, df, fdf, dfh, fdfh, h,
+                                        copy(F), copy(G), copy(H),
+                                        x_f, x_df, x_h,
+                                        [0,], [0,], [0,])
+end
+function value_gradient_hessian!!(obj, x)
+    obj.f_calls .+= 1
+    obj.df_calls .+= 1
+    obj.h_calls .+= 1
+    obj.x_f  .= x
+    obj.x_df .= x
+    obj.x_h  .= x
+    if obj.fdfh === nothing
+        obj.F = obj.fdf(obj.DF, x)
+        obj.h(obj.H, x)
+    else
+        obj.F = obj.fdfh(obj.DF, obj.H, x)
+    end
+end
+
+function gradient_hessian!!(obj, x)
+    gradient!!(obj, x)
+    hessian!!(obj, x)
 end
 
 function TwiceDifferentiableHV(t::InPlaceFG_HV, x::AbstractVector)
