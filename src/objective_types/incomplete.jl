@@ -137,6 +137,7 @@ function value_gradient_hessian!!(obj, x)
     else
         obj.F = obj.fdfh(obj.DF, obj.H, x)
     end
+    obj.F, obj.DF, obj.H
 end
 
 function gradient_hessian!!(obj, x)
@@ -150,6 +151,7 @@ function gradient_hessian!!(obj, x)
         obj.x_h  .= x
         obj.dfh(obj.DF, obj.H, x)
     end
+    obj.DF, obj.H
 end
 
 function TwiceDifferentiableHV(t::InPlaceFG_HV, x::AbstractVector)
