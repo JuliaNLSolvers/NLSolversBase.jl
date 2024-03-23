@@ -71,7 +71,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T},
                 DiffResults.value(gr_res)
             end
         else
-            error("The autodiff value $autodiff is not support. Use :finite or :forward.")
+            error("The autodiff value $autodiff is not supported. Use :finite or :forward.")
         end
 
         return OnceDifferentiable(f, g!, fg!, x_seed, F, DF)
