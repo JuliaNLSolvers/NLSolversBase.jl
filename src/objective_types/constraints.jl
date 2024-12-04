@@ -139,27 +139,13 @@ function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVecto
     xcache = zeros(T, sizex)
     ccache = zeros(T, sizec)
 
-    if is_finitediff(autodiff)
-        ccache2 = similar(ccache)
-        fdtype = finitediff_fdtype(autodiff)
-        jacobian_cache = FiniteDiff.JacobianCache(xcache, ccache,ccache2,fdtype)
-        function jfinite!(J, x)
-            FiniteDiff.finite_difference_jacobian!(J, c!, x, jacobian_cache)
-            J
-        end
-        return OnceDifferentiableConstraints(c!, jfinite!, bounds)
-    elseif is_forwarddiff(autodiff)
-        jac_cfg = ForwardDiff.JacobianConfig(c!, ccache, xcache, chunk)
-        ForwardDiff.checktag(jac_cfg, c!, xcache)
-
-        function jforward!(J, x)
-            ForwardDiff.jacobian!(J, c!, ccache, x, jac_cfg, Val{false}())
-            J
-        end
-        return OnceDifferentiableConstraints(c!, jforward!, bounds)
-    else
-        error("The autodiff value $autodiff is not support. Use :finite or :forward.")
+    backend = get_adtype(autodiff, chunk)
+    jac_prep = DI.prepare_jacobian(c!, ccache, backend, xcache)
+    function j!(_j, _x)
+        DI.jacobian!(c!, ccache, _j, jac_prep, backend, _x)
+        return _j
     end
+    return OnceDifferentiableConstraints(c!, j!, bounds)
 end
 
 

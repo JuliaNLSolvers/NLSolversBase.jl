@@ -77,11 +77,13 @@ function exponential_hessian_product!(storage, x)
     storage[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
 end
 
-include("objective_types.jl")
-include("interface.jl")
-include("incomplete.jl")
-include("constraints.jl")
-include("abstractarrays.jl")
-include("autodiff.jl")
-include("sparse.jl")
-include("kwargs.jl")
+@testset verbose=true "NLSolversBase.jl" begin
+    include("objective_types.jl")
+    include("interface.jl")
+    include("incomplete.jl")
+    include("constraints.jl")
+    include("abstractarrays.jl")
+    include("autodiff.jl")
+    include("sparse.jl")
+    include("kwargs.jl")
+end

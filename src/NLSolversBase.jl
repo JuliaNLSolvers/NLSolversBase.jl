@@ -2,6 +2,8 @@ __precompile__(true)
 
 module NLSolversBase
 
+using ADTypes: AbstractADType, AutoForwardDiff, AutoFiniteDiff
+import DifferentiationInterface as DI
 using FiniteDiff, ForwardDiff, DiffResults
 import Distributed: clear!
 export AbstractObjective,
@@ -54,8 +56,23 @@ function finitediff_fdtype(autodiff)
     fdtype
 end
 
+forwarddiff_chunksize(::Nothing) = nothing
+forwarddiff_chunksize(::ForwardDiff.Chunk{C}) where {C} = C
+
 is_finitediff(autodiff) = autodiff ∈ (:central, :finite, :finiteforward, :finitecomplex)
 is_forwarddiff(autodiff) = autodiff ∈ (:forward, :forwarddiff, true)
+
+get_adtype(autodiff::AbstractADType) = autodiff
+
+function get_adtype(autodiff, chunk=nothing)
+    if is_finitediff(autodiff)
+        return AutoFiniteDiff(; fdtype=finitediff_fdtype(autodiff)())
+    elseif is_forwarddiff(autodiff)
+        return AutoForwardDiff(; chunksize=forwarddiff_chunksize(chunk))
+    else
+        error("The autodiff value $autodiff is not supported. Use :finite or :forward.")
+    end
+end
 
 x_of_nans(x, Tf=eltype(x)) = fill!(Tf.(x), Tf(NaN))
 

@@ -52,8 +52,8 @@
     gx = g(NLSolversBase.alloc_DF(x, 0.0), x)
     h(H, x) = copyto!(H, Diagonal(6 .* x))
     hx = h(fill(0.0, nx, nx), x)
-    for dtype in (OnceDifferentiable, TwiceDifferentiable)
-        for autodiff in (:finite, :forward)
+    @testset for dtype in (OnceDifferentiable, TwiceDifferentiable)
+        @testset for autodiff in (:finite, :forward)
             # :forward should be exact, but :finite will not be
             differentiable = dtype(f, copy(x); autodiff = autodiff)
             value!(differentiable, copy(x))

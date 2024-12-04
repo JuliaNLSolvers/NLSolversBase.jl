@@ -43,37 +43,16 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T},
 
         return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
     else
-        if is_finitediff(autodiff)
-
-            # Figure out which Val-type to use for FiniteDiff based on our
-            # symbol interface.
-            fdtype = finitediff_fdtype(autodiff)
-            df_array_spec = DF
-            x_array_spec = x_seed
-            return_spec = typeof(F)
-            gcache = FiniteDiff.GradientCache(df_array_spec, x_array_spec, fdtype, return_spec)
-
-            function g!(storage, x)
-                FiniteDiff.finite_difference_gradient!(storage, f, x, gcache)
-                return
-            end
-            function fg!(storage, x)
-                g!(storage, x)
-                return f(x)
-            end
-        elseif is_forwarddiff(autodiff)
-            gcfg = ForwardDiff.GradientConfig(f, x_seed, chunk)
-            g! = (out, x) -> ForwardDiff.gradient!(out, f, x, gcfg)
-
-            fg! = (out, x) -> begin
-                gr_res = DiffResults.DiffResult(zero(T), out)
-                ForwardDiff.gradient!(gr_res, f, x, gcfg)
-                DiffResults.value(gr_res)
-            end
-        else
-            error("The autodiff value $autodiff is not supported. Use :finite or :forward.")
+        backend = get_adtype(autodiff, chunk)
+        grad_prep = DI.prepare_gradient(f, backend, x_seed)
+        function g!(_g, _x)
+            DI.gradient!(f, _g, grad_prep, backend, _x)
+            return nothing
         end
-
+        function fg!(_g, _x)
+            y, _ = DI.value_and_gradient!(f, _g, grad_prep, backend, _x)
+            return y
+        end
         return OnceDifferentiable(f, g!, fg!, x_seed, F, DF)
     end
 end
@@ -99,72 +78,18 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
         fdfF = make_fdf(f, x_seed, F)
         return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
     else
-        if is_finitediff(autodiff)
-            # Figure out which Val-type to use for FiniteDiff based on our
-            # symbol interface.
-            fdtype = finitediff_fdtype(autodiff)
-            # Apparently only the third input is aliased.
-            j_finitediff_cache = FiniteDiff.JacobianCache(copy(x_seed), copy(F), copy(F), fdtype)
-            if autodiff == :finiteforward
-                # These copies can be done away with if we add a keyword for
-                # reusing arrays instead for overwriting them.
-                Fx = copy(F)
-                DF = copy(DF)
-
-                x_f, x_df = x_of_nans(x_seed), x_of_nans(x_seed)
-                f_calls, j_calls = [0,], [0,]
-                function j_finiteforward!(J, x)
-                    # Exploit the possibility that it might be that x_f == x
-                    # then we don't have to call f again.
-
-                    # if at least one element of x_f is different from x, update
-                    if any(x_f .!= x)
-                        f(Fx, x)
-                        f_calls .+= 1
-                    end
-
-                    FiniteDiff.finite_difference_jacobian!(J, f, x, j_finitediff_cache, Fx)
-                end
-                function fj_finiteforward!(F, J, x)
-                    f(F, x)
-                    FiniteDiff.finite_difference_jacobian!(J, f, x, j_finitediff_cache, F)
-                end
-
-
-                return OnceDifferentiable(f, j_finiteforward!, fj_finiteforward!, Fx, DF, x_f, x_df, f_calls, j_calls)
-            end
-
-            function fj_finitediff!(F, J, x)
-                f(F, x)
-                FiniteDiff.finite_difference_jacobian!(J, f, x, j_finitediff_cache)
-                F
-            end
-            function j_finitediff!(J, x)
-                F_cache = copy(F)
-                fj_finitediff!(F_cache, J, x)
-            end
-
-            return OnceDifferentiable(f, j_finitediff!, fj_finitediff!, x_seed, F, DF)
-
-        elseif is_forwarddiff(autodiff)
-
-            jac_cfg = ForwardDiff.JacobianConfig(f, F, x_seed, chunk)
-            ForwardDiff.checktag(jac_cfg, f, x_seed)
-
-            F2 = copy(F)
-            function j_forwarddiff!(J, x)
-                ForwardDiff.jacobian!(J, f, F2, x, jac_cfg, Val{false}())
-            end
-            function fj_forwarddiff!(F, J, x)
-                jac_res = DiffResults.DiffResult(F, J)
-                ForwardDiff.jacobian!(jac_res, f, F2, x, jac_cfg, Val{false}())
-                DiffResults.value(jac_res)
-            end
-
-            return OnceDifferentiable(f, j_forwarddiff!, fj_forwarddiff!, x_seed, F, DF)
-        else
-            error("The autodiff value $(autodiff) is not supported. Use :finite or :forward.")
+        F2 = similar(F)
+        backend = get_adtype(autodiff, chunk)
+        jac_prep = DI.prepare_jacobian(f, F2, backend, x_seed)
+        function j!(_j, _x)
+            DI.jacobian!(f, F2, _j, jac_prep, backend, _x)
+            return _j
         end
+        function fj!(_y, _j, _x)
+            y, _ = DI.value_and_jacobian!(f, _y, _j, jac_prep, backend, _x)
+            return y
+        end
+        return OnceDifferentiable(f, j!, fj!, x_seed, F, DF)
     end
 end
 
