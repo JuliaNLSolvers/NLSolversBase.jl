@@ -87,7 +87,7 @@ function TwiceDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x))
         return nothing
     end
     function fg!(_g, _x)
-        y, _ = DI.gradient!(f, _g, grad_prep, backend, _x)
+        y, _ = DI.value_and_gradient!(f, _g, grad_prep, backend, _x)
         return y
     end
     function h!(_h, _x)
