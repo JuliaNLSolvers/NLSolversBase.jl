@@ -52,8 +52,8 @@
     gx = g(NLSolversBase.alloc_DF(x, 0.0), x)
     h(H, x) = copyto!(H, Diagonal(6 .* x))
     hx = h(fill(0.0, nx, nx), x)
-    for dtype in (OnceDifferentiable, TwiceDifferentiable)
-        for autodiff in (:finite, :forward)
+    @testset for dtype in (OnceDifferentiable, TwiceDifferentiable)
+        @testset for autodiff in (:finite, :forward, AutoForwardDiff())
             # :forward should be exact, but :finite will not be
             differentiable = dtype(f, copy(x); autodiff = autodiff)
             value!(differentiable, copy(x))
@@ -78,7 +78,7 @@
             end
         end
     end
-    for autodiff in (:finite, :forward)
+    @testset for autodiff in (:finite, :forward, AutoForwardDiff())
         td = TwiceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x); autodiff = autodiff)
         value(td)
         value!(td, x)
@@ -86,7 +86,7 @@
         gradient!(td, x)
         hessian!(td, x)
     end
-    for autodiff in (:finite, :forward)
+    @testset for autodiff in (:finite, :forward, AutoForwardDiff())
         for nd = (NonDifferentiable(x->sum(x), copy(x)), NonDifferentiable(x->sum(x), copy(x), 0.0))
             td = TwiceDifferentiable(nd; autodiff = autodiff)
             value(td)
