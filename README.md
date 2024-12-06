@@ -10,7 +10,6 @@ NLSolversBase.jl is the core, common dependency of several packages in the [Juli
 |:-------------------------------------------------:|
 | [![Build Status][build-img]][build-url]           |
 | [![Codecov branch][cov-img]][cov-url]             |
-| [![Coverage Status][coveralls-img]][coveralls-url]|
 
 
 # Purpose
@@ -178,18 +177,8 @@ Notice the important check in the `if` statements. This makes sure that `G` is o
 updated when we want to, and, if only `G` is to be updated, that we don't calculate 
 the objective.
 
-[build-img]: https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl.svg?branch=master
-[build-url]: https://travis-ci.org/JuliaNLSolvers/NLSolversBase.jl
+[build-img]: https://github.com/JuliaNLSolvers/NLSolversBase.jl/actions/workflows/Test.yml/badge.svg
+[build-url]: https://github.com/JuliaNLSolvers/NLSolversBase.jl/actions/workflows/Test.yml
 
-[pkg-0.4-img]: http://pkg.julialang.org/badges/NLSolversBase_0.4.svg
-[pkg-0.4-url]: http://pkg.julialang.org/?pkg=NLSolversBase&ver=0.4
-[pkg-0.5-img]: http://pkg.julialang.org/badges/NLSolversBase_0.5.svg
-[pkg-0.5-url]: http://pkg.julialang.org/?pkg=NLSolversBase&ver=0.5
-[pkg-0.6-img]: http://pkg.julialang.org/badges/NLSolversBase_0.6.svg
-[pkg-0.6-url]: http://pkg.julialang.org/?pkg=NLSolversBase&ver=0.6
-
-[cov-img]: http://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl/coverage.svg?branch=master
-[cov-url]: http://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl?branch=master
-
-[coveralls-img]: https://coveralls.io/repos/JuliaNLSolvers/NLSolversBase.jl/badge.svg?branch=master
-[coveralls-url]: https://coveralls.io/github/JuliaNLSolvers/NLSolversBase.jl?branch=master
+[cov-img]: https://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl/graph/badge.svg
+[cov-url]: https://codecov.io/github/JuliaNLSolvers/NLSolversBase.jl
