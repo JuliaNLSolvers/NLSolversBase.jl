@@ -20,8 +20,8 @@ The package aims at establishing common ground for [Optim.jl](https://github.com
 ## NDifferentiable
 There are currently three main types: `NonDifferentiable`, `OnceDifferentiable`, and `TwiceDifferentiable`. There's also a more experimental `TwiceDifferentiableHV` for optimization algorithms that use Hessian-vector products. An `NDifferentiable` instance can be used to hold relevant functions for
 
- - Optimization: ![Objective for optimization](https://user-images.githubusercontent.com/8431156/33996090-6224581c-e0e0-11e7-8737-5dd659745dcb.gif)
- - Solving systems of equations: ![Objective for systems of equations](https://user-images.githubusercontent.com/8431156/33996088-60760c4a-e0e0-11e7-96ca-470f2731f1c7.gif)
+ - Optimization: $F : \mathbb{R}^N \to \mathbb{R}$
+ - Solving systems of equations: $F : \mathbb{R}^N \to \mathbb{R}^N$
 
 The words in front of `Differentiable` in the type names (`Non`, `Once`, `Twice`) are not meant to indicate a specific classification of the function as such (a `OnceDifferentiable` might be constructed for an infinitely differentiable function), but signals to an algorithm if the correct functions have been constructed or if automatic differentiation should be used to further differentiate the function.
 
@@ -29,7 +29,7 @@ The words in front of `Differentiable` in the type names (`Non`, `Once`, `Twice`
 #### Optimization
 Say we want to minimize the Hosaki test function
 
-![Himmelblau test function](https://user-images.githubusercontent.com/8431156/33995927-c5b9f950-e0df-11e7-8760-9ba792c2b331.gif)
+$$f(x, y) = (x^2 + y - 11)^2 + (x + y^2 - 7)^2$$
 
 The relevant functions are coded in Julia as
 ```julia
@@ -65,7 +65,7 @@ td1  = TwiceDifferentiable(f, g!, h!, x)
 tdfg = TwiceDifferentiable(f, g!, fg!, h!, x)
 ```
 #### Multivalued objective
-If we consider the gradient of the Himmelblau function above, we can try to solve ![FOCs](https://user-images.githubusercontent.com/8431156/34005673-f7bc5b52-e0fb-11e7-8bd9-86efad17cb95.gif) without caring about the objective value. Then we can still create `NDifferentiable`s, but we need to specify the cache to hold the value of ![Multivalued objective](https://user-images.githubusercontent.com/8431156/34006586-2de39a3a-e0ff-11e7-8453-48aad94c6b5e.gif). Currently, the only relevant ones are `NonDifferentiable` and `OnceDifferentiable`. `TwiceDifferentiable` could be used for higher order (tensor) methods, though they are rarely worth the cost. The relevant functions coded in Julia are:
+If we consider the gradient of the Himmelblau function above, we can try to solve $\nabla F(x) = 0$ without caring about the objective value. Then we can still create `NDifferentiable`s, but we need to specify the cache to hold the value of $\nabla F(x)$. Currently, the only relevant ones are `NonDifferentiable` and `OnceDifferentiable`. `TwiceDifferentiable` could be used for higher order (tensor) methods, though they are rarely worth the cost. The relevant functions coded in Julia are:
 
 ```julia
 function f!(F, x)
