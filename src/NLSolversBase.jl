@@ -62,9 +62,9 @@ forwarddiff_chunksize(::ForwardDiff.Chunk{C}) where {C} = C
 is_finitediff(autodiff) = autodiff ∈ (:central, :finite, :finiteforward, :finitecomplex)
 is_forwarddiff(autodiff) = autodiff ∈ (:forward, :forwarddiff, true)
 
-get_adtype(autodiff::AbstractADType) = autodiff
+get_adtype(autodiff::AbstractADType, chunk=nothing) = autodiff
 
-function get_adtype(autodiff, chunk=nothing)
+function get_adtype(autodiff::Union{Symbol,Bool}, chunk=nothing)
     if is_finitediff(autodiff)
         return AutoFiniteDiff(; fdtype=finitediff_fdtype(autodiff)())
     elseif is_forwarddiff(autodiff)

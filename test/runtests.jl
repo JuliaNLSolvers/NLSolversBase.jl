@@ -5,6 +5,7 @@ using ComponentArrays
 using SparseArrays
 using OptimTestProblems
 using RecursiveArrayTools
+using ADTypes
 MVP = OptimTestProblems.MultivariateProblems
 
 # TODO: Use OptimTestProblems (but it does not have exponential_gradient_hession etc.)
