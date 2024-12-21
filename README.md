@@ -24,6 +24,18 @@ There are currently three main types: `NonDifferentiable`, `OnceDifferentiable`,
 
 The words in front of `Differentiable` in the type names (`Non`, `Once`, `Twice`) are not meant to indicate a specific classification of the function as such (a `OnceDifferentiable` might be constructed for an infinitely differentiable function), but signals to an algorithm if the correct functions have been constructed or if automatic differentiation should be used to further differentiate the function.
 
+## Automatic differentiation
+
+Some constructors for `OnceDifferentiable`, `TwiceDifferentiable`, `OnceDifferentiableConstraints` and `TwiceDifferentiableConstraints` accept a positional argument called `autodiff`.
+This argument can be either:
+
+- An object subtyping `AbstractADType`, defined by [ADTypes.jl](https://github.com/SciML/ADTypes.jl) and supported by [DifferentiationInterface.jl](https://github.com/JuliaDiff/DifferentiationInterface.jl).
+- A `Symbol` like `:finite` (and variants thereof) or `:forward`, which fall back on `ADTypes.AutoFiniteDiff` and `ADTypes.AutoForwardDiff` respectively.
+- A `Bool`, namely `true`, which falls back on `ADTypes.AutoForwardDiff`.
+
+When the positional argument `chunk` is passed, it is used to configure chunk size in `ADTypes.AutoForwardDiff`, but _only_ if `autodiff in (:forward, true)`.
+Indeed, if `autodiff isa ADTypes.AutoForwardDiff`, we assume that the user already selected the appropriate chunk size and so `chunk` is ignored.
+
 ## Examples
 #### Optimization
 Say we want to minimize the Hosaki test function
