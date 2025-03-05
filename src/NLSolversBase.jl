@@ -4,7 +4,8 @@ module NLSolversBase
 
 using ADTypes: AbstractADType, AutoForwardDiff, AutoFiniteDiff
 import DifferentiationInterface as DI
-using FiniteDiff, ForwardDiff, DiffResults
+using FiniteDiff: FiniteDiff
+using ForwardDiff: ForwardDiff
 import Distributed: clear!
 export AbstractObjective,
        NonDifferentiable,
