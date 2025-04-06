@@ -79,6 +79,12 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
         return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
     else
         F2 = similar(F)
+        # Note that we fill the array to ensure that no elements are
+        # uninitialized, e.g. in the case of BigFloat which is not an isbits
+        # type. ForwardDiff requires that the array is fully initialized:
+        # https://github.com/JuliaDiff/ForwardDiff.jl/issues/740
+        fill!(F2, zero(eltype(F2)))
+
         backend = get_adtype(autodiff, chunk)
         jac_prep = DI.prepare_jacobian(f, F2, backend, x_seed)
         function j!(_j, _x)
