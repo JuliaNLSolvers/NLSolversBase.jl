@@ -40,7 +40,7 @@ Indeed, if `autodiff isa ADTypes.AutoForwardDiff`, we assume that the user alrea
 #### Optimization
 Say we want to minimize the Hosaki test function
 
-$$f(x, y) = (x^2 + y - 11)^2 + (x + y^2 - 7)^2$$
+$$f(x_1,x_2)=\left(1 - 8x_1 + 7x_1^2 - \frac{7}{3}x_1^3 + \frac{1}{4}x_1^4\right) x_2^2e^{-x_2}$$
 
 The relevant functions are coded in Julia as
 ```julia
@@ -76,7 +76,7 @@ td1  = TwiceDifferentiable(f, g!, h!, x)
 tdfg = TwiceDifferentiable(f, g!, fg!, h!, x)
 ```
 #### Multivalued objective
-If we consider the gradient of the Himmelblau function above, we can try to solve $\nabla F(x) = 0$ without caring about the objective value. Then we can still create `NDifferentiable`s, but we need to specify the cache to hold the value of $\nabla F(x)$. Currently, the only relevant ones are `NonDifferentiable` and `OnceDifferentiable`. `TwiceDifferentiable` could be used for higher order (tensor) methods, though they are rarely worth the cost. The relevant functions coded in Julia are:
+If we consider the gradient of the Hosaki function above, we can try to solve $\nabla F(x) = 0$ without caring about the objective value. Then we can still create `NDifferentiable`s, but we need to specify the cache to hold the value of $\nabla F(x)$. Currently, the only relevant ones are `NonDifferentiable` and `OnceDifferentiable`. `TwiceDifferentiable` could be used for higher order (tensor) methods, though they are rarely worth the cost. The relevant functions coded in Julia are:
 
 ```julia
 function f!(F, x)
