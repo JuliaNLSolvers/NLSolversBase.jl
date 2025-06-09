@@ -1,6 +1,6 @@
 name = "NLSolversBase"
 uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
-version = "7.9.1"
+version = "7.10.0"
 
 [deps]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
