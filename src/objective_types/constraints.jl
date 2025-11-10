@@ -40,10 +40,10 @@ function _cb(lx::AbstractArray{Tx}, ux::AbstractArray{Tx}, lc::AbstractVector{Tc
 end
 
 Base.eltype(::Type{ConstraintBounds{T}}) where T = T
-Base.eltype(cb::ConstraintBounds) = eltype(typeof(cb))
 
+Base.convert(::Type{ConstraintBounds{T}}, cb::ConstraintBounds{T}) where {T} = cb
 Base.convert(::Type{ConstraintBounds{T}}, cb::ConstraintBounds{S}) where {T,S} =
-    ConstraintBounds(cb.nc, cb.eqx, convert(Vector{T}, cb.valx),
+    ConstraintBounds{T}(cb.nc, cb.eqx, convert(Vector{T}, cb.valx),
                      cb.ineqx, cb.σx, convert(Vector{T}, cb.bx),
                      cb.eqc, convert(Vector{T}, cb.valc), cb.ineqc,
                      cb.σc, convert(Vector{T}, cb.bc))
@@ -80,11 +80,11 @@ function Base.show(io::IO, cb::ConstraintBounds)
     indent = "    "
     print(io, "ConstraintBounds:")
     print(io, "\n  Variables:")
-    showeq(io, indent, cb.eqx, cb.valx, 'x', :bracket)
-    showineq(io, indent, cb.ineqx, cb.σx, cb.bx, 'x', :bracket)
+    showeq(io, indent, cb.eqx, cb.valx, 'x', true) # bracket
+    showineq(io, indent, cb.ineqx, cb.σx, cb.bx, 'x', true) # bracket
     print(io, "\n  Linear/nonlinear constraints:")
-    showeq(io, indent, cb.eqc, cb.valc, 'c', :subscript)
-    showineq(io, indent, cb.ineqc, cb.σc, cb.bc, 'c', :subscript)
+    showeq(io, indent, cb.eqc, cb.valc, 'c', false) # subscript
+    showineq(io, indent, cb.ineqc, cb.σc, cb.bc, 'c', false) # subscript
     nothing
 end
 
@@ -177,7 +177,7 @@ function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVect
         # TODO: get rid of this allocation with DI.Cache
         ccache_righttype = zeros(promote_type(T, eltype(_x)), nc)
         c!(ccache_righttype, _x)
-        return sum(_λ[i] * ccache[i] for i in eachindex(_λ, ccache))
+        return LinearAlgebra.dot(_λ, ccache_righttype)
     end
 
     backend = get_adtype(autodiff, chunk)
@@ -281,17 +281,17 @@ corresponding entry in `ineq`/`σ`/`b`.
 T is the element-type of the non-Int outputs
 """
 function parse_constraints(::Type{T}, l, u) where T
-    size(l) == size(u) || throw(DimensionMismatch("l and u must be the same size, got $(size(l)) and $(size(u))"))
+    if size(l) != size(u)
+        throw(DimensionMismatch(LazyString("Size of lower bounds (", size(l), ") and number of upper bounds (", size(u), ") must be equal.")))
+    end
     eq, ineq = Int[], Int[]
+    σ = Int8[]
     val, b = T[], T[]
-    σ = Array{Int8}(undef, 0)
-    for i = 1:length(l)
-        li, ui = l[i], u[i]
-        li <= ui || throw(ArgumentError("l must be smaller than u, got $li, $ui"))
+    for (i, (li, ui)) in enumerate(zip(l, u))
         if li == ui
             push!(eq, i)
             push!(val, ui)
-        else
+        elseif li < ui
             if isfinite(li)
                 push!(ineq, i)
                 push!(σ, 1)
@@ -302,6 +302,8 @@ function parse_constraints(::Type{T}, l, u) where T
                 push!(σ, -1)
                 push!(b, ui)
             end
+        else
+            throw(ArgumentError(LazyString("Lower bound (", li, ") must not be greater than upper bound (", ui, ").")))
         end
     end
     eq, val, ineq, σ, b
@@ -309,29 +311,46 @@ end
 
 ### Compact printing of constraints
 
-function showeq(io, indent, eq, val, chr, style)
-    if !isempty(eq)
+function showeq(io::IO, indent::String, eqs::Vector{Int}, vals::Vector, chr::Char, bracket::Bool)
+    if !isempty(eqs)
         print(io, '\n', indent)
-        if style == :bracket
-            eqstrs = map((i, v)->"$chr[$i]=$v", eq, val)
+        if bracket
+            for (i, (eq, val)) in enumerate(zip(eqs, vals))
+                if i != 1
+                    print(io, ", ")
+                end
+                print(io, chr, "[", eq, "]=", val)
+            end
         else
-            eqstrs = map((i, v)->"$(chr)_$i=$v", eq, val)
+            for (i, (eq, val)) in enumerate(zip(eqs, vals))
+                if i != 1
+                    print(io, ", ")
+                end
+                print(io, chr, "_", eq, "=", val)
+            end
         end
-        foreach(s->print(io, s * ", "), eqstrs[1:end - 1])
-        print(io, eqstrs[end])
     end
+    return nothing
 end
 
-function showineq(io, indent, ineqs, σs, bs, chr, style)
+function showineq(io::IO, indent::String, ineqs::Vector{Int}, σs::Vector{Int8}, bs::Vector, chr::Char, bracket::Bool)
     if !isempty(ineqs)
         print(io, '\n', indent)
-        if style == :bracket
-            ineqstrs = map((i, σ, b)->"$chr[$i]" * ineqstr(σ, b), ineqs, σs, bs)
+        if bracket
+            for (i, (ineq, σ, b)) in enumerate(zip(ineqs, σs, bs))
+                if i != 1
+                    print(io, ", ")
+                end
+                print(io, chr, "[", ineq, "]", σ > 0 ? '≥' : '≤', b)
+            end
         else
-            ineqstrs = map((i, σ, b)->"$(chr)_$i" * ineqstr(σ, b), ineqs, σs, bs)
+            for (i, (ineq, σ, b)) in enumerate(zip(ineqs, σs, bs))
+                if i != 1
+                    print(io, ", ")
+                end
+                print(io, chr, "_", ineq, σ > 0 ? '≥' : '≤', b)
+            end
         end
-        foreach(s->print(io, s * ", "), ineqstrs[1:end - 1])
-        print(io, ineqstrs[end])
     end
+    return nothing
 end
-ineqstr(σ, b) = σ > 0 ? "≥$b" : "≤$b"

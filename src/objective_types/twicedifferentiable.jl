@@ -12,9 +12,9 @@ mutable struct TwiceDifferentiable{T,TDF,TH,TX} <: AbstractObjective
     x_f::TX
     x_df::TX
     x_h::TX
-    f_calls::Vector{Int}
-    df_calls::Vector{Int}
-    h_calls::Vector{Int}
+    f_calls::Int
+    df_calls::Int
+    h_calls::Int
 end
 # compatibility with old constructor
 function TwiceDifferentiable(f, g, fg, h, x::TX, F::T = real(zero(eltype(x))), G::TG = alloc_DF(x, F), H::TH = alloc_H(x, F); inplace = true) where {T, TG, TH, TX}
@@ -27,7 +27,7 @@ function TwiceDifferentiable(f, g, fg, h, x::TX, F::T = real(zero(eltype(x))), G
     TwiceDifferentiable{T,TG,TH,TX}(f, g!, fg!, nothing, nothing, h!,
                                         copy(F), copy(G), copy(H),
                                         x_f, x_df, x_h,
-                                        [0,], [0,], [0,])
+                                        0, 0, 0)
 end
 
 function TwiceDifferentiable(f, g, h,
@@ -41,7 +41,7 @@ function TwiceDifferentiable(f, g, h,
     fg! = make_fdf(x, F, f, g!)
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
 
-    return TwiceDifferentiable(f, g!, fg!, nothing, nothing, h!, F, G, H, x_f, x_df, x_h, [0,], [0,], [0,])
+    return TwiceDifferentiable(f, g!, fg!, nothing, nothing, h!, F, G, H, x_f, x_df, x_h, 0, 0, 0)
 end
 
 

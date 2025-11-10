@@ -4,7 +4,7 @@
 # and have NLSolversBase wrap them up properly so "F" can be
 # calculated on its own and the save for partial derivatives.
 # Note, that for TwiceDifferentiable we cannot provide con-
-# structors if h == nothing, as that requires automatic dif-
+# structors if h === nothing, as that requires automatic dif-
 # fferentiation of some sort.
 struct InplaceObjective{DF, FDF, FGH, Hv, FGHv}
     df::DF
@@ -106,7 +106,7 @@ function TwiceDifferentiable(t::InPlaceFGH, x::AbstractArray, F::Real = real(zer
     TwiceDifferentiable(f, df, fdf, dfh, fdfh, h,
                                         copy(F), copy(G), copy(H),
                                         x_f, x_df, x_h,
-                                        [0,], [0,], [0,])
+                                        0, 0, 0)
 end
 function TwiceDifferentiable(t::InPlaceFGH, x::AbstractVector{T}, F::Real = real(zero(eltype(x))), G::AbstractVector{Tx} = alloc_DF(x, F)) where {T, Tx}
     f   =     x  -> t.fgh(F, nothing, nothing, x)
@@ -122,15 +122,15 @@ function TwiceDifferentiable(t::InPlaceFGH, x::AbstractVector{T}, F::Real = real
     TwiceDifferentiable(f, df, fdf, dfh, fdfh, h,
                                         copy(F), copy(G), copy(H),
                                         x_f, x_df, x_h,
-                                        [0,], [0,], [0,])
+                                        0, 0, 0)
 end
 function value_gradient_hessian!!(obj, x)
-    obj.f_calls .+= 1
-    obj.df_calls .+= 1
-    obj.h_calls .+= 1
-    obj.x_f  .= x
-    obj.x_df .= x
-    obj.x_h  .= x
+    obj.f_calls += 1
+    obj.df_calls += 1
+    obj.h_calls += 1
+    copyto!(obj.x_f, x)
+    copyto!(obj.x_df, x)
+    copyto!(obj.x_h, x)
     if obj.fdfh === nothing
         obj.F = obj.fdf(obj.DF, x)
         obj.h(obj.H, x)
@@ -145,10 +145,10 @@ function gradient_hessian!!(obj, x)
         gradient!!(obj, x)
         hessian!!(obj, x)
     else
-        obj.df_calls .+= 1
-        obj.h_calls .+= 1
-        obj.x_df .= x
-        obj.x_h  .= x
+        obj.df_calls += 1
+        obj.h_calls += 1
+        copyto!(obj.x_df, x)
+        copyto!(obj.x_h, x)
         obj.dfh(obj.DF, obj.H, x)
     end
     obj.DF, obj.H

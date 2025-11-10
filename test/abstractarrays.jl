@@ -10,16 +10,16 @@
     nd = NonDifferentiable(exponential, x_seed)
     @test nd.f == exponential
     @test value(nd) == 0.0
-    @test nd.f_calls == [0]
+    @test iszero(nd.f_calls)
     od = OnceDifferentiable(exponential, exponential_gradient!, nothing, x_seed, 0.0, g_seed)
     @test od.f == exponential
     @test od.df == exponential_gradient!
     @test value(od) == 0.0
-    @test od.f_calls == [0]
-    @test od.df_calls == [0]
-    @test typeof(od.DF) <: ComponentArray
-    @test typeof(od.x_f) <: ComponentArray
-    @test typeof(od.x_df) <: ComponentArray
+    @test iszero(od.f_calls)
+    @test iszero(od.df_calls)
+    @test od.DF isa ComponentArray
+    @test od.x_f isa ComponentArray
+    @test od.x_df isa ComponentArray
 end
 @testset "Matrix OnceDifferentiable" begin
     x_seed = fill(0.0, 1, 2)
@@ -29,16 +29,16 @@ end
     nd = NonDifferentiable(exponential, x_seed)
     @test nd.f == exponential
     @test value(nd) == 0.0
-    @test nd.f_calls == [0]
+    @test iszero(nd.f_calls)
     od = OnceDifferentiable(exponential, exponential_gradient!, nothing, x_seed, 0.0, g_seed)
     @test od.f == exponential
     @test od.df == exponential_gradient!
     @test value(od) == 0.0
-    @test od.f_calls == [0]
-    @test od.df_calls == [0]
-    @test typeof(od.DF) <: Matrix
-    @test typeof(od.x_f) <: Matrix
-    @test typeof(od.x_df) <: Matrix
+    @test iszero(od.f_calls)
+    @test iszero(od.df_calls)
+    @test od.DF isa Matrix
+    @test od.x_f isa Matrix
+    @test od.x_df isa Matrix
 end
 @testset "RecursiveArrays" begin
     x_seed_1 = [0.0]
@@ -52,14 +52,14 @@ end
     nd = NonDifferentiable(exponential, x_seed)
     @test nd.f == exponential
     @test value(nd) == 0.0
-    @test nd.f_calls == [0]
+    @test iszero(nd.f_calls)
     od = OnceDifferentiable(exponential, exponential_gradient!, nothing, x_seed, 0.0, g_seed)
     @test od.f == exponential
     @test od.df == exponential_gradient!
     @test value(od) == 0.0
-    @test od.f_calls == [0]
-    @test od.df_calls == [0]
-    @test typeof(od.DF) <: ArrayPartition
-    @test typeof(od.x_f) <: ArrayPartition
-    @test typeof(od.x_df) <: ArrayPartition
+    @test iszero(od.f_calls)
+    @test iszero(od.df_calls)
+    @test od.DF isa ArrayPartition
+    @test od.x_f isa ArrayPartition
+    @test od.x_df isa ArrayPartition
 end

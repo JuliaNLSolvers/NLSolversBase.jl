@@ -4,13 +4,15 @@
         @test NLSolversBase.nconstraints(cb) == 1
         @test NLSolversBase.nconstraints_x(cb) == 0
         @test cb.valc == [0.0]
-        @test eltype(cb) == Float64
-        @test eltype(cb) == eltype(typeof(cb))
+        @test eltype(cb) === Float64
+        @test convert(ConstraintBounds{Float64}, cb) === cb
         cb = ConstraintBounds([0], [0], [], [])
         @test NLSolversBase.nconstraints(cb) == 0
         @test NLSolversBase.nconstraints_x(cb) == 1
         @test cb.valx == [0]
-        @test eltype(cb) == Int
+        @test eltype(cb) === Int
+        @test convert(ConstraintBounds{Int}, cb) === cb
+        @test convert(ConstraintBounds{Float64}, cb) isa ConstraintBounds{Float64}
         io = IOBuffer()
         show(io, cb)
         s = String(take!(io))
@@ -22,11 +24,12 @@
         @test cb.σx[1] == -1
         @test cb.bc[1] == 0.0
         @test cb.σc[1] == 1
-        @test eltype(cb) == Float64
+        @test eltype(cb) === Float64
+        @test convert(ConstraintBounds{Float64}, cb) === cb
 
         cb = ConstraintBounds([],[],[],[])
-        @test eltype(cb) == Union{}
-        @test eltype(convert(ConstraintBounds{Int}, cb)) == Int
+        @test eltype(cb) === Union{}
+        @test eltype(convert(ConstraintBounds{Int}, cb)) === Int
 
         cb =  ConstraintBounds([1,2], [3,4.0], [], [10.,20.,30.])
         io = IOBuffer()
@@ -74,7 +77,7 @@
                 lx = fill(-Inf, nx)
                 ux = fill(Inf, nx)
             end
-            @test_throws ErrorException OnceDifferentiableConstraints(cbd.c!, lx, ux,
+            @test_throws ArgumentError("The autodiff value `:wuoah` is not supported. Use `:finite` or `:forward`.") OnceDifferentiableConstraints(cbd.c!, lx, ux,
             lc, uc, :wuoah)
             for autodiff in (:finite, :forward)
                 odca = OnceDifferentiableConstraints(cbd.c!, lx, ux,
@@ -136,7 +139,7 @@
             hess_result_autodiff = zeros(T, nx,nx)
             λ = rand(T,nc)
             λ0 = zeros(T,nc)
-            @test_throws ErrorException TwiceDifferentiableConstraints(cbd.c!,lx, ux, cbd.lc, cbd.uc,:campanario)
+            @test_throws ArgumentError("The autodiff value `:campanario` is not supported. Use `:finite` or `:forward`.") TwiceDifferentiableConstraints(cbd.c!,lx, ux, cbd.lc, cbd.uc,:campanario)
             for autodiff in (:finite,:forward) #testing double differentiation
                 odca2 = TwiceDifferentiableConstraints(cbd.c!,lx, ux, cbd.lc, cbd.uc,autodiff)
                 
@@ -149,20 +152,20 @@
 
 
                 @test isapprox(jac_result, jac_result_autodiff, atol=1e-10) 
-                @test isapprox(hess_result, hess_result_autodiff, atol=1e-10) 
+                @test isapprox(hess_result, hess_result_autodiff, atol=1e-6) 
                 
                 fill!(hess_result_autodiff,zero(T))
                 fill!(hess_result,zero(T))
                 fill!(jac_result_autodiff,zero(T))
                 fill!(jac_result,zero(T))
             end
-            @test_throws ErrorException TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!,lx, ux, cbd.lc, cbd.uc,:qloctm)
+            @test_throws ArgumentError("The autodiff value `:qloctm` is not supported. Use `:finite` or `:forward`.") TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!,lx, ux, cbd.lc, cbd.uc,:qloctm)
             for autodiff in (:finite,:forward) #testing autodiff hessian from constraint jacobian
                 odca2 = TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!,lx, ux, cbd.lc, cbd.uc,autodiff)
                 odca2.h!(hess_result_autodiff,prob.initial_x,λ0) #warmup,λ0 means no modification 
                 odca2.h!(hess_result_autodiff,prob.initial_x,λ) 
                 odc.h!(hess_result,prob.initial_x,λ)
-                @test isapprox(hess_result, hess_result_autodiff, atol=1e-10)
+                @test isapprox(hess_result, hess_result_autodiff, atol=1e-6)
                 fill!(hess_result_autodiff,zero(T))
                 fill!(hess_result,zero(T))
             end

@@ -2,14 +2,15 @@
     Random.seed!(0)
 
     # Should throw, as :wah is not a proper autodiff choice
-    @test_throws ErrorException OnceDifferentiable(x->x, rand(10); autodiff=:wah)
-    @test_throws ErrorException OnceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
-    @test_throws ErrorException TwiceDifferentiable(x->x, rand(10); autodiff=:wah)
-    @test_throws ErrorException TwiceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
-    #@test_throws ErrorException TwiceDifferentiable(x->x, rand(10), 0.0, rand(10); autodiff=:wah)
-    @test_throws ErrorException TwiceDifferentiable(x->x, x->x, rand(10); autodiff=:wah)
-    @test_throws ErrorException TwiceDifferentiable(x->x, x->x, rand(10), 0.0; autodiff=:wah)
-    #@test_throws ErrorException TwiceDifferentiable(x->x, x->x, rand(10), 0.0, rand(10); autodiff=:wah)
+    err = ArgumentError("The autodiff value `:wah` is not supported. Use `:finite` or `:forward`.")
+    @test_throws err OnceDifferentiable(x->x, rand(10); autodiff=:wah)
+    @test_throws err OnceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
+    @test_throws err TwiceDifferentiable(x->x, rand(10); autodiff=:wah)
+    @test_throws err TwiceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
+    #@test_throws err TwiceDifferentiable(x->x, rand(10), 0.0, rand(10); autodiff=:wah)
+    @test_throws err TwiceDifferentiable(x->x, x->x, rand(10); autodiff=:wah)
+    @test_throws err TwiceDifferentiable(x->x, x->x, rand(10), 0.0; autodiff=:wah)
+    #@test_throws err TwiceDifferentiable(x->x, x->x, rand(10), 0.0, rand(10); autodiff=:wah)
 
     for T in (OnceDifferentiable, TwiceDifferentiable)
         odad1 = T(x->5.0, rand(1); autodiff = :finite)
@@ -152,7 +153,7 @@
             x = rand(2)
             F = similar(x)
             # Wrong symbol
-            @test_throws ErrorException OnceDifferentiable(f!, x, F, :foo)
+            @test_throws ArgumentError("The autodiff value `:foo` is not supported. Use `:finite` or `:forward`.") OnceDifferentiable(f!, x, F, :foo)
             # Wrong bool
             @test_throws ErrorException OnceDifferentiable(f!, x, F, false)
         end

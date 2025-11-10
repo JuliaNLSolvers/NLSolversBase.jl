@@ -1,35 +1,35 @@
 @testset "sparse" begin
     @testset "𝐑ⁿ → 𝐑" begin
-        f(x) = sum(x->x.^2, x)
-        g(G, x) = copy!(G, 2 .* x)
-        h(H, x) = H .= sparse(2.0I, size(H)...)
+        f(x) = sum(x->x^2, x)
+        g(G, x) = G .= 2 .* x
+        h(H, _) = coptyo!(H, 2*I)
 
         obj_dense = TwiceDifferentiable(f, g, h, rand(40))
         @test !issparse(obj_dense.H)
 
         obj_sparse = TwiceDifferentiable(f, g, h, rand(40), 0.0, rand(40), sparse(1.0I, 40, 40))
-        @test typeof(obj_sparse.H) <: SparseMatrixCSC
+        @test obj_sparse.H isa SparseMatrixCSC
 
         function fgh!(F, G, H, x)
-            if !(F == nothing)
-                fx = sum(x->x.^2, x)
+            if G !== nothing
+                G .= 2 .* x
             end
-
-            if !(G == nothing)
-                copy!(G, 2 .* x)
+            if H !== nothing
+                copyto!(H, 2*I)
             end
-            if !(H == nothing)
-                H .= sparse(2.0I, size(H)...)
+            if F === nothing
+                return nothing
+            else
+                return sum(x->x^2, x)
             end
-            return fx
         end
 
         obj_fgh = TwiceDifferentiable(NLSolversBase.only_fgh!(fgh!), rand(40), 0.0, rand(40), sparse(1.0I, 40, 40))
-        @test typeof(obj_fgh.H) <: SparseMatrixCSC
+        @test obj_fgh.H isa SparseMatrixCSC
     end
     @testset "𝐑ⁿ → 𝐑ⁿ" begin
-        f(F, x) = copy!(F, 2 .* x)
-        j(J, x) = J .= sparse(2.0I, size(J)...)
+        f(F, x) = F .= 2 .* x
+        j(J, _) = copyto!(J, 2.0*I)
 
         # Test that with no spec on the Jacobian cache it is dense
         obj_dense = OnceDifferentiable(f, j, rand(40), rand(40))
@@ -40,19 +40,19 @@
 
 
         obj_sparse = OnceDifferentiable(f, j, rand(40), rand(40), sparse(1.0I, 40, 40))
-        @test typeof(obj_sparse.DF) <: SparseMatrixCSC
+        @test obj_sparse.DF isa SparseMatrixCSC
 
         function fj!(F, J, x)
-            if !(F == nothing)
-                copy!(G, 2 .* x)
+            if F !== nothing
+                F .= 2 .* x
             end
-            if !(J == nothing)
-                J .= sparse(2.0I, size(J)...)
+            if J !== nothing
+                copyto!(J, 2*I)
             end
-            return fx
+            return F
         end
 
         obj_fj = OnceDifferentiable(NLSolversBase.only_fj!(fj!), rand(40), rand(40), sparse(1.0I, 40, 40))
-        @test typeof(obj_fj.DF) <: SparseMatrixCSC
+        @test obj_fj.DF isa SparseMatrixCSC
     end
 end

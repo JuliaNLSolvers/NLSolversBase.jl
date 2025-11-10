@@ -1,11 +1,10 @@
-__precompile__(true)
-
 module NLSolversBase
 
 using ADTypes: AbstractADType, AutoForwardDiff, AutoFiniteDiff
 import DifferentiationInterface as DI
 using FiniteDiff: FiniteDiff
 using ForwardDiff: ForwardDiff
+using LinearAlgebra: LinearAlgebra
 import Distributed: clear!
 export AbstractObjective,
        NonDifferentiable,
@@ -51,7 +50,7 @@ function finitediff_fdtype(autodiff)
         fdtype = Val{:forward}
     elseif autodiff == :finitecomplex
         fdtype = Val{:complex}
-    elseif any(autodiff .== (:finite, :central, :finitecentral))
+    elseif autodiff == :finite || autodiff == :central || autodiff == :finitecentral
         fdtype = Val{:central}
     end
     fdtype
@@ -71,11 +70,11 @@ function get_adtype(autodiff::Union{Symbol,Bool}, chunk=nothing)
     elseif is_forwarddiff(autodiff)
         return AutoForwardDiff(; chunksize=forwarddiff_chunksize(chunk))
     else
-        error("The autodiff value $autodiff is not supported. Use :finite or :forward.")
+        throw(ArgumentError(LazyString("The autodiff value `", repr(autodiff), "` is not supported. Use `:finite` or `:forward`.")))
     end
 end
 
-x_of_nans(x, Tf=eltype(x)) = fill!(Tf.(x), Tf(NaN))
+x_of_nans(x::AbstractArray, ::Type{Tf}=float(eltype(x))) where {Tf} = fill!(similar(x, Tf), NaN)
 
 include("objective_types/inplace_factory.jl")
 include("objective_types/abstract.jl")
