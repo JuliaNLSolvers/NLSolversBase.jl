@@ -119,18 +119,17 @@ function OnceDifferentiableConstraints(bounds::ConstraintBounds)
     OnceDifferentiableConstraints(c!, J!, bounds)
 end
 
-function checked_chunk(lx)
+function check_autodiff(lx::AbstractVector)
     if isempty(lx)
         throw(ArgumentError("autodiff on constraints require the full lower bound vector `lx`."))
     end
-    ForwardDiff.Chunk(lx)
 end
 
 function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVector,
                                        lc::AbstractVector, uc::AbstractVector,
-                                       autodiff::Symbol = :central,
-                                       chunk::ForwardDiff.Chunk = checked_chunk(lx))
-                                       
+                                       autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
+
+    check_autodiff(lx)
     bounds = ConstraintBounds(lx, ux, lc, uc)
     T = eltype(bounds)
     sizex = size(lx)
@@ -139,11 +138,12 @@ function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVecto
     xcache = zeros(T, sizex)
     ccache = zeros(T, sizec)
 
-    backend = get_adtype(autodiff, chunk)
-    jac_prep = DI.prepare_jacobian(c!, ccache, backend, xcache)
-    function j!(_j, _x)
-        DI.jacobian!(c!, ccache, _j, jac_prep, backend, _x)
-        return _j
+    jac_prep = DI.prepare_jacobian(c!, ccache, autodiff, xcache)
+    j! = let c! = c!, ccache = ccache, jac_prep = jac_prep, autodiff = autodiff
+        function (_j, _x)
+            DI.jacobian!(c!, ccache, _j, jac_prep, autodiff, _x)
+            return _j
+        end
     end
     return OnceDifferentiableConstraints(c!, j!, bounds)
 end
@@ -163,8 +163,8 @@ end
 
 function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVector,
     lc::AbstractVector, uc::AbstractVector,
-    autodiff::Symbol = :central,
-    chunk::ForwardDiff.Chunk = checked_chunk(lx))
+    autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
+    check_autodiff(lx)
     bounds = ConstraintBounds(lx, ux, lc, uc)
     T = eltype(bounds)
     nc = length(lc)
@@ -180,19 +180,20 @@ function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVect
         return LinearAlgebra.dot(_λ, ccache_righttype)
     end
 
-    backend = get_adtype(autodiff, chunk)
-
-
-    jac_prep = DI.prepare_jacobian(c!, ccache, backend, x_example)
-    function con_jac!(_j, _x)
-        DI.jacobian!(c!, ccache, _j, jac_prep, backend, _x) 
-        return _j
+    jac_prep = DI.prepare_jacobian(c!, ccache, autodiff, x_example)
+    con_jac! = let c! = c!, ccache = ccache, jac_prep = jac_prep, autodiff = autodiff
+        function (_j, _x)
+            DI.jacobian!(c!, ccache, _j, jac_prep, autodiff, _x) 
+            return _j
+        end
     end
 
-    hess_prep = DI.prepare_hessian(sum_constraints, backend, x_example, DI.Constant(λ_example))
-    function con_hess!(_h, _x, _λ)
-        DI.hessian!(sum_constraints, _h, hess_prep, backend, _x, DI.Constant(_λ)) 
-        return _h
+    hess_prep = DI.prepare_hessian(sum_constraints, autodiff, x_example, DI.Constant(λ_example))
+    con_hess! = let sum_constraints = sum_constraints, hess_prep = hess_prep, autodiff = autodiff
+        function (_h, _x, _λ)
+            DI.hessian!(sum_constraints, _h, hess_prep, autodiff, _x, DI.Constant(_λ)) 
+            return _h
+        end
     end
     
     return TwiceDifferentiableConstraints(c!, con_jac!, con_hess!, bounds) 
@@ -200,11 +201,10 @@ end
 
 function TwiceDifferentiableConstraints(c!, con_jac!,lx::AbstractVector, ux::AbstractVector,
     lc::AbstractVector, uc::AbstractVector,
-    autodiff::Symbol = :central,
-    chunk::ForwardDiff.Chunk = checked_chunk(lx))
+    autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)),)
     # TODO: is con_jac! still useful? we ignore it here
     
-    return TwiceDifferentiableConstraints(c!, lx, ux, lc, uc, autodiff, chunk)
+    return TwiceDifferentiableConstraints(c!, lx, ux, lc, uc, autodiff)
 end
 
 

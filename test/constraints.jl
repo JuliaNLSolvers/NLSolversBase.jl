@@ -77,9 +77,7 @@
                 lx = fill(-Inf, nx)
                 ux = fill(Inf, nx)
             end
-            @test_throws ArgumentError("The autodiff value `:wuoah` is not supported. Use `:finite` or `:forward`.") OnceDifferentiableConstraints(cbd.c!, lx, ux,
-            lc, uc, :wuoah)
-            for autodiff in (:finite, :forward)
+            for autodiff in (AutoFiniteDiff(; fdtype = Val(:central)), AutoForwardDiff())
                 odca = OnceDifferentiableConstraints(cbd.c!, lx, ux,
                                                      lc, uc, autodiff)
 
@@ -139,8 +137,7 @@
             hess_result_autodiff = zeros(T, nx,nx)
             λ = rand(T,nc)
             λ0 = zeros(T,nc)
-            @test_throws ArgumentError("The autodiff value `:campanario` is not supported. Use `:finite` or `:forward`.") TwiceDifferentiableConstraints(cbd.c!,lx, ux, cbd.lc, cbd.uc,:campanario)
-            for autodiff in (:finite,:forward) #testing double differentiation
+            for autodiff in (AutoFiniteDiff(; fdtype = Val(:central)), AutoForwardDiff()) #testing double differentiation
                 odca2 = TwiceDifferentiableConstraints(cbd.c!,lx, ux, cbd.lc, cbd.uc,autodiff)
                 
                 odca2.jacobian!(jac_result_autodiff,prob.initial_x) 
@@ -159,8 +156,7 @@
                 fill!(jac_result_autodiff,zero(T))
                 fill!(jac_result,zero(T))
             end
-            @test_throws ArgumentError("The autodiff value `:qloctm` is not supported. Use `:finite` or `:forward`.") TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!,lx, ux, cbd.lc, cbd.uc,:qloctm)
-            for autodiff in (:finite,:forward) #testing autodiff hessian from constraint jacobian
+            for autodiff in (AutoFiniteDiff(; fdtype = Val(:central)), AutoForwardDiff()) #testing autodiff hessian from constraint jacobian
                 odca2 = TwiceDifferentiableConstraints(cbd.c!, cbd.jacobian!,lx, ux, cbd.lc, cbd.uc,autodiff)
                 odca2.h!(hess_result_autodiff,prob.initial_x,λ0) #warmup,λ0 means no modification 
                 odca2.h!(hess_result_autodiff,prob.initial_x,λ) 
