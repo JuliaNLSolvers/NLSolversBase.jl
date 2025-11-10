@@ -172,13 +172,6 @@ function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVect
     x_example = zeros(T, nx)
     λ_example = zeros(T, nc)
     ccache = zeros(T, nc)
-   
-    function sum_constraints(_x, _λ)
-        # TODO: get rid of this allocation with DI.Cache
-        ccache_righttype = zeros(promote_type(T, eltype(_x)), nc)
-        c!(ccache_righttype, _x)
-        return LinearAlgebra.dot(_λ, ccache_righttype)
-    end
 
     jac_prep = DI.prepare_jacobian(c!, ccache, autodiff, x_example)
     con_jac! = let c! = c!, ccache = ccache, jac_prep = jac_prep, autodiff = autodiff
@@ -187,11 +180,15 @@ function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVect
             return _j
         end
     end
-
-    hess_prep = DI.prepare_hessian(sum_constraints, autodiff, x_example, DI.Constant(λ_example))
-    con_hess! = let sum_constraints = sum_constraints, hess_prep = hess_prep, autodiff = autodiff
+    
+    function sum_constraints(_x, _λ, _ccache)
+        c!(_ccache, _x)
+        return LinearAlgebra.dot(_λ, _ccache)
+    end
+    hess_prep = DI.prepare_hessian(sum_constraints, autodiff, x_example, DI.Constant(λ_example), DI.Cache(ccache))
+    con_hess! = let sum_constraints = sum_constraints, hess_prep = hess_prep, autodiff = autodiff, ccache = ccache
         function (_h, _x, _λ)
-            DI.hessian!(sum_constraints, _h, hess_prep, autodiff, _x, DI.Constant(_λ)) 
+            DI.hessian!(sum_constraints, _h, hess_prep, autodiff, _x, DI.Constant(_λ), DI.Cache(ccache)) 
             return _h
         end
     end
