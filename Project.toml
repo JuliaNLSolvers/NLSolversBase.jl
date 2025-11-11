@@ -5,23 +5,33 @@ version = "7.11.0"
 [deps]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 DifferentiationInterface = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
-Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 FiniteDiff = "6a86dc24-6348-571c-b903-95158fe2bd41"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [compat]
 ADTypes = "1.11.0"
+Aqua = "0.8.14"
+ComponentArrays = "0.15.30"
 DifferentiationInterface = "0.6.43, 0.7"
+ExplicitImports = "1.13.2"
 FiniteDiff = "2.0"
 ForwardDiff = "0.10, 1.0"
+JET = "0.9, 0.10"
+OptimTestProblems = "2.0.3"
 LinearAlgebra = "<0.0.1, 1"
+Random = "<0.0.1, 1"
+RecursiveArrayTools = "3.39"
+SparseArrays = "<0.0.1, 1"
 StaticArrays = "1.9"
+Test = "<0.0.1, 1"
 julia = "1.10"
 
 [extras]
-ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
+ExplicitImports = "7d51a73a-1435-4ff3-83d9-f097790105c7"
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 OptimTestProblems = "cec144fc-5a64-5bc6-99fb-dde8f63e154c"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
@@ -30,4 +40,4 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["ADTypes", "ComponentArrays", "OptimTestProblems", "Random", "RecursiveArrayTools", "SparseArrays", "StaticArrays", "Test"]
+test = ["Aqua", "ComponentArrays", "ExplicitImports", "JET", "OptimTestProblems", "Random", "RecursiveArrayTools", "SparseArrays", "StaticArrays", "Test"]

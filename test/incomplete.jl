@@ -100,7 +100,7 @@
     _F = zero(eltype(x))
     od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F)
     od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F, similar(x))
-    od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F, similar(x), NLSolversBase.alloc_DF(x, _F))
+    od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F, similar(x), NLSolversBase.alloc_H(x, _F))
 #    od_fgh = TwiceDifferentiable(only_fgh(fgh), x)
     for OD in (od_fg, od_fg!, od_fgh!)#, od_fgh)
         value!(OD, x)

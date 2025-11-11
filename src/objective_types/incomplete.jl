@@ -41,19 +41,63 @@ df(t::Union{InplaceObjective, NotInplaceObjective}) = t.df
 fdf(t::Union{InplaceObjective, NotInplaceObjective}) = t.fdf
 
 # Mutating version
-make_f(t::InplaceObjective, x, F::Real) = x -> fdf(t)(F, nothing, x)
-make_f(t::InplaceObjective, x, F) =  (F, x) -> fdf(t)(F, nothing, x)
-make_f(t::InPlaceObjectiveFGH, x, F::Real) = x -> t.fgh(F, nothing, nothing, x)
-make_f(t::InPlaceObjectiveFGHv, x, F::Real) = x -> t.fghv(F, nothing, nothing, x, nothing)
+function make_f(t::InplaceObjective, x, F::Real)
+    (; fdf, fgh, fghv) = t
+    if fdf !== nothing
+        return let fdf = fdf, F = F
+            x -> fdf(F, nothing, x)
+        end
+    elseif fgh !== nothing
+        return let fgh = fgh, F = F
+            x -> fgh(F, nothing, nothing, x)
+        end
+    elseif fghv !== nothing
+        return let fghv = fghv, F = F
+            x -> fghv(F, nothing, nothing, x, nothing)
+        end
+    else
+        throw(ArgumentError("Cannot construct function for evaluating the objective function: No suitable function was provided."))
+    end
+end
+make_f(t::InplaceObjective, x, F) = let fdf = t.fdf; (F, x) -> fdf(F, nothing, x); end
 
+function make_df(t::InplaceObjective, x, F)
+    (; fdf, fgh, fghv) = t
+    if fdf !== nothing
+        return let fdf = fdf
+            (DF, x) -> fdf(nothing, DF, x)
+        end
+    elseif fgh !== nothing
+        return let fgh = fgh
+            (DF, x) -> fgh(nothing, DF, nothing, x)
+        end
+    elseif fghv !== nothing
+        return let fghv = fghv
+            (DF, x) -> fghv(nothing, DF, nothing, x, nothing)
+        end
+    else
+        throw(ArgumentError("Cannot construct function for evaluating the gradient of the objective function: No suitable function was provided.."))
+    end
+end
 
-make_df(t::InplaceObjective, x, F) = (DF, x) -> fdf(t)(nothing, DF, x)
-make_df(t::InPlaceObjectiveFGH, x, F) = (DF, x) -> t.fgh(nothing, DF, nothing, x)
-make_df(t::InPlaceObjectiveFGHv, x, F) = (DF, x) -> t.fghv(nothing, DF, nothing, x, nothing)
-
-make_fdf(t::InplaceObjective, x, F::Real) = (G, x) -> fdf(t)(F, G, x)
-make_fdf(t::InPlaceObjectiveFGH, x, F::Real) = (G, x) -> t.fgh(F, G, nothing, x)
-make_fdf(t::InPlaceObjectiveFGHv, x, F::Real) = (G, x) -> t.fghv(F, G, nothing, x, nothing)
+function make_fdf(t::InplaceObjective, x, F::Real)
+    (; fdf, fgh, fghv) = t
+    if fdf !== nothing
+        return let fdf = fdf, F = F
+            (G, x) -> fdf(F, G, x)
+        end
+    elseif fgh !== nothing
+        return let fgh = fgh, F = F
+            (G, x) -> fgh(F, G, nothing, x)
+        end
+    elseif fghv !== nothing
+        return let fghv = fghv, F = F
+            (G, x) -> fghv(F, G, nothing, x, nothing)
+        end
+    else
+        throw(ArgumentError("Cannot construct function that evaluates both the objective function and its gradient: No suitable function was provided."))
+    end
+end
 make_fdf(t::InplaceObjective, x, F) = fdf(t)
 
 # Non-mutating version
@@ -93,7 +137,7 @@ end
 const InPlaceFGH = InplaceObjective{<:Nothing,<:Nothing,TH,<:Nothing,<:Nothing} where {TH}
 const InPlaceFG_HV = InplaceObjective{<:Nothing,TFG,<:Nothing,THv,<:Nothing} where {TFG,THv}
 const InPlaceFGHV = InplaceObjective{<:Nothing,<:Nothing,<:Nothing,<:Nothing,TFGHv} where {TFGHv}
-function TwiceDifferentiable(t::InPlaceFGH, x::AbstractArray, F::Real = real(zero(eltype(x))), G::AbstractArray = alloc_DF(x, F), H = alloc_H(x, F))
+function TwiceDifferentiable(t::InPlaceFGH, x::AbstractArray, F::Real = real(zero(eltype(x))), G::AbstractArray = alloc_DF(x, F), H::AbstractMatrix = alloc_H(x, F))
     f   =     x  -> t.fgh(F, nothing, nothing, x)
     df  = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)

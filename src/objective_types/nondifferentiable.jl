@@ -1,5 +1,5 @@
 # Used for objectives and solvers where no gradient is available/exists
-mutable struct NonDifferentiable{TF,TX} <: AbstractObjective
+mutable struct NonDifferentiable{TF<:Union{AbstractArray,Real},TX<:AbstractArray} <: AbstractObjective
     f
     F::TF
     x_f::TX

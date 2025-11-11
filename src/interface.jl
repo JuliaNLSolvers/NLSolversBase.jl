@@ -170,7 +170,7 @@ function value!!(obj::AbstractObjective, F, x)
     F
 end
 
-function _clear_f!(d::NLSolversBase.AbstractObjective)
+function _clear_f!(d::AbstractObjective)
     d.f_calls = 0
     if d.F isa AbstractArray
         fill!(d.F, NaN)
@@ -181,21 +181,21 @@ function _clear_f!(d::NLSolversBase.AbstractObjective)
     nothing
 end
 
-function _clear_df!(d::NLSolversBase.AbstractObjective)
+function _clear_df!(d::AbstractObjective)
     d.df_calls = 0
     fill!(d.DF, NaN)
     fill!(d.x_df, NaN)
     nothing
 end
 
-function _clear_h!(d::NLSolversBase.AbstractObjective)
+function _clear_h!(d::AbstractObjective)
     d.h_calls = 0
     fill!(d.H, NaN)
     fill!(d.x_h, NaN)
     nothing
 end
 
-function _clear_hv!(d::NLSolversBase.AbstractObjective)
+function _clear_hv!(d::AbstractObjective)
     d.hv_calls = 0
     fill!(d.Hv, NaN)
     fill!(d.x_hv, NaN)
