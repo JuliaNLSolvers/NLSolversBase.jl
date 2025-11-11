@@ -7,15 +7,15 @@
     nd = NonDifferentiable(exponential, x_seed)
     @test nd.f == exponential
     @test value(nd) == 0.0
-    @test nd.f_calls == [0]
+    @test iszero(nd.f_calls)
 
     od = OnceDifferentiable(exponential, exponential_gradient!, nothing, x_seed, 0.0, g_seed)
     @test od.f == exponential
     @test od.df == exponential_gradient!
     @test value(od) == 0.0
-    @test od.f_calls == [0]
-    @test od.df_calls == [0]
-    od.x_df .= x_seed
+    @test iszero(od.f_calls)
+    @test iszero(od.df_calls)
+    copyto!(od.x_df, x_seed)
     gold = copy(od.DF)
     xnew = rand(eltype(x_seed), size(x_seed))
     gnew = gradient(od, xnew)
@@ -27,9 +27,9 @@
     @test td.f == exponential
     @test td.df == exponential_gradient!
     @test value(td) == 0.0
-    @test td.f_calls == [0]
-    @test td.df_calls == [0]
-    @test td.h_calls == [0]
+    @test iszero(td.f_calls)
+    @test iszero(td.df_calls)
+    @test iszero(td.h_calls)
 
     @testset "no fg!" begin
         Random.seed!(324)

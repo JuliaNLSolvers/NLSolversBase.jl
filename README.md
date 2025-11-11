@@ -175,10 +175,10 @@ interface as shown below.
 ```julia
 function fg!(F, G, x)
     common_calc(...)
-    if !(G == nothing)
+    if G !== nothing
         # mutating calculations specific to g!
     end
-    if !(F == nothing)
+    if F !== nothing
         # calculations specific to f
         return f
     end

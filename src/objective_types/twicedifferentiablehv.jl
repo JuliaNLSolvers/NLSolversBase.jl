@@ -10,9 +10,9 @@ mutable struct TwiceDifferentiableHV{T,TDF,THv,TX} <: AbstractObjective
     x_df::TX
     x_hv::TX
     v_hv::TX
-    f_calls::Vector{Int}
-    df_calls::Vector{Int}
-    hv_calls::Vector{Int}
+    f_calls::Int
+    df_calls::Int
+    hv_calls::Int
 end
 
 # compatibility with old constructor
@@ -21,7 +21,7 @@ function TwiceDifferentiableHV(f, fdf, h, x::TX, F::T, G::TG = copy(x), H::THv =
     TwiceDifferentiableHV{T,TG, THv, TX}(f, fdf, h,
                                         copy(F), copy(G), copy(H),
                                         x_f, x_df, x_hv, v_hv,
-                                        [0,], [0,], [0,])
+                                        0, 0, 0)
 end
 
 function TwiceDifferentiableHV(f, fdf, h, x::AbstractVector{T}) where T
@@ -36,7 +36,7 @@ function TwiceDifferentiableHV(::Nothing, fg, hv, x::AbstractVector{T}) where T
 end
 
 function gradient!!(obj::TwiceDifferentiableHV, x)
-    obj.df_calls .+= 1
+    obj.df_calls += 1
     copyto!(obj.x_df, x)
     obj.fdf(obj.DF, x)
 end
@@ -48,7 +48,7 @@ function hv_product!(obj::TwiceDifferentiableHV, x, v)
     obj.Hv
 end
 function hv_product!!(obj::TwiceDifferentiableHV, x, v)
-    obj.hv_calls .+= 1
+    obj.hv_calls += 1
     copyto!(obj.x_hv, x)
     copyto!(obj.v_hv, v)
     obj.hv(obj.Hv, x, v)

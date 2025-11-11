@@ -7,8 +7,8 @@ mutable struct OnceDifferentiable{TF, TDF, TX} <: AbstractObjective
     DF::TDF # cache for df output
     x_f::TX # x used to evaluate f (stored in F)
     x_df::TX # x used to evaluate df (stored in DF)
-    f_calls::Vector{Int}
-    df_calls::Vector{Int}
+    f_calls::Int
+    df_calls::Int
 end
 
 ### Only the objective
@@ -35,7 +35,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray{T},
                             autodiff, chunk) where T
     # When here, at the constructor with positional autodiff, it should already
     # be the case, that f is inplace.
-    if  typeof(f) <: Union{InplaceObjective, NotInplaceObjective}
+    if f isa Union{InplaceObjective, NotInplaceObjective}
 
         fF = make_f(f, x_seed, F)
         dfF = make_df(f, x_seed, F)
@@ -72,7 +72,7 @@ function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray,
 end
 function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::AbstractArray,
     autodiff::Symbol , chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x_seed))
-    if  typeof(f) <: Union{InplaceObjective, NotInplaceObjective}
+    if f isa Union{InplaceObjective, NotInplaceObjective}
         fF = make_f(f, x_seed, F)
         dfF = make_df(f, x_seed, F)
         fdfF = make_fdf(f, x_seed, F)
@@ -138,7 +138,7 @@ function OnceDifferentiable(f, df, fdf,
     OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df!, fdf!,
     copy(F), copy(DF),
     x_f, x_df,
-    [0,], [0,])
+    0, 0)
 end
 
 function OnceDifferentiable(f, df, fdf,
@@ -153,5 +153,5 @@ function OnceDifferentiable(f, df, fdf,
 
     x_f, x_df = x_of_nans(x), x_of_nans(x)
 
-    OnceDifferentiable(f, df!, fdf!, copy(F), copy(DF), x_f, x_df, [0,], [0,])
+    OnceDifferentiable(f, df!, fdf!, copy(F), copy(DF), x_f, x_df, 0, 0)
 end

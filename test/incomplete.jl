@@ -4,37 +4,59 @@
         sum(x->x^2,x)
     end
 
-    g!(G, x) = copyto!(G, 2 .* x)
+    g!(G, x) = G .= 2 .* x
     g(x) = 2 .* x
 
-    h!(H, x) = copy!(H, Diagonal(fill(2, length(n))))
-    h(x) = Diagonal(fill(2, length(n)))
+    h!(H, _) = copyto!(H, 2*I)
+    h(_) = Diagonal(fill(2, length(n)))
 
     function fg!(G, x)
-        copyto!(G, 2 .* x)
+        G .= 2 .* x
         sum(x->x^2,x)
     end
     function just_fg!(F, G, x)
-        !(G == nothing) && copyto!(G, 2 .* x)
-        !(F == nothing) && sum(x->x^2,x)
+        if G !== nothing
+            G .= 2 .* x
+        end
+        if F === nothing
+            return nothing
+        else
+            return sum(x->x^2,x)
+        end
     end
     fg(x) = f(x), g(x)
     function just_fgh!(F, G, H, x)
-        !(H == nothing) && copy!(H, Diagonal(fill(2, length(n))))
-        !(G == nothing) && copyto!(G, 2 .* x)
-        !(F == nothing) && return sum(x->x^2,x)
+        if H !== nothing
+            copyto!(H, 2*I)
+        end
+        if G !== nothing
+            G .= 2 .* x
+        end
+        if F === nothing
+            return nothing
+        else
+            return sum(x->x^2,x)
+        end
     end
     fgh(x) = f(x), g(x), h(x)
     fdf!_real = only_fg!(just_fg!)
     fdf_real = only_fg(fg)
 
     function just_hv!(Hv, x, v)
-        copyto!(Hv, 2 .* v)
+        Hv .= 2 .* v
     end
     function just_fghv!(F, G, Hv, x, v)
-        G  === nothing || copyto!(G, 2 .* x)
-        Hv === nothing || copyto!(Hv, 2 .* v)
-        F  === nothing || return sum(x->x^2, x)
+        if G  !== nothing
+            G .= 2 .* x
+        end
+        if Hv !== nothing
+            Hv .= 2 .* v
+        end
+        if F === nothing
+            return nothing
+        else
+            return sum(x->x^2, x)
+        end
     end
 
     df_fdf_real = only_g_and_fg(g, fg)
@@ -118,16 +140,23 @@ end
         copyto!(F, tf(x))
     end
 
-    tj!(J, x) = copyto!(J, Matrix(Diagonal(x)))
+    tj!(J, x) = copyto!(J, Diagonal(x))
     tj(x) = Matrix(Diagonal(x))
 
     function tfj!(F, J, x)
-        copyto!(J, Matrix(Diagonal(x)))
-        copyto!(F, tf(x))
+        copyto!(J, Diagonal(x))
+        F .= x.^2
     end
     function just_tfj!(F, J, x)
-        !(J == nothing) && copyto!(J, Matrix(Diagonal(x)))
-        !(F == nothing) && copyto!(F, tf(x))
+        if J !== nothing
+            copyto!(J, Diagonal(x))
+        end
+        if F === nothing
+            return nothing
+        else
+            F .= x.^2
+            return F
+        end
     end
     tfj(x) = tf(x), tj(x)
 
@@ -200,22 +229,34 @@ end
     end
 
     function fg!(F,G,x)
-      G == nothing || g!(G,x)
-      F == nothing || return f(x)
-      nothing
+      if G !== nothing
+        g!(G,x)
+      end
+      if F === nothing
+        return nothing
+      else
+        return f(x)
+      end
     end
     function fgh!(F,G,H,x)
-      G == nothing || g!(G,x)
-      H == nothing || h!(H,x)
-      F == nothing || return f(x)
-      nothing
+      if G !== nothing
+        g!(G,x)
+      end
+      if H !== nothing
+        h!(H,x)
+      end
+      if F === nothing
+        return nothing
+      else
+        return f(x)
+      end
     end
     
     gx = [0.0,0.0]
     x=[0.0,0.0]
 
     @test NLSolversBase.make_f(only_fgh!(fgh!),[0.0,0.0],0.0)(x) == 1.0
-    @test NLSolversBase.make_df(only_fgh!(fgh!),[0.0,0.0],0.0)(gx, x) == nothing
+    @test NLSolversBase.make_df(only_fgh!(fgh!),[0.0,0.0],0.0)(gx, x) === nothing
     @test gx == [-2.0, 0.0]
 
     gx = [0.0,0.0]
