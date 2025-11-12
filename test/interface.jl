@@ -34,74 +34,140 @@ for T in (Float32, Float64, BigFloat)
                 h_seed,
             )
 
+            # Test call counters: Initially all are zero
+            for f in (nd, od, td)
+                @test iszero(f_calls(f))
+                @test iszero(g_calls(f))
+                @test iszero(jvp_calls(f))
+                @test iszero(h_calls(f))
+                @test iszero(hv_calls(f))
+            end
+
             # Force evaluation
             value!!(nd, x_seed)
             value_gradient!!(od, x_seed)
             value_gradient!!(td, x_seed)
             hessian!!(td, x_seed)
 
+            # Test that the call counters got incremented:
+            # - One function evaluation for nd, od and td
+            # - One gradient evaluation for od and td
+            # - One Hessian evaluation for td
+            @test f_calls(nd) == f_calls(od) == f_calls(td) == 1
+            @test iszero(g_calls(nd))
+            @test g_calls(od) == g_calls(td) == 1
+            @test iszero(h_calls(nd))
+            @test iszero(h_calls(od))
+            @test h_calls(td) == 1
+            for f in (nd, od, td)
+                @test iszero(jvp_calls(f))
+                @test iszero(hv_calls(f))
+            end
+
             # Test that values are the same, and that values match those
             # calculated by the value(obj, x) methods
             @test value(nd) == value(od) == value(td) ≈ f_x_seed
+            @test f_calls(nd) == f_calls(od) == f_calls(td) == 1
             @test value(nd, x_seed) == value(od, x_seed) == value(td, x_seed)
+            @test f_calls(nd) == f_calls(od) == f_calls(td) == 2
 
             # Test that the gradients match the intended values
             @test gradient(od) == gradient(td) == g_x_seed
             # Test that the Hessian matches the intended value
             @test hessian(td) == h_x_seed
-            # Test hv_product! for TwiceDifferentiable
+
+            # Test hv_product!
             v = T.([0.111, -1234])
             @test hv_product!(td, x_seed, v) == h_x_seed * v
 
-            # Test that the call counters got incremented
-            @test nd.f_calls == od.f_calls == td.f_calls == 2
-            @test od.df_calls == td.df_calls == 1
-            @test td.h_calls == 1
+            # Test that the call counter is not incremented:
+            # `hv_product!` falls back to computing Hessian, but the Hessian at `x_seed` is cached
+            @test h_calls(td) == 1
+            @test iszero(hv_calls(td))
 
-            # Test that the call counters do not get incremented
-            # with single-"bang" methods...
+            # Test that the call counters are not incremented with single-"bang" methods...
             value!(nd, x_seed)
             value_gradient!(od, x_seed)
             value_gradient!(td, x_seed)
             hessian!(td, x_seed)
 
-            @test nd.f_calls == od.f_calls == td.f_calls == 2
-            @test od.df_calls == td.df_calls == 1
-            @test td.h_calls == 1
+            @test f_calls(nd) == f_calls(od) == f_calls(td) == 2
+            @test iszero(g_calls(nd))
+            @test g_calls(od) == g_calls(td) == 1
+            @test iszero(h_calls(nd))
+            @test iszero(h_calls(od))
+            @test h_calls(td) == 1
+            for f in (nd, od, td)
+                @test iszero(jvp_calls(f))
+                @test iszero(hv_calls(f))
+            end
 
             # ... and that they do with double-"bang" methods
+            # - One additional function evaluation for nd, od and td
+            # - One additional gradient evaluation for od and td
+            # - One additional Hessian evaluation for td
             value!!(nd, x_seed)
             value_gradient!!(od, x_seed)
             value_gradient!!(td, x_seed)
             hessian!!(td, x_seed)
 
-            @test nd.f_calls == od.f_calls == td.f_calls == 3
-            @test od.df_calls == td.df_calls == 2
-            @test td.h_calls == 2
+            @test f_calls(nd) == f_calls(od) == f_calls(td) == 3
+            @test iszero(g_calls(nd))
+            @test g_calls(od) == g_calls(td) == 2
+            @test iszero(h_calls(nd))
+            @test iszero(h_calls(od))
+            @test h_calls(td) == 2
+            for f in (nd, od, td)
+                @test iszero(jvp_calls(f))
+                @test iszero(hv_calls(f))
+            end
 
             # Test that gradient doesn't work for NonDifferentiable, but does otherwise
-            @test_throws ErrorException gradient!(nd, x_alt)
+            @test iszero(g_calls(nd))
+            @test g_calls(od) == g_calls(td) == 2
+            @test_throws MethodError gradient!(nd, x_alt)
             gradient!(od, x_alt)
             gradient!(td, x_alt)
+            @test iszero(g_calls(nd))
+            @test g_calls(od) == g_calls(td) == 3
 
             @test value(nd) == value(od) == value(td) ≈ f_x_seed
             @test gradient(td) == g_x_alt
             @test gradient(td) == [gradient(td, i) for i = 1:length(x_seed)]
             @test hessian(td) == h_x_seed
-            @test nd.f_calls == od.f_calls == td.f_calls == 3
-            @test od.df_calls == td.df_calls == 3
-            @test td.h_calls == 2
 
-            @test_throws ErrorException hessian!(nd, x_alt)
-            @test_throws ErrorException hessian!(od, x_alt)
+            @test f_calls(nd) == f_calls(od) == f_calls(td) == 3
+            @test iszero(g_calls(nd))
+            @test g_calls(od) == g_calls(td) == 3
+            @test iszero(h_calls(nd))
+            @test iszero(h_calls(od))
+            @test h_calls(td) == 2
+            for f in (nd, od, td)
+                @test iszero(jvp_calls(f))
+                @test iszero(hv_calls(f))
+            end
+
+            @test_throws MethodError hessian!(nd, x_alt)
+            @test_throws MethodError hessian!(od, x_alt)
             hessian!(td, x_alt)
+            @test iszero(h_calls(nd))
+            @test iszero(h_calls(od))
+            @test h_calls(td) == 3
 
             @test value(nd) == value(od) == value(td) ≈ f_x_seed
             @test gradient(td) == g_x_alt
             @test hessian(td) == h_x_alt
-            @test nd.f_calls == od.f_calls == td.f_calls == 3
-            @test od.df_calls == td.df_calls == 3
-            @test td.h_calls == 3
+
+            @test f_calls(nd) == f_calls(od) == f_calls(td) == 3
+            @test iszero(g_calls(nd))
+            @test g_calls(od) == g_calls(td) == 3
+            @test iszero(h_calls(nd))
+            @test iszero(h_calls(od))
+            @test h_calls(td) == 3
+            for f in (nd, od, td)
+                @test iszero(jvp_calls(f))
+                @test iszero(hv_calls(f))
+            end
 
             value!(nd, x_alt)
             value!(od, x_alt)
@@ -109,11 +175,20 @@ for T in (Float32, Float64, BigFloat)
             @test value(nd) == value(od) == value(td) == f_x_alt
             @test gradient(td) == g_x_alt
             @test hessian(td) == h_x_alt
-            @test nd.f_calls == od.f_calls == td.f_calls == 4
-            @test od.df_calls == td.df_calls == 3
-            @test td.h_calls == 3
 
-            @test_throws ErrorException value_gradient!(nd, x_seed)
+            # One additional function evaluation for nd, od and td
+            @test f_calls(nd) == f_calls(od) == f_calls(td) == 4
+            @test iszero(g_calls(nd))
+            @test g_calls(od) == g_calls(td) == 3
+            @test iszero(h_calls(nd))
+            @test iszero(h_calls(od))
+            @test h_calls(td) == 3
+            for f in (nd, od, td)
+                @test iszero(jvp_calls(f))
+                @test iszero(hv_calls(f))
+            end
+
+            @test_throws MethodError value_gradient!(nd, x_seed)
             value_gradient!(od, x_seed)
             value_gradient!(td, x_seed)
             @test value(od) == value(td) ≈ f_x_seed
@@ -134,9 +209,19 @@ for T in (Float32, Float64, BigFloat)
             @test value(od) == value(td) ≈ f_x_seed
             @test gradient(td) == g_x_seed
             @test hessian(td) == h_x_alt
-            @test od.f_calls == td.f_calls == 5
-            @test od.df_calls == td.df_calls == 4
-            @test td.h_calls == 3
+
+            # Updated call counters: 1 additional function + gradient evaluation for od and td
+            @test f_calls(nd) == 4
+            @test f_calls(od) == f_calls(td) == 5
+            @test iszero(g_calls(nd))
+            @test g_calls(od) == g_calls(td) == 4
+            @test iszero(h_calls(nd))
+            @test iszero(h_calls(od))
+            @test h_calls(td) == 3
+            for f in (nd, od, td)
+                @test iszero(jvp_calls(f))
+                @test iszero(hv_calls(f))
+            end
 
             # test the non-mutating gradient() function
             gradient!(od, fill(T(1), 2))
@@ -158,17 +243,28 @@ for T in (Float32, Float64, BigFloat)
             @test gradient(od) == zeros(T, 2)
             @test gradient(td) == zeros(T, 2)
 
+            # Reset all call counters and set all cached values to `NaN`
             clear!(nd)
             clear!(od)
             clear!(td)
-            @test iszero(nd.f_calls)
-            @test iszero(od.f_calls)
-            @test iszero(td.f_calls)
-            @test iszero(od.df_calls)
-            @test iszero(td.df_calls)
-            @test iszero(td.h_calls)
+            for f in (nd, od, td)
+                @test iszero(f_calls(f))
+                @test iszero(g_calls(f))
+                @test iszero(jvp_calls(f))
+                @test iszero(h_calls(f))
+                @test iszero(hv_calls(f))
+            end
+            @test isnan(nd.F)
+            @test isnan(od.F)
+            @test all(isnan, od.DF)
+            @test isnan(od.JVP)
+            @test isnan(td.F)
+            @test all(isnan, td.DF)
+            @test isnan(td.JVP)
+            @test all(isnan, td.H)
+            @test all(isnan, td.Hv)
 
-            @testset "TwiceDifferentiableHV" begin
+            @testset "Hessian-vector product" begin
                 for (name, prob) in MultivariateProblems.UnconstrainedProblems.examples
                     if prob.istwicedifferentiable
                         hv!(storage::Vector, x::Vector, v::Vector) = begin
@@ -177,22 +273,27 @@ for T in (Float32, Float64, BigFloat)
                             MVP.hessian(prob)(H, x)
                             mul!(storage, H, v)
                         end
-                        fg!(G::Vector, x::Vector) = begin
-                            MVP.gradient(prob)(G, x)
-                            T(MVP.objective(prob)(x)), G
+                        fg!(F, G, x::Vector) = begin
+                            if G !== nothing
+                                MVP.gradient(prob)(G, x)
+                            end
+                            if F !== nothing
+                                return T(MVP.objective(prob)(x))
+                            else
+                                return nothing
+                            end
                         end
                         xT = T.(prob.initial_x)
                         nxT = length(xT)
-                        ddf = TwiceDifferentiableHV(MVP.objective(prob), fg!, hv!, xT)
+                        ddf = TwiceDifferentiable(only_fg_and_hv!(fg!, hv!), xT)
                         x = rand(xT, nxT)
                         v = rand(xT, nxT)
                         G = NLSolversBase.alloc_DF(x, T(0))
                         H = NLSolversBase.alloc_H(x, T(0))
                         MVP.hessian(prob)(H, x)
                         @test hv_product!(ddf, x, v) == H*v
-                        @test hv_product(ddf) == H*v
-                        @test hv_product(ddf) == ddf.Hv
-                        F, G = fg!(G, x)
+                        @test ddf.Hv == H*v
+                        F = fg!(0.0, G, x)
                         @test gradient!(ddf, x) == G
                         @test value!(ddf, x) == F
                         @test f_calls(ddf) == 1
@@ -239,12 +340,12 @@ for T in (Float32, Float64, BigFloat)
 
             @testset "forwarddiff with different types" begin
                 od_ad = OnceDifferentiable(f!, x_seed, F_seed; autodiff = AutoForwardDiff())
-                value!!(od_ad, od_ad.F, x_seed)
-                value_jacobian!!(od_ad, od_ad.F, od_ad.DF, x_seed)
+                value!!(od_ad, x_seed)
+                value_jacobian!!(od_ad, x_seed)
             end
             # Force evaluation
-            value!!(nd, nd.F, x_seed)
-            value_jacobian!!(od, od.F, od.DF, x_seed)
+            value!!(nd, x_seed)
+            value_jacobian!!(od, x_seed)
 
             # Test that values are the same, and that values match those
             # calculated by the value(obj, x) methods
@@ -275,7 +376,7 @@ for T in (Float32, Float64, BigFloat)
             @test od.df_calls == 2
 
             # Test that jacobian doesn't work for NonDifferentiable, but does otherwise
-            @test_throws ErrorException jacobian!(nd, x_alt)
+            @test_throws MethodError jacobian!(nd, x_alt)
             jacobian!(od, x_alt)
 
             @test value(nd) == value(od) ≈ F_x_seed
@@ -295,7 +396,7 @@ for T in (Float32, Float64, BigFloat)
             @test nd.f_calls == od.f_calls == 5
             @test od.df_calls == 3
 
-            @test_throws ErrorException value_jacobian!(nd, x_seed)
+            @test_throws MethodError value_jacobian!(nd, x_seed)
             value_jacobian!(od, x_seed)
             @test value(od) ≈ F_x_seed
             # change x_f manually to test branch

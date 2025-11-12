@@ -125,10 +125,10 @@
         @test gradient(OD) == g(2 .* x)
     end
 
-    # Incomplete TwiceDifferentiableHv
+    # Incomplete TwiceDifferentiable with Hessian-vector product
     v = randn(10)
-    od_fg_and_hv = TwiceDifferentiableHV(only_fg_and_hv!(just_fg!, just_hv!), x)
-    od_fghv      = TwiceDifferentiableHV(only_fghv!(just_fghv!), x)
+    od_fg_and_hv = TwiceDifferentiable(only_fg_and_hv!(just_fg!, just_hv!), x)
+    od_fghv      = TwiceDifferentiable(only_fghv!(just_fghv!), x)
     ndtdhv = NonDifferentiable(od_fghv, v)
     @test value(ndtdhv, v) === value(od_fghv, v)
 
@@ -323,7 +323,7 @@ end
         hv!_1 = NLSolversBase.make_hv(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
         hv!_2 = NLSolversBase.make_hv(NLSolversBase.InplaceObjective(; fgh = (DF, H, x) -> (fill!(DF, 1); copyto!(H, 0); sum(x))), x, x[1])
         for hv! in (hv!_1, hv!_2)
-            @test_throws ArgumentError("Cannot evaluate the Hessian-vector product of the objective function: No suitable Julia function available.") hv!(similar(x, length(x)), x[1], x)
+            @test hv! === nothing
         end
     end
 
