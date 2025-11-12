@@ -13,18 +13,18 @@ end
 
 ### Only the objective
 # Ambiguity
-OnceDifferentiable(f, x::AbstractArray,
+function OnceDifferentiable(f, x::AbstractArray,
                    F::Real = real(zero(eltype(x))),
-                   DF::AbstractArray = alloc_DF(x, F); inplace::Bool = true, autodiff::Union{AbstractADType,Symbol,Bool} = :finite,  
-                   chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)) =
-    OnceDifferentiable(f, x, F, DF, autodiff, chunk)
-#OnceDifferentiable(f, x::AbstractArray, F::AbstractArray; autodiff = :finite) =
-#    OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, alloc_DF(x, F))
+                   DF::AbstractArray = alloc_DF(x, F);
+                   inplace::Bool = true,
+                   autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
+    OnceDifferentiable(f, x, F, DF, autodiff)
+end
 function OnceDifferentiable(f, x::AbstractArray,
                    F::AbstractArray, DF::AbstractArray = alloc_DF(x, F);
-                   inplace::Bool = true, autodiff::Union{AbstractADType,Symbol,Bool} = :finite)
+                   inplace::Bool = true,
+                   autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
     f! = f!_from_f(f, F, inplace)
-
     OnceDifferentiable(f!, x, F, DF, autodiff)
 end
 
@@ -32,7 +32,7 @@ end
 function OnceDifferentiable(f, x_seed::AbstractArray,
                             F::Real,
                             DF::AbstractArray,
-                            autodiff::Union{AbstractADType,Symbol,Bool}, chunk::ForwardDiff.Chunk)
+                            autodiff::AbstractADType)
     # When here, at the constructor with positional autodiff, it should already
     # be the case, that f is inplace.
     if f isa Union{InplaceObjective, NotInplaceObjective}
@@ -43,51 +43,48 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
 
         return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
     else
-        backend = get_adtype(autodiff, chunk)
-        grad_prep = DI.prepare_gradient(f, backend, x_seed)
-        function g!(_g, _x)
-            DI.gradient!(f, _g, grad_prep, backend, _x)
-            return nothing
+        grad_prep = DI.prepare_gradient(f, autodiff, x_seed)
+        g! = let f = f, grad_prep = grad_prep, autodiff = autodiff
+            function (_g, _x)
+                DI.gradient!(f, _g, grad_prep, autodiff, _x)
+                return nothing
+            end
         end
-        function fg!(_g, _x)
-            y, _ = DI.value_and_gradient!(f, _g, grad_prep, backend, _x)
-            return y
+        fg! = let f = f, grad_prep = grad_prep, autodiff = autodiff
+            function (_g, _x)
+                y, _ = DI.value_and_gradient!(f, _g, grad_prep, autodiff, _x)
+                return y
+            end
         end
         return OnceDifferentiable(f, g!, fg!, x_seed, F, DF)
     end
 end
 
-has_not_dep_symbol_in_ad = Ref{Bool}(true)
-OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::Symbol, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)) =
-OnceDifferentiable(f, x, F, alloc_DF(x, F), autodiff, chunk)
-function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray,
-                            autodiff::Bool, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x))
-    if autodiff == false
-        throw(ErrorException("It is not possible to set the `autodiff` keyword to `false` when constructing a OnceDifferentiable instance from only one function. Pass in the (partial) derivative or specify a valid `autodiff` symbol."))
-    elseif has_not_dep_symbol_in_ad[]
-        @warn("Setting the `autodiff` keyword to `true` is deprecated. Please use a valid symbol instead.")
-        has_not_dep_symbol_in_ad[] = false
-    end
-    OnceDifferentiable(f, x, F, alloc_DF(x, F), :forward, chunk)
-end
-function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::AbstractArray,
-    autodiff::Union{AbstractADType,Symbol,Bool}, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x_seed))
-    if f isa Union{InplaceObjective, NotInplaceObjective}
+OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::AbstractADType) =
+    OnceDifferentiable(f, x, F, alloc_DF(x, F), autodiff)
+function OnceDifferentiable(f, x_seed::AbstractArray,
+                            F::AbstractArray,
+                            DF::AbstractArray,
+                            autodiff::AbstractADType)
+    if  f isa Union{InplaceObjective, NotInplaceObjective}
         fF = make_f(f, x_seed, F)
         dfF = make_df(f, x_seed, F)
         fdfF = make_fdf(f, x_seed, F)
         return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
     else
         F2 = similar(F)
-        backend = get_adtype(autodiff, chunk)
-        jac_prep = DI.prepare_jacobian(f, F2, backend, x_seed)
-        function j!(_j, _x)
-            DI.jacobian!(f, F2, _j, jac_prep, backend, _x)
-            return _j
+        jac_prep = DI.prepare_jacobian(f, F2, autodiff, x_seed)
+        j! = let f = f, F2 = F2, jac_prep = jac_prep, autodiff = autodiff
+            function (_j, _x)
+                DI.jacobian!(f, F2, _j, jac_prep, autodiff, _x)
+                return _j
+            end
         end
-        function fj!(_y, _j, _x)
-            y, _ = DI.value_and_jacobian!(f, _y, _j, jac_prep, backend, _x)
-            return y
+        fj! = let f = f, jac_prep = jac_prep, autodiff = autodiff
+            function (_y, _j, _x)
+                y, _ = DI.value_and_jacobian!(f, _y, _j, jac_prep, autodiff, _x)
+                return y
+            end
         end
         return OnceDifferentiable(f, j!, fj!, x_seed, F, DF)
     end

@@ -43,7 +43,7 @@
     # R^N → R^N
     f1 = OnceDifferentiable(exponential_gradient!, rand(2), rand(2))
     fia1 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false)
-    fia2 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false, autodiff = :forward)
+    fia2 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false, autodiff = AutoForwardDiff())
     fi1 = OnceDifferentiable(exponential_gradient, exponential_hessian, rand(2), rand(2); inplace = false)
     fi2 = OnceDifferentiable(exponential_gradient, exponential_hessian, rand(2), rand(2); inplace = false)
     fi3 = OnceDifferentiable(exponential_gradient, exponential_hessian, exponential_gradient_hessian,
@@ -74,8 +74,8 @@ end
     # default autodiff R^N → R
     fa1 = OnceDifferentiable(exponential, rand(2))
     # specific autodiff R^N → R
-    fa2 = OnceDifferentiable(exponential, rand(2); autodiff = :finite)
-    fa3 = OnceDifferentiable(exponential, rand(2); autodiff = :forward)
+    fa2 = OnceDifferentiable(exponential, rand(2); autodiff = AutoFiniteDiff(; fdtype = Val(:central)))
+    fa3 = OnceDifferentiable(exponential, rand(2); autodiff = AutoForwardDiff())
     # random input
     xr = rand(2)
     # test that values are the same approximately
@@ -87,8 +87,8 @@ end
     # R^N → R^N
     fa1 = OnceDifferentiable(exponential_gradient!, rand(2), rand(2); inplace = true)
     fia1 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false)
-    fia2 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false, autodiff = :finite)
-    fia3 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false, autodiff = :forward)
+    fia2 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false, autodiff = AutoFiniteDiff(; fdtype = Val(:central)))
+    fia3 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false, autodiff = AutoForwardDiff())
     xr = rand(2)
     @test value!(fa1, xr) ≈ value!(fia1, xr) ≈ value!(fia2, xr) ≈ value!(fia3, xr)
     @test jacobian!(fa1, xr) ≈ jacobian!(fia1, xr) ≈ jacobian!(fia2, xr) ≈ jacobian!(fia3, xr)

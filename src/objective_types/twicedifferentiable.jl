@@ -48,49 +48,65 @@ end
 
 function TwiceDifferentiable(f, g,
                              x_seed::AbstractArray,
-                             F::Real = real(zero(eltype(x_seed))); autodiff::Union{AbstractADType,Symbol,Bool} = :finite, inplace::Bool = true)
+                             F::Real = real(zero(eltype(x_seed)));
+                             inplace::Bool = true,
+                             autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
     g! = df!_from_df(g, F, inplace)
     fg! = make_fdf(x_seed, F, f, g!)
 
-    backend = get_adtype(autodiff)
-    hess_prep = DI.prepare_hessian(f, backend, x_seed)
-    function h!(_h, _x)
-        DI.hessian!(f, _h, hess_prep, backend, _x)
-        return _h
+    hess_prep = DI.prepare_hessian(f, autodiff, x_seed)
+    h! = let f = f, hess_prep = hess_prep, autodiff = autodiff
+        function (_h, _x)
+            DI.hessian!(f, _h, hess_prep, autodiff, _x)
+            return _h
+        end
     end
     TwiceDifferentiable(f, g!, fg!, h!, x_seed, F)
 end
 
-TwiceDifferentiable(d::NonDifferentiable, x_seed::AbstractArray = d.x_f, F::Real = real(zero(eltype(x_seed))); autodiff::Union{AbstractADType,Symbol,Bool} = :finite) =
-    TwiceDifferentiable(d.f, x_seed, F; autodiff = autodiff)
+function TwiceDifferentiable(d::NonDifferentiable,
+                             x_seed::AbstractArray = d.x_f,
+                             F::Real = real(zero(eltype(x_seed)));
+                             autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
+    TwiceDifferentiable(d.f, x_seed, F; autodiff)
+end
 
-function TwiceDifferentiable(d::OnceDifferentiable, x_seed::AbstractArray = d.x_f,
-                             F::Real = real(zero(eltype(x_seed))); autodiff::Union{AbstractADType,Symbol,Bool} = :finite)
-    backend = get_adtype(autodiff)
-    hess_prep = DI.prepare_hessian(d.f, backend, x_seed)
-    function h!(_h, _x)
-        DI.hessian!(d.f, _h, hess_prep, backend, _x)
-        return _h
+function TwiceDifferentiable(d::OnceDifferentiable,
+                             x_seed::AbstractArray = d.x_f,
+                             F::Real = real(zero(eltype(x_seed)));
+                             autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
+    hess_prep = DI.prepare_hessian(d.f, autodiff, x_seed)
+    h! = let f = d.f, hess_prep = hess_prep, autodiff = autodiff
+        function (_h, _x)
+            DI.hessian!(f, _h, hess_prep, autodiff, _x)
+            return _h
+        end
     end
     return TwiceDifferentiable(d.f, d.df, d.fdf, h!, x_seed, F, gradient(d))
 end
 
 function TwiceDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x)));
-                             autodiff::Union{AbstractADType,Symbol,Bool} = :finite, inplace::Bool = true)
-    backend = get_adtype(autodiff)
-    grad_prep = DI.prepare_gradient(f, backend, x)
-    hess_prep = DI.prepare_hessian(f, backend, x)
-    function g!(_g, _x)
-        DI.gradient!(f, _g, grad_prep, backend, _x)
-        return nothing
+                             inplace::Bool = true,
+                             autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
+    grad_prep = DI.prepare_gradient(f, autodiff, x)
+    g! = let f = f, grad_prep = grad_prep, autodiff = autodiff
+        function (_g, _x)
+            DI.gradient!(f, _g, grad_prep, autodiff, _x)
+            return nothing
+        end
     end
-    function fg!(_g, _x)
-        y, _ = DI.value_and_gradient!(f, _g, grad_prep, backend, _x)
-        return y
+    fg! = let f = f, grad_prep = grad_prep, autodiff = autodiff
+        function (_g, _x)
+            y, _ = DI.value_and_gradient!(f, _g, grad_prep, autodiff, _x)
+            return y
+        end
     end
-    function h!(_h, _x)
-        DI.hessian!(f, _h, hess_prep, backend, _x)
-        return _h
+    hess_prep = DI.prepare_hessian(f, autodiff, x)
+    h! = let f = f, hess_prep = hess_prep, autodiff = autodiff
+        function (_h, _x)
+            DI.hessian!(f, _h, hess_prep, autodiff, _x)
+            return _h
+        end
     end
     TwiceDifferentiable(f, g!, fg!, h!, x, F)
 end

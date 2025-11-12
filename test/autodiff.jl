@@ -1,23 +1,12 @@
 @testset "autodiff" begin
     Random.seed!(0)
 
-    # Should throw, as :wah is not a proper autodiff choice
-    err = ArgumentError("The autodiff value `:wah` is not supported. Use `:finite` or `:forward`.")
-    @test_throws err OnceDifferentiable(x->x, rand(10); autodiff=:wah)
-    @test_throws err OnceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
-    @test_throws err TwiceDifferentiable(x->x, rand(10); autodiff=:wah)
-    @test_throws err TwiceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
-    #@test_throws err TwiceDifferentiable(x->x, rand(10), 0.0, rand(10); autodiff=:wah)
-    @test_throws err TwiceDifferentiable(x->x, x->x, rand(10); autodiff=:wah)
-    @test_throws err TwiceDifferentiable(x->x, x->x, rand(10), 0.0; autodiff=:wah)
-    #@test_throws err TwiceDifferentiable(x->x, x->x, rand(10), 0.0, rand(10); autodiff=:wah)
-
     for T in (OnceDifferentiable, TwiceDifferentiable)
-        odad1 = T(x->5.0, rand(1); autodiff = :finite)
-        odad2 = T(x->5.0, rand(1); autodiff = :forward)
+        odad1 = T(x->5.0, rand(1); autodiff = AutoFiniteDiff(; fdtype = Val(:central)))
+        odad2 = T(x->5.0, rand(1); autodiff = AutoForwardDiff())
         gradient!(odad1, rand(1))
         gradient!(odad2, rand(1))
-        #    odad3 = T(x->5., rand(1); autodiff = :reverse)
+        #    odad3 = T(x->5., rand(1); autodiff = ADTypes.AutoMooncake())
         @test gradient(odad1) == [0.0]
         @test gradient(odad2) == [0.0]
         #    @test odad3.g == [0.0]
@@ -25,9 +14,9 @@
 
     for a in (1.0, 5.0)
         xa = rand(1)
-        odad1 = OnceDifferentiable(x->a*x[1], xa; autodiff = :finite)
-        odad2 = OnceDifferentiable(x->a*x[1], xa; autodiff = :forward)
-    #    odad3 = OnceDifferentiable(x->a*x[1], xa; autodiff = :reverse)
+        odad1 = OnceDifferentiable(x->a*x[1], xa; autodiff = AutoFiniteDiff(; fdtype = Val(:central)))
+        odad2 = OnceDifferentiable(x->a*x[1], xa; autodiff = AutoForwardDiff())
+    #    odad3 = OnceDifferentiable(x->a*x[1], xa; autodiff = ADTypes.AutoMooncake())
         gradient!(odad1, xa)
         gradient!(odad2, xa)
         @test gradient(odad1) ≈ [a]
@@ -36,9 +25,9 @@
     end
     for a in (1.0, 5.0)
         xa = rand(1)
-        odad1 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = :finite)
-        odad2 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = :forward)
-    #    odad3 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = :reverse)
+        odad1 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = AutoFiniteDiff(; fdtype = Val(:central)))
+        odad2 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = AutoForwardDiff())
+    #    odad3 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = ADTypes.AutoMooncake())
         gradient!(odad1, xa)
         gradient!(odad2, xa)
         @test gradient(odad1) ≈ 2.0*a*xa
@@ -54,9 +43,9 @@
     h(H, x) = copyto!(H, Diagonal(6 .* x))
     hx = h(fill(0.0, nx, nx), x)
     @testset for dtype in (OnceDifferentiable, TwiceDifferentiable)
-        @testset for autodiff in (:finite, :forward, AutoForwardDiff())
-            # :forward should be exact, but :finite will not be
-            differentiable = dtype(f, copy(x); autodiff = autodiff)
+        @testset for autodiff in (AutoFiniteDiff(; fdtype = Val(:central)), AutoForwardDiff())
+            # ForwardDiff should be exact, but FiniteDiff will not be
+            differentiable = dtype(f, copy(x); autodiff)
             value!(differentiable, copy(x))
             @test isapprox(value(differentiable), fx)
             clear!(differentiable)
@@ -69,7 +58,7 @@
             clear!(differentiable)
             if dtype == TwiceDifferentiable
                 hessian!(differentiable, x)
-                if autodiff == :finite
+                if autodiff isa AutoFiniteDiff
                     # we have to increase the tolerance here, as the hessian is
                     # not very accurate
                     @test isapprox(hessian(differentiable), hx; atol = 1e-6)
@@ -79,17 +68,17 @@
             end
         end
     end
-    @testset for autodiff in (:finite, :forward, AutoForwardDiff())
-        td = TwiceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x); autodiff = autodiff)
+    @testset for autodiff in (AutoFiniteDiff(; fdtype = Val(:central)), AutoForwardDiff())
+        td = TwiceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x); autodiff)
         value(td)
         value!(td, x)
         value_gradient!(td, x)
         gradient!(td, x)
         hessian!(td, x)
     end
-    @testset for autodiff in (:finite, :forward, AutoForwardDiff())
+    @testset for autodiff in (AutoFiniteDiff(; fdtype = Val(:central)), AutoForwardDiff())
         for nd = (NonDifferentiable(x->sum(x), copy(x)), NonDifferentiable(x->sum(x), copy(x), 0.0))
-            td = TwiceDifferentiable(nd; autodiff = autodiff)
+            td = TwiceDifferentiable(nd; autodiff)
             value(td)
             value!(td, x)
             value_gradient!(td, x)
@@ -97,7 +86,7 @@
             hessian!(td, x)
         end
         for od = (OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x)), OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x), 0.0))
-            td = TwiceDifferentiable(od; autodiff = autodiff)
+            td = TwiceDifferentiable(od; autodiff)
             value(td)
             value!(td, x)
             value_gradient!(td, x)
@@ -131,19 +120,19 @@
         # Can't test equality here
         @test jacobian(od_fd) ≈ j!(J, x)
         # Specifically :central
-        od_fd_2 = OnceDifferentiable(f!, x, F, :central)
+        od_fd_2 = OnceDifferentiable(f!, x, F, AutoFiniteDiff(; fdtype = Val(:central)))
         @test value!(od_fd_2, x) == f!(F, x)
         # Can't test equality here
         @test jacobian!(od_fd_2, x) ≈ j!(J, x)
         # Test that they're identical -> they used the same scheme
         @test jacobian(od_fd) == jacobian(od_fd_2)
 
-        od_ad = OnceDifferentiable(f!, x, F, :forward)
+        od_ad = OnceDifferentiable(f!, x, F, AutoForwardDiff())
         @test value!(od_ad, x) == f!(F, x)
         # Can't test equality here
         @test jacobian!(od_ad, x) ≈ j!(J, x)
 
-        od_ad_2 = OnceDifferentiable(f!, x, F, :forward)
+        od_ad_2 = OnceDifferentiable(f!, x, F, AutoForwardDiff())
         @test value!(od_ad_2, x) == f!(F, x)
         # Can't test equality here
         @test jacobian!(od_ad_2, x) ≈ j!(J, x)
@@ -152,10 +141,6 @@
         @testset "error handling" begin
             x = rand(2)
             F = similar(x)
-            # Wrong symbol
-            @test_throws ArgumentError("The autodiff value `:foo` is not supported. Use `:finite` or `:forward`.") OnceDifferentiable(f!, x, F, :foo)
-            # Wrong bool
-            @test_throws ErrorException OnceDifferentiable(f!, x, F, false)
         end
     end
 end

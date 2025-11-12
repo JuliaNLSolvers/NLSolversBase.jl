@@ -7,6 +7,7 @@ using SparseArrays
 using OptimTestProblems
 using RecursiveArrayTools
 using ADTypes
+import ForwardDiff
 MVP = OptimTestProblems.MultivariateProblems
 
 import Aqua

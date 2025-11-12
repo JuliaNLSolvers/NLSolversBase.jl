@@ -1,9 +1,8 @@
 module NLSolversBase
 
-using ADTypes: AbstractADType, AutoForwardDiff, AutoFiniteDiff
+using ADTypes: AbstractADType, AutoFiniteDiff
 import DifferentiationInterface as DI
 using FiniteDiff: FiniteDiff
-using ForwardDiff: ForwardDiff
 using LinearAlgebra: LinearAlgebra
 
 export AbstractObjective,
@@ -44,36 +43,6 @@ export AbstractObjective,
 
 export AbstractConstraints, OnceDifferentiableConstraints,
     TwiceDifferentiableConstraints, ConstraintBounds
-
-function finitediff_fdtype(autodiff)
-    if autodiff == :finiteforward
-        return Val{:forward}
-    elseif autodiff == :finitecomplex
-        return Val{:complex}
-    elseif autodiff == :finite || autodiff == :central || autodiff == :finitecentral
-        return Val{:central}
-    else
-        throw(ArgumentError(LazyString("The autodiff value `", repr(autodiff), "` is not supported. Use `:finite` or `:forward`.")))
-    end
-end
-
-forwarddiff_chunksize(::Nothing) = nothing
-forwarddiff_chunksize(::ForwardDiff.Chunk{C}) where {C} = C
-
-is_finitediff(autodiff) = autodiff ∈ (:central, :finite, :finiteforward, :finitecomplex)
-is_forwarddiff(autodiff) = autodiff ∈ (:forward, :forwarddiff, true)
-
-get_adtype(autodiff::AbstractADType, chunk=nothing) = autodiff
-
-function get_adtype(autodiff::Union{Symbol,Bool}, chunk=nothing)
-    if is_finitediff(autodiff)
-        return AutoFiniteDiff(; fdtype=finitediff_fdtype(autodiff)())
-    elseif is_forwarddiff(autodiff)
-        return AutoForwardDiff(; chunksize=forwarddiff_chunksize(chunk))
-    else
-        throw(ArgumentError(LazyString("The autodiff value `", repr(autodiff), "` is not supported. Use `:finite` or `:forward`.")))
-    end
-end
 
 x_of_nans(x::AbstractArray, ::Type{Tf}=float(eltype(x))) where {Tf} = fill!(similar(x, Tf), NaN)
 
