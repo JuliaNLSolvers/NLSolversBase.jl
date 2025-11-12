@@ -2,6 +2,7 @@ using NLSolversBase, Test
 using Random
 using LinearAlgebra: Diagonal, I, mul!
 using ComponentArrays
+using StaticArrays
 using SparseArrays
 using OptimTestProblems
 using RecursiveArrayTools
@@ -87,4 +88,5 @@ end
     include("autodiff.jl")
     include("sparse.jl")
     include("kwargs.jl")
+    include("utils.jl")
 end

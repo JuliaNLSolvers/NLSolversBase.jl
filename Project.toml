@@ -16,6 +16,7 @@ DifferentiationInterface = "0.6.43, 0.7"
 FiniteDiff = "2.0"
 ForwardDiff = "0.10, 1.0"
 LinearAlgebra = "<0.0.1, 1"
+StaticArrays = "1.9"
 julia = "1.10"
 
 [extras]
@@ -25,7 +26,8 @@ OptimTestProblems = "cec144fc-5a64-5bc6-99fb-dde8f63e154c"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["ADTypes", "ComponentArrays", "OptimTestProblems", "Random", "RecursiveArrayTools", "SparseArrays", "Test"]
+test = ["ADTypes", "ComponentArrays", "OptimTestProblems", "Random", "RecursiveArrayTools", "SparseArrays", "StaticArrays", "Test"]
