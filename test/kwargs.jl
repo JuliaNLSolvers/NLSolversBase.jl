@@ -4,8 +4,10 @@
     fia1 = OnceDifferentiable(exponential, rand(2); inplace = false)
     fi1 = OnceDifferentiable(exponential, exponential_gradient, rand(2); inplace = false)
     fi2 = OnceDifferentiable(exponential, exponential_gradient, rand(2); inplace = false)
-    fi3 = OnceDifferentiable(exponential, exponential_gradient, exponential_value_gradient,
-                       rand(2); inplace = false)
+    fi3 = OnceDifferentiable(
+        exponential, exponential_gradient, exponential_value_gradient,
+        rand(2); inplace = false
+    )
     xr = rand(2)
     @test value!(f1, xr) ≈ value!(fia1, xr) ≈ value!(fi1, xr) ≈ value!(fi2, xr) ≈ value!(fi3, xr)
     @test gradient!(f1, xr) ≈ gradient!(fia1, xr)
@@ -21,10 +23,14 @@
     ftia1 = TwiceDifferentiable(exponential, rand(2); inplace = false)
     fti1 = TwiceDifferentiable(exponential, exponential_gradient, rand(2); inplace = false)
     fti2 = TwiceDifferentiable(exponential, exponential_gradient, rand(2); inplace = false)
-    fti3 = TwiceDifferentiable(exponential, exponential_gradient, exponential_hessian,
-                               rand(2); inplace = false)
-    fti4 = TwiceDifferentiable(exponential, exponential_gradient, exponential_value_gradient,
-                               exponential_hessian, rand(2); inplace = false)
+    fti3 = TwiceDifferentiable(
+        exponential, exponential_gradient, exponential_hessian,
+        rand(2); inplace = false
+    )
+    fti4 = TwiceDifferentiable(
+        exponential, exponential_gradient, exponential_value_gradient,
+        exponential_hessian, rand(2); inplace = false
+    )
 
     @test value!(ft1, xr) ≈ value!(ftia1, xr) ≈ value!(fti1, xr) ≈ value!(fti2, xr) ≈ value!(fti3, xr) ≈ value!(fti4, xr)
     @test gradient!(ft1, xr) ≈ gradient!(ftia1, xr)
@@ -46,8 +52,10 @@
     fia2 = OnceDifferentiable(exponential_gradient, rand(2), rand(2); inplace = false, autodiff = :forward)
     fi1 = OnceDifferentiable(exponential_gradient, exponential_hessian, rand(2), rand(2); inplace = false)
     fi2 = OnceDifferentiable(exponential_gradient, exponential_hessian, rand(2), rand(2); inplace = false)
-    fi3 = OnceDifferentiable(exponential_gradient, exponential_hessian, exponential_gradient_hessian,
-    rand(2), rand(2); inplace = false)
+    fi3 = OnceDifferentiable(
+        exponential_gradient, exponential_hessian, exponential_gradient_hessian,
+        rand(2), rand(2); inplace = false
+    )
     xr = fill(2.0, 2)
     @test value!(f1, xr) ≈ value!(fia1, xr) ≈ value!(fia2, xr) ≈ value!(fi1, xr) ≈ value!(fi2, xr) ≈ value!(fi3, xr)
     @test jacobian!(f1, xr) ≈ jacobian!(fia1, xr) ≈ jacobian!(fia2, xr) ≈ jacobian!(fi1, xr) ≈ jacobian!(fi2, xr) ≈ jacobian!(fi3, xr)
@@ -69,8 +77,10 @@ end
 
 @testset "autodiff" begin
     # base line api
-    f1 = OnceDifferentiable(exponential, exponential_gradient!, exponential_value_gradient!,
-                            rand(2), 0.0, rand(2))
+    f1 = OnceDifferentiable(
+        exponential, exponential_gradient!, exponential_value_gradient!,
+        rand(2), 0.0, rand(2)
+    )
     # default autodiff R^N → R
     fa1 = OnceDifferentiable(exponential, rand(2))
     # specific autodiff R^N → R

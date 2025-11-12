@@ -23,7 +23,7 @@ end
 
 function exponential_gradient!(storage, x)
     storage[1] = -2.0 * (2.0 - x[1]) * exp((2.0 - x[1])^2)
-    storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
+    return storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
 end
 
 
@@ -31,7 +31,7 @@ function exponential_gradient(x)
     storage = similar(x)
     storage[1] = -2.0 * (2.0 - x[1]) * exp((2.0 - x[1])^2)
     storage[2] = -2.0 * (3.0 - x[2]) * exp((3.0 - x[2])^2)
-    storage
+    return storage
 end
 
 
@@ -56,7 +56,7 @@ function exponential_gradient_hessian(x)
     J[1, 2] = 0.0
     J[2, 1] = 0.0
     J[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
-    F, J
+    return F, J
 end
 
 function exponential_hessian(x)
@@ -66,24 +66,24 @@ function exponential_hessian(x)
     storage[1, 2] = 0.0
     storage[2, 1] = 0.0
     storage[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
-    storage
+    return storage
 end
 
 function exponential_hessian!(storage, x)
     storage[1, 1] = 2.0 * exp((2.0 - x[1])^2) * (2.0 * x[1]^2 - 8.0 * x[1] + 9)
     storage[1, 2] = 0.0
     storage[2, 1] = 0.0
-    storage[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
+    return storage[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
 end
 
 function exponential_hessian_product!(storage, x)
     storage[1, 1] = 2.0 * exp((2.0 - x[1])^2) * (2.0 * x[1]^2 - 8.0 * x[1] + 9)
     storage[1, 2] = 0.0
     storage[2, 1] = 0.0
-    storage[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
+    return storage[2, 2] = 2.0 * exp((3.0 - x[1])^2) * (2.0 * x[2]^2 - 12.0 * x[2] + 19)
 end
 
-@testset verbose=true "NLSolversBase.jl" begin
+@testset verbose = true "NLSolversBase.jl" begin
     include("objective_types.jl")
     include("interface.jl")
     include("incomplete.jl")

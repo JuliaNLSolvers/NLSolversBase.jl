@@ -1,17 +1,17 @@
 ### Constraints
-# 
+#
 # Constraints are specified by the user as
 #    lx_i ≤   x[i]  ≤ ux_i  # variable (box) constraints
 #    lc_i ≤ c(x)[i] ≤ uc_i  # linear/nonlinear constraints
 # and become equality constraints with l_i = u_i. ±∞ are allowed for l
 # and u, in which case the relevant side(s) are unbounded.
-# 
+#
 # The user supplies functions to calculate c(x) and its derivatives.
-# 
+#
 # Of course we could unify the box-constraints into the
 # linear/nonlinear constraints, but that would force the user to
 # provide the variable-derivatives manually, which would be silly.
-# 
+#
 # This parametrization of the constraints gets "parsed" into a form
 # that speeds and simplifies the IPNewton algorithm, at the cost of many
 # additional variables. See `parse_constraints` for details.
@@ -32,21 +32,23 @@ struct ConstraintBounds{T}
     bc::Vector{T}
 end
 function ConstraintBounds(lx, ux, lc, uc)
-    _cb(symmetrize(lx, ux)..., symmetrize(lc, uc)...)
+    return _cb(symmetrize(lx, ux)..., symmetrize(lc, uc)...)
 end
-function _cb(lx::AbstractArray{Tx}, ux::AbstractArray{Tx}, lc::AbstractVector{Tc}, uc::AbstractVector{Tc}) where {Tx,Tc}
+function _cb(lx::AbstractArray{Tx}, ux::AbstractArray{Tx}, lc::AbstractVector{Tc}, uc::AbstractVector{Tc}) where {Tx, Tc}
     T = promote_type(Tx, Tc)
-    ConstraintBounds{T}(length(lc), parse_constraints(T, lx, ux)..., parse_constraints(T, lc, uc)...)
+    return ConstraintBounds{T}(length(lc), parse_constraints(T, lx, ux)..., parse_constraints(T, lc, uc)...)
 end
 
-Base.eltype(::Type{ConstraintBounds{T}}) where T = T
+Base.eltype(::Type{ConstraintBounds{T}}) where {T} = T
 
 Base.convert(::Type{ConstraintBounds{T}}, cb::ConstraintBounds{T}) where {T} = cb
-Base.convert(::Type{ConstraintBounds{T}}, cb::ConstraintBounds{S}) where {T,S} =
-    ConstraintBounds{T}(cb.nc, cb.eqx, convert(Vector{T}, cb.valx),
-                     cb.ineqx, cb.σx, convert(Vector{T}, cb.bx),
-                     cb.eqc, convert(Vector{T}, cb.valc), cb.ineqc,
-                     cb.σc, convert(Vector{T}, cb.bc))
+Base.convert(::Type{ConstraintBounds{T}}, cb::ConstraintBounds{S}) where {T, S} =
+    ConstraintBounds{T}(
+    cb.nc, cb.eqx, convert(Vector{T}, cb.valx),
+    cb.ineqx, cb.σx, convert(Vector{T}, cb.bx),
+    cb.eqc, convert(Vector{T}, cb.valc), cb.ineqc,
+    cb.σc, convert(Vector{T}, cb.bc)
+)
 
 
 """
@@ -73,7 +75,7 @@ function nconstraints_x(cb::ConstraintBounds)
     hasconstraint = falses(nmax)
     hasconstraint[cb.ineqx] .= true
     hasconstraint[cb.eqx] .= true
-    sum(hasconstraint)
+    return sum(hasconstraint)
 end
 
 function Base.show(io::IO, cb::ConstraintBounds)
@@ -85,7 +87,7 @@ function Base.show(io::IO, cb::ConstraintBounds)
     print(io, "\n  Linear/nonlinear constraints:")
     showeq(io, indent, cb.eqc, cb.valc, 'c', false) # subscript
     showineq(io, indent, cb.ineqc, cb.σc, cb.bc, 'c', false) # subscript
-    nothing
+    return nothing
 end
 
 # Synonym constructor for ConstraintBounds with no c(x)
@@ -95,42 +97,46 @@ abstract type AbstractConstraints end
 
 nconstraints(constraints::AbstractConstraints) = nconstraints(constraints.bounds)
 
-struct OnceDifferentiableConstraints{F,J,T} <: AbstractConstraints
+struct OnceDifferentiableConstraints{F, J, T} <: AbstractConstraints
     c!::F         # c!(storage, x) stores the value of the constraint-functions at x
     jacobian!::J  # jacobian!(storage, x) stores the Jacobian of the constraint-functions
     bounds::ConstraintBounds{T}
 end
 
-function OnceDifferentiableConstraints(c!, jacobian!,
-                                       lx::AbstractArray, ux::AbstractArray,
-                                       lc::AbstractArray, uc::AbstractArray)
+function OnceDifferentiableConstraints(
+        c!, jacobian!,
+        lx::AbstractArray, ux::AbstractArray,
+        lc::AbstractArray, uc::AbstractArray
+    )
     b = ConstraintBounds(lx, ux, lc, uc)
-    OnceDifferentiableConstraints(c!, jacobian!, b)
+    return OnceDifferentiableConstraints(c!, jacobian!, b)
 end
 
 function OnceDifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
     bounds = ConstraintBounds(lx, ux, [], [])
-    OnceDifferentiableConstraints(bounds)
+    return OnceDifferentiableConstraints(bounds)
 end
 
 function OnceDifferentiableConstraints(bounds::ConstraintBounds)
-    c! = (c, x)->nothing
-    J! = (J, x)->nothing
-    OnceDifferentiableConstraints(c!, J!, bounds)
+    c! = (c, x) -> nothing
+    J! = (J, x) -> nothing
+    return OnceDifferentiableConstraints(c!, J!, bounds)
 end
 
 function checked_chunk(lx)
     if isempty(lx)
         throw(ArgumentError("autodiff on constraints require the full lower bound vector `lx`."))
     end
-    ForwardDiff.Chunk(lx)
+    return ForwardDiff.Chunk(lx)
 end
 
-function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVector,
-                                       lc::AbstractVector, uc::AbstractVector,
-                                       autodiff::Symbol = :central,
-                                       chunk::ForwardDiff.Chunk = checked_chunk(lx))
-                                       
+function OnceDifferentiableConstraints(
+        c!, lx::AbstractVector, ux::AbstractVector,
+        lc::AbstractVector, uc::AbstractVector,
+        autodiff::Symbol = :central,
+        chunk::ForwardDiff.Chunk = checked_chunk(lx)
+    )
+
     bounds = ConstraintBounds(lx, ux, lc, uc)
     T = eltype(bounds)
     sizex = size(lx)
@@ -149,7 +155,7 @@ function OnceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVecto
 end
 
 
-struct TwiceDifferentiableConstraints{F,J,H,T} <: AbstractConstraints
+struct TwiceDifferentiableConstraints{F, J, H, T} <: AbstractConstraints
     c!::F # c!(storage, x) stores the value of the constraint-functions at x
     jacobian!::J # jacobian!(storage, x) stores the Jacobian of the constraint-functions
     h!::H   # h!(storage, x) stores the hessian of the constraint functions
@@ -158,13 +164,15 @@ end
 
 function TwiceDifferentiableConstraints(c!, jacobian!, h!, lx, ux, lc, uc)
     b = ConstraintBounds(lx, ux, lc, uc)
-    TwiceDifferentiableConstraints(c!, jacobian!, h!, b)
+    return TwiceDifferentiableConstraints(c!, jacobian!, h!, b)
 end
 
-function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVector,
-    lc::AbstractVector, uc::AbstractVector,
-    autodiff::Symbol = :central,
-    chunk::ForwardDiff.Chunk = checked_chunk(lx))
+function TwiceDifferentiableConstraints(
+        c!, lx::AbstractVector, ux::AbstractVector,
+        lc::AbstractVector, uc::AbstractVector,
+        autodiff::Symbol = :central,
+        chunk::ForwardDiff.Chunk = checked_chunk(lx)
+    )
     bounds = ConstraintBounds(lx, ux, lc, uc)
     T = eltype(bounds)
     nc = length(lc)
@@ -172,7 +180,7 @@ function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVect
     x_example = zeros(T, nx)
     λ_example = zeros(T, nc)
     ccache = zeros(T, nc)
-   
+
     function sum_constraints(_x, _λ)
         # TODO: get rid of this allocation with DI.Cache
         ccache_righttype = zeros(promote_type(T, eltype(_x)), nc)
@@ -185,40 +193,41 @@ function TwiceDifferentiableConstraints(c!, lx::AbstractVector, ux::AbstractVect
 
     jac_prep = DI.prepare_jacobian(c!, ccache, backend, x_example)
     function con_jac!(_j, _x)
-        DI.jacobian!(c!, ccache, _j, jac_prep, backend, _x) 
+        DI.jacobian!(c!, ccache, _j, jac_prep, backend, _x)
         return _j
     end
 
     hess_prep = DI.prepare_hessian(sum_constraints, backend, x_example, DI.Constant(λ_example))
     function con_hess!(_h, _x, _λ)
-        DI.hessian!(sum_constraints, _h, hess_prep, backend, _x, DI.Constant(_λ)) 
+        DI.hessian!(sum_constraints, _h, hess_prep, backend, _x, DI.Constant(_λ))
         return _h
     end
-    
-    return TwiceDifferentiableConstraints(c!, con_jac!, con_hess!, bounds) 
+
+    return TwiceDifferentiableConstraints(c!, con_jac!, con_hess!, bounds)
 end
 
-function TwiceDifferentiableConstraints(c!, con_jac!,lx::AbstractVector, ux::AbstractVector,
-    lc::AbstractVector, uc::AbstractVector,
-    autodiff::Symbol = :central,
-    chunk::ForwardDiff.Chunk = checked_chunk(lx))
+function TwiceDifferentiableConstraints(
+        c!, con_jac!, lx::AbstractVector, ux::AbstractVector,
+        lc::AbstractVector, uc::AbstractVector,
+        autodiff::Symbol = :central,
+        chunk::ForwardDiff.Chunk = checked_chunk(lx)
+    )
     # TODO: is con_jac! still useful? we ignore it here
-    
+
     return TwiceDifferentiableConstraints(c!, lx, ux, lc, uc, autodiff, chunk)
 end
 
 
-
 function TwiceDifferentiableConstraints(lx::AbstractArray, ux::AbstractArray)
     bounds = ConstraintBounds(lx, ux, [], [])
-    TwiceDifferentiableConstraints(bounds)
+    return TwiceDifferentiableConstraints(bounds)
 end
 
 function TwiceDifferentiableConstraints(bounds::ConstraintBounds)
-    c! = (x, c)->nothing
-    J! = (x, J)->nothing
-    h! = (x, λ, h)->nothing
-    TwiceDifferentiableConstraints(c!, J!, h!, bounds)
+    c! = (x, c) -> nothing
+    J! = (x, J) -> nothing
+    h! = (x, λ, h) -> nothing
+    return TwiceDifferentiableConstraints(c!, J!, h!, bounds)
 end
 
 
@@ -232,9 +241,9 @@ function symmetrize(l, u)
     end
     # TODO: change to indices?
     size(l) == size(u) || throw(DimensionMismatch("bounds arrays must be consistent, got sizes $(size(l)) and $(size(u))"))
-    _symmetrize(l, u)
+    return _symmetrize(l, u)
 end
-_symmetrize(l::AbstractArray{T,N}, u::AbstractArray{T,N}) where {T,N} = l, u
+_symmetrize(l::AbstractArray{T, N}, u::AbstractArray{T, N}) where {T, N} = l, u
 _symmetrize(l::Vector{Any}, u::Vector{Any}) = _symm(l, u)
 _symmetrize(l, u) = _symm(l, u)
 
@@ -252,7 +261,7 @@ function _symm(l, u)
             u = Array{Union{}}(undef, 0)
         end
     end
-    promote(l, u)
+    return promote(l, u)
 end
 
 """
@@ -280,7 +289,7 @@ corresponding entry in `ineq`/`σ`/`b`.
 
 T is the element-type of the non-Int outputs
 """
-function parse_constraints(::Type{T}, l, u) where T
+function parse_constraints(::Type{T}, l, u) where {T}
     if size(l) != size(u)
         throw(DimensionMismatch(LazyString("Size of lower bounds (", size(l), ") and number of upper bounds (", size(u), ") must be equal.")))
     end
@@ -306,7 +315,7 @@ function parse_constraints(::Type{T}, l, u) where T
             throw(ArgumentError(LazyString("Lower bound (", li, ") must not be greater than upper bound (", ui, ").")))
         end
     end
-    eq, val, ineq, σ, b
+    return eq, val, ineq, σ, b
 end
 
 ### Compact printing of constraints

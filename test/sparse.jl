@@ -1,8 +1,8 @@
 @testset "sparse" begin
     @testset "𝐑ⁿ → 𝐑" begin
-        f(x) = sum(x->x^2, x)
+        f(x) = sum(x -> x^2, x)
         g(G, x) = G .= 2 .* x
-        h(H, _) = coptyo!(H, 2*I)
+        h(H, _) = coptyo!(H, 2 * I)
 
         obj_dense = TwiceDifferentiable(f, g, h, rand(40))
         @test !issparse(obj_dense.H)
@@ -15,12 +15,12 @@
                 G .= 2 .* x
             end
             if H !== nothing
-                copyto!(H, 2*I)
+                copyto!(H, 2 * I)
             end
             if F === nothing
                 return nothing
             else
-                return sum(x->x^2, x)
+                return sum(x -> x^2, x)
             end
         end
 
@@ -29,7 +29,7 @@
     end
     @testset "𝐑ⁿ → 𝐑ⁿ" begin
         f(F, x) = F .= 2 .* x
-        j(J, _) = copyto!(J, 2.0*I)
+        j(J, _) = copyto!(J, 2.0 * I)
 
         # Test that with no spec on the Jacobian cache it is dense
         obj_dense = OnceDifferentiable(f, j, rand(40), rand(40))
@@ -47,7 +47,7 @@
                 F .= 2 .* x
             end
             if J !== nothing
-                copyto!(J, 2*I)
+                copyto!(J, 2 * I)
             end
             return F
         end

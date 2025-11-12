@@ -1,5 +1,5 @@
 # Used for objectives and solvers where the gradient and Hessian is available/exists
-mutable struct TwiceDifferentiable{T<:Real,TDF<:AbstractArray,TH<:AbstractMatrix,TX<:AbstractArray} <: AbstractObjective
+mutable struct TwiceDifferentiable{T <: Real, TDF <: AbstractArray, TH <: AbstractMatrix, TX <: AbstractArray} <: AbstractObjective
     f
     df
     fdf
@@ -17,24 +17,28 @@ mutable struct TwiceDifferentiable{T<:Real,TDF<:AbstractArray,TH<:AbstractMatrix
     h_calls::Int
 end
 # compatibility with old constructor
-function TwiceDifferentiable(f, g, fg, h, x::TX, F::T = real(zero(eltype(x))), G::TG = alloc_DF(x, F), H::TH = alloc_H(x, F); inplace::Bool = true) where {T<:Real, TG<:AbstractArray, TH<:AbstractMatrix, TX<:AbstractArray}
+function TwiceDifferentiable(f, g, fg, h, x::TX, F::T = real(zero(eltype(x))), G::TG = alloc_DF(x, F), H::TH = alloc_H(x, F); inplace::Bool = true) where {T <: Real, TG <: AbstractArray, TH <: AbstractMatrix, TX <: AbstractArray}
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
 
     g! = df!_from_df(g, F, inplace)
     fg! = fdf!_from_fdf(fg, F, inplace)
     h! = h!_from_h(h, F, inplace)
 
-    TwiceDifferentiable{T,TG,TH,TX}(f, g!, fg!, nothing, nothing, h!,
-                                        copy(F), copy(G), copy(H),
-                                        x_f, x_df, x_h,
-                                        0, 0, 0)
+    return TwiceDifferentiable{T, TG, TH, TX}(
+        f, g!, fg!, nothing, nothing, h!,
+        copy(F), copy(G), copy(H),
+        x_f, x_df, x_h,
+        0, 0, 0
+    )
 end
 
-function TwiceDifferentiable(f, g, h,
-                             x::AbstractArray,
-                             F::Real = real(zero(eltype(x))),
-                             G::AbstractArray = alloc_DF(x, F),
-                             H::AbstractMatrix = alloc_H(x, F); inplace = true)
+function TwiceDifferentiable(
+        f, g, h,
+        x::AbstractArray,
+        F::Real = real(zero(eltype(x))),
+        G::AbstractArray = alloc_DF(x, F),
+        H::AbstractMatrix = alloc_H(x, F); inplace = true
+    )
     g! = df!_from_df(g, F, inplace)
     h! = h!_from_h(h, F, inplace)
 
@@ -45,10 +49,11 @@ function TwiceDifferentiable(f, g, h,
 end
 
 
-
-function TwiceDifferentiable(f, g,
-                             x_seed::AbstractArray,
-                             F::Real = real(zero(eltype(x_seed))); autodiff::Union{AbstractADType,Symbol,Bool} = :finite, inplace::Bool = true)
+function TwiceDifferentiable(
+        f, g,
+        x_seed::AbstractArray,
+        F::Real = real(zero(eltype(x_seed))); autodiff::Union{AbstractADType, Symbol, Bool} = :finite, inplace::Bool = true
+    )
     g! = df!_from_df(g, F, inplace)
     fg! = make_fdf(x_seed, F, f, g!)
 
@@ -58,14 +63,16 @@ function TwiceDifferentiable(f, g,
         DI.hessian!(f, _h, hess_prep, backend, _x)
         return _h
     end
-    TwiceDifferentiable(f, g!, fg!, h!, x_seed, F)
+    return TwiceDifferentiable(f, g!, fg!, h!, x_seed, F)
 end
 
-TwiceDifferentiable(d::NonDifferentiable, x_seed::AbstractArray = d.x_f, F::Real = real(zero(eltype(x_seed))); autodiff::Union{AbstractADType,Symbol,Bool} = :finite) =
+TwiceDifferentiable(d::NonDifferentiable, x_seed::AbstractArray = d.x_f, F::Real = real(zero(eltype(x_seed))); autodiff::Union{AbstractADType, Symbol, Bool} = :finite) =
     TwiceDifferentiable(d.f, x_seed, F; autodiff = autodiff)
 
-function TwiceDifferentiable(d::OnceDifferentiable, x_seed::AbstractArray = d.x_f,
-                             F::Real = real(zero(eltype(x_seed))); autodiff::Union{AbstractADType,Symbol,Bool} = :finite)
+function TwiceDifferentiable(
+        d::OnceDifferentiable, x_seed::AbstractArray = d.x_f,
+        F::Real = real(zero(eltype(x_seed))); autodiff::Union{AbstractADType, Symbol, Bool} = :finite
+    )
     backend = get_adtype(autodiff)
     hess_prep = DI.prepare_hessian(d.f, backend, x_seed)
     function h!(_h, _x)
@@ -75,8 +82,10 @@ function TwiceDifferentiable(d::OnceDifferentiable, x_seed::AbstractArray = d.x_
     return TwiceDifferentiable(d.f, d.df, d.fdf, h!, x_seed, F, gradient(d))
 end
 
-function TwiceDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x)));
-                             autodiff::Union{AbstractADType,Symbol,Bool} = :finite, inplace::Bool = true)
+function TwiceDifferentiable(
+        f, x::AbstractArray, F::Real = real(zero(eltype(x)));
+        autodiff::Union{AbstractADType, Symbol, Bool} = :finite, inplace::Bool = true
+    )
     backend = get_adtype(autodiff)
     grad_prep = DI.prepare_gradient(f, backend, x)
     hess_prep = DI.prepare_hessian(f, backend, x)
@@ -92,10 +101,10 @@ function TwiceDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x))
         DI.hessian!(f, _h, hess_prep, backend, _x)
         return _h
     end
-    TwiceDifferentiable(f, g!, fg!, h!, x, F)
+    return TwiceDifferentiable(f, g!, fg!, h!, x, F)
 end
 
 function hv_product!(obj::TwiceDifferentiable, x, v)
     H = hessian!(obj, x)
-    return H*v
+    return H * v
 end

@@ -1,5 +1,5 @@
 # Used for objectives and solvers where the gradient is available/exists
-mutable struct OnceDifferentiable{TF<:Union{AbstractArray,Real}, TDF<:AbstractArray, TX<:AbstractArray} <: AbstractObjective
+mutable struct OnceDifferentiable{TF <: Union{AbstractArray, Real}, TDF <: AbstractArray, TX <: AbstractArray} <: AbstractObjective
     f # objective
     df # (partial) derivative of objective
     fdf # objective and (partial) derivative of objective
@@ -13,26 +13,32 @@ end
 
 ### Only the objective
 # Ambiguity
-OnceDifferentiable(f, x::AbstractArray,
-                   F::Real = real(zero(eltype(x))),
-                   DF::AbstractArray = alloc_DF(x, F); inplace::Bool = true, autodiff::Union{AbstractADType,Symbol,Bool} = :finite,  
-                   chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)) =
+OnceDifferentiable(
+    f, x::AbstractArray,
+    F::Real = real(zero(eltype(x))),
+    DF::AbstractArray = alloc_DF(x, F); inplace::Bool = true, autodiff::Union{AbstractADType, Symbol, Bool} = :finite,
+    chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)
+) =
     OnceDifferentiable(f, x, F, DF, autodiff, chunk)
 #OnceDifferentiable(f, x::AbstractArray, F::AbstractArray; autodiff = :finite) =
 #    OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, alloc_DF(x, F))
-function OnceDifferentiable(f, x::AbstractArray,
-                   F::AbstractArray, DF::AbstractArray = alloc_DF(x, F);
-                   inplace::Bool = true, autodiff::Union{AbstractADType,Symbol,Bool} = :finite)
+function OnceDifferentiable(
+        f, x::AbstractArray,
+        F::AbstractArray, DF::AbstractArray = alloc_DF(x, F);
+        inplace::Bool = true, autodiff::Union{AbstractADType, Symbol, Bool} = :finite
+    )
     f! = f!_from_f(f, F, inplace)
 
-    OnceDifferentiable(f!, x, F, DF, autodiff)
+    return OnceDifferentiable(f!, x, F, DF, autodiff)
 end
 
 
-function OnceDifferentiable(f, x_seed::AbstractArray,
-                            F::Real,
-                            DF::AbstractArray,
-                            autodiff::Union{AbstractADType,Symbol,Bool}, chunk::ForwardDiff.Chunk)
+function OnceDifferentiable(
+        f, x_seed::AbstractArray,
+        F::Real,
+        DF::AbstractArray,
+        autodiff::Union{AbstractADType, Symbol, Bool}, chunk::ForwardDiff.Chunk
+    )
     # When here, at the constructor with positional autodiff, it should already
     # be the case, that f is inplace.
     if f isa Union{InplaceObjective, NotInplaceObjective}
@@ -59,19 +65,23 @@ end
 
 has_not_dep_symbol_in_ad = Ref{Bool}(true)
 OnceDifferentiable(f, x::AbstractArray, F::AbstractArray, autodiff::Symbol, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)) =
-OnceDifferentiable(f, x, F, alloc_DF(x, F), autodiff, chunk)
-function OnceDifferentiable(f, x::AbstractArray, F::AbstractArray,
-                            autodiff::Bool, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x))
+    OnceDifferentiable(f, x, F, alloc_DF(x, F), autodiff, chunk)
+function OnceDifferentiable(
+        f, x::AbstractArray, F::AbstractArray,
+        autodiff::Bool, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x)
+    )
     if autodiff == false
         throw(ErrorException("It is not possible to set the `autodiff` keyword to `false` when constructing a OnceDifferentiable instance from only one function. Pass in the (partial) derivative or specify a valid `autodiff` symbol."))
     elseif has_not_dep_symbol_in_ad[]
         @warn("Setting the `autodiff` keyword to `true` is deprecated. Please use a valid symbol instead.")
         has_not_dep_symbol_in_ad[] = false
     end
-    OnceDifferentiable(f, x, F, alloc_DF(x, F), :forward, chunk)
+    return OnceDifferentiable(f, x, F, alloc_DF(x, F), :forward, chunk)
 end
-function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::AbstractArray,
-    autodiff::Union{AbstractADType,Symbol,Bool}, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x_seed))
+function OnceDifferentiable(
+        f, x_seed::AbstractArray, F::AbstractArray, DF::AbstractArray,
+        autodiff::Union{AbstractADType, Symbol, Bool}, chunk::ForwardDiff.Chunk = ForwardDiff.Chunk(x_seed)
+    )
     if f isa Union{InplaceObjective, NotInplaceObjective}
         fF = make_f(f, x_seed, F)
         dfF = make_df(f, x_seed, F)
@@ -94,40 +104,46 @@ function OnceDifferentiable(f, x_seed::AbstractArray, F::AbstractArray, DF::Abst
 end
 
 ### Objective and derivative
-function OnceDifferentiable(f, df,
-                   x::AbstractArray,
-                   F::Real = real(zero(eltype(x))),
-                   DF::AbstractArray = alloc_DF(x, F);
-                   inplace::Bool = true)
+function OnceDifferentiable(
+        f, df,
+        x::AbstractArray,
+        F::Real = real(zero(eltype(x))),
+        DF::AbstractArray = alloc_DF(x, F);
+        inplace::Bool = true
+    )
 
 
     df! = df!_from_df(df, F, inplace)
 
     fdf! = make_fdf(x, F, f, df!)
 
-    OnceDifferentiable(f, df!, fdf!, x, F, DF)
+    return OnceDifferentiable(f, df!, fdf!, x, F, DF)
 end
 
-function OnceDifferentiable(f, j,
-                   x::AbstractArray,
-                   F::AbstractArray,
-                   J::AbstractArray = alloc_DF(x, F);
-                   inplace::Bool = true)
+function OnceDifferentiable(
+        f, j,
+        x::AbstractArray,
+        F::AbstractArray,
+        J::AbstractArray = alloc_DF(x, F);
+        inplace::Bool = true
+    )
 
     f! = f!_from_f(f, F, inplace)
     j! = df!_from_df(j, F, inplace)
     fj! = make_fdf(x, F, f!, j!)
 
-    OnceDifferentiable(f!, j!, fj!, x, F, J)
+    return OnceDifferentiable(f!, j!, fj!, x, F, J)
 end
 
 
 ### Objective, derivative and combination
-function OnceDifferentiable(f, df, fdf,
-    x::AbstractArray,
-    F::Real = real(zero(eltype(x))),
-    DF::AbstractArray = alloc_DF(x, F);
-    inplace::Bool = true)
+function OnceDifferentiable(
+        f, df, fdf,
+        x::AbstractArray,
+        F::Real = real(zero(eltype(x))),
+        DF::AbstractArray = alloc_DF(x, F);
+        inplace::Bool = true
+    )
 
     # f is never "inplace" since F is scalar
     df! = df!_from_df(df, F, inplace)
@@ -135,17 +151,21 @@ function OnceDifferentiable(f, df, fdf,
 
     x_f, x_df = x_of_nans(x), x_of_nans(x)
 
-    OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df!, fdf!,
-    copy(F), copy(DF),
-    x_f, x_df,
-    0, 0)
+    return OnceDifferentiable{typeof(F), typeof(DF), typeof(x)}(
+        f, df!, fdf!,
+        copy(F), copy(DF),
+        x_f, x_df,
+        0, 0
+    )
 end
 
-function OnceDifferentiable(f, df, fdf,
-                            x::AbstractArray,
-                            F::AbstractArray,
-                            DF::AbstractArray = alloc_DF(x, F);
-                            inplace::Bool = true)
+function OnceDifferentiable(
+        f, df, fdf,
+        x::AbstractArray,
+        F::AbstractArray,
+        DF::AbstractArray = alloc_DF(x, F);
+        inplace::Bool = true
+    )
 
     f = f!_from_f(f, F, inplace)
     df! = df!_from_df(df, F, inplace)
@@ -153,5 +173,5 @@ function OnceDifferentiable(f, df, fdf,
 
     x_f, x_df = x_of_nans(x), x_of_nans(x)
 
-    OnceDifferentiable(f, df!, fdf!, copy(F), copy(DF), x_f, x_df, 0, 0)
+    return OnceDifferentiable(f, df!, fdf!, copy(F), copy(DF), x_f, x_df, 0, 0)
 end

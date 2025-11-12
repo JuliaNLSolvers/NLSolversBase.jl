@@ -13,8 +13,8 @@ struct InplaceObjective{DF, FDF, FGH, Hv, FGHv}
     hv::Hv
     fghv::FGHv
 end
-InplaceObjective(;df=nothing, fdf=nothing, fgh=nothing, hv=nothing, fghv=nothing) = InplaceObjective(df, fdf, fgh, hv, fghv)
-const InPlaceObjectiveFGH = InplaceObjective{<:Nothing, <:Nothing, <:Any, <:Nothing, <: Nothing}
+InplaceObjective(; df = nothing, fdf = nothing, fgh = nothing, hv = nothing, fghv = nothing) = InplaceObjective(df, fdf, fgh, hv, fghv)
+const InPlaceObjectiveFGH = InplaceObjective{<:Nothing, <:Nothing, <:Any, <:Nothing, <:Nothing}
 const InPlaceObjectiveFG_Hv = InplaceObjective{<:Nothing, <:Any, <:Nothing, <:Any, <:Nothing}
 const InPlaceObjectiveFGHv = InplaceObjective{<:Nothing, <:Nothing, <:Nothing, <:Nothing, <:Any}
 struct NotInplaceObjective{DF, FDF, FGH}
@@ -23,19 +23,19 @@ struct NotInplaceObjective{DF, FDF, FGH}
     fgh::FGH
 end
 # Mutating version
-only_fg!(fg)     = InplaceObjective(fdf=fg)
-only_fgh!(fgh)   = InplaceObjective(fgh=fgh)
-only_fj!(fj)     = InplaceObjective(fdf=fj)
+only_fg!(fg) = InplaceObjective(fdf = fg)
+only_fgh!(fgh) = InplaceObjective(fgh = fgh)
+only_fj!(fj) = InplaceObjective(fdf = fj)
 
-only_fg_and_hv!(fg, hv) = InplaceObjective(fdf=fg, hv=hv)
-only_fghv!(fghv)        = InplaceObjective(fghv=fghv)
+only_fg_and_hv!(fg, hv) = InplaceObjective(fdf = fg, hv = hv)
+only_fghv!(fghv) = InplaceObjective(fghv = fghv)
 
 # Non-mutating version
-only_fg(fg)     = NotInplaceObjective(nothing, fg, nothing)
-only_fj(fj)     = NotInplaceObjective(nothing, fj, nothing)
+only_fg(fg) = NotInplaceObjective(nothing, fg, nothing)
+only_fj(fj) = NotInplaceObjective(nothing, fj, nothing)
 
-only_g_and_fg(g, fg)    = NotInplaceObjective(g, fg, nothing)
-only_j_and_fj(j, fj)    = NotInplaceObjective(j, fj, nothing)
+only_g_and_fg(g, fg) = NotInplaceObjective(g, fg, nothing)
+only_j_and_fj(j, fj) = NotInplaceObjective(j, fj, nothing)
 
 df(t::Union{InplaceObjective, NotInplaceObjective}) = t.df
 fdf(t::Union{InplaceObjective, NotInplaceObjective}) = t.fdf
@@ -59,7 +59,9 @@ function make_f(t::InplaceObjective, x, F::Real)
         throw(ArgumentError("Cannot construct function for evaluating the objective function: No suitable function was provided."))
     end
 end
-make_f(t::InplaceObjective, x, F) = let fdf = t.fdf; (F, x) -> fdf(F, nothing, x); end
+make_f(t::InplaceObjective, x, F) = let fdf = t.fdf
+    (F, x) -> fdf(F, nothing, x)
+end
 
 function make_df(t::InplaceObjective, x, F)
     (; fdf, fgh, fghv) = t
@@ -106,67 +108,71 @@ make_fdf(t::InplaceObjective, x, F) = fdf(t)
 # of whatever fdf returns.
 make_f(t::NotInplaceObjective, x, F::Real) = x -> fdf(t)(x)[1]
 make_f(t::NotInplaceObjective, x, F) = (F, x) -> copyto!(F, fdf(t)(x)[1])
-make_df(t::NotInplaceObjective{DF, TDF}, x, F) where {DF<:Nothing, TDF} = (DF, x) -> copyto!(DF, fdf(t)(x)[2])
+make_df(t::NotInplaceObjective{DF, TDF}, x, F) where {DF <: Nothing, TDF} = (DF, x) -> copyto!(DF, fdf(t)(x)[2])
 make_df(t::NotInplaceObjective, x, F) = t.df
 function make_fdf(t::NotInplaceObjective, x, F::Real)
     return function ffgg!(G, x)
         f, g = fdf(t)(x)
         copyto!(G, g)
-        f
+        return f
     end
 end
 function make_fdf(t::NotInplaceObjective, x, F)
     return function ffjj!(F, J, x)
         f, j = fdf(t)(x)
         copyto!(J, j)
-        copyto!(F, f)
+        return copyto!(F, f)
     end
 end
 
 # Constructors
 function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::Real = real(zero(eltype(x))))
     f = make_f(t, x, F)
-    NonDifferentiable(f, x, F)
+    return NonDifferentiable(f, x, F)
 end
 # this would not be possible if we could mark f, g, ... as non-AbstractArrays
 function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::AbstractArray)
     f = make_f(t, x, F)
-    NonDifferentiable(f, x, F)
+    return NonDifferentiable(f, x, F)
 end
 
-const InPlaceFGH = InplaceObjective{<:Nothing,<:Nothing,TH,<:Nothing,<:Nothing} where {TH}
-const InPlaceFG_HV = InplaceObjective{<:Nothing,TFG,<:Nothing,THv,<:Nothing} where {TFG,THv}
-const InPlaceFGHV = InplaceObjective{<:Nothing,<:Nothing,<:Nothing,<:Nothing,TFGHv} where {TFGHv}
+const InPlaceFGH = InplaceObjective{<:Nothing, <:Nothing, TH, <:Nothing, <:Nothing} where {TH}
+const InPlaceFG_HV = InplaceObjective{<:Nothing, TFG, <:Nothing, THv, <:Nothing} where {TFG, THv}
+const InPlaceFGHV = InplaceObjective{<:Nothing, <:Nothing, <:Nothing, <:Nothing, TFGHv} where {TFGHv}
 function TwiceDifferentiable(t::InPlaceFGH, x::AbstractArray, F::Real = real(zero(eltype(x))), G::AbstractArray = alloc_DF(x, F), H::AbstractMatrix = alloc_H(x, F))
-    f   =     x  -> t.fgh(F, nothing, nothing, x)
-    df  = (G, x) -> t.fgh(nothing, G, nothing, x)
+    f = x -> t.fgh(F, nothing, nothing, x)
+    df = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
     fdfh = (G, H, x) -> t.fgh(F, G, H, x)
     dfh = (G, H, x) -> t.fgh(nothing, G, H, x)
-    h   = (H, x) -> t.fgh(F, nothing, H, x)
+    h = (H, x) -> t.fgh(F, nothing, H, x)
 
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
 
-    TwiceDifferentiable(f, df, fdf, dfh, fdfh, h,
-                                        copy(F), copy(G), copy(H),
-                                        x_f, x_df, x_h,
-                                        0, 0, 0)
+    return TwiceDifferentiable(
+        f, df, fdf, dfh, fdfh, h,
+        copy(F), copy(G), copy(H),
+        x_f, x_df, x_h,
+        0, 0, 0
+    )
 end
 function TwiceDifferentiable(t::InPlaceFGH, x::AbstractVector{T}, F::Real = real(zero(eltype(x))), G::AbstractVector{Tx} = alloc_DF(x, F)) where {T, Tx}
-    f   =     x  -> t.fgh(F, nothing, nothing, x)
-    df  = (G, x) -> t.fgh(nothing, G, nothing, x)
+    f = x -> t.fgh(F, nothing, nothing, x)
+    df = (G, x) -> t.fgh(nothing, G, nothing, x)
     fdf = (G, x) -> t.fgh(F, G, nothing, x)
     fdfh = (G, H, x) -> t.fgh(F, G, H, x)
     dfh = (G, H, x) -> t.fgh(nothing, G, H, x)
-    h   = (H, x) -> t.fgh(F, nothing, H, x)
+    h = (H, x) -> t.fgh(F, nothing, H, x)
 
     H = alloc_H(x, F)
     x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
 
-    TwiceDifferentiable(f, df, fdf, dfh, fdfh, h,
-                                        copy(F), copy(G), copy(H),
-                                        x_f, x_df, x_h,
-                                        0, 0, 0)
+    return TwiceDifferentiable(
+        f, df, fdf, dfh, fdfh, h,
+        copy(F), copy(G), copy(H),
+        x_f, x_df, x_h,
+        0, 0, 0
+    )
 end
 function value_gradient_hessian!!(obj, x)
     obj.f_calls += 1
@@ -181,7 +187,7 @@ function value_gradient_hessian!!(obj, x)
     else
         obj.F = obj.fdfh(obj.DF, obj.H, x)
     end
-    obj.F, obj.DF, obj.H
+    return obj.F, obj.DF, obj.H
 end
 
 function gradient_hessian!!(obj, x)
@@ -195,15 +201,15 @@ function gradient_hessian!!(obj, x)
         copyto!(obj.x_h, x)
         obj.dfh(obj.DF, obj.H, x)
     end
-    obj.DF, obj.H
+    return obj.DF, obj.H
 end
 
 function TwiceDifferentiableHV(t::InPlaceFG_HV, x::AbstractVector)
-    TwiceDifferentiableHV(nothing, t.fdf, t.hv, x)
+    return TwiceDifferentiableHV(nothing, t.fdf, t.hv, x)
 end
 
 function TwiceDifferentiableHV(t::InPlaceFGHV, x::AbstractVector, F::Real = real(zero(eltype(x))))
-    fg  =  (F, G, x) -> t.fghv(F, G, nothing, x, nothing)
-    Hv  = (Hv, x, v) -> t.fghv(nothing, nothing, Hv, x, v)
-    TwiceDifferentiableHV(nothing, fg, Hv, x)
+    fg = (F, G, x) -> t.fghv(F, G, nothing, x, nothing)
+    Hv = (Hv, x, v) -> t.fghv(nothing, nothing, Hv, x, v)
+    return TwiceDifferentiableHV(nothing, fg, Hv, x)
 end

@@ -1,18 +1,18 @@
 @testset "incomplete objectives" begin
     import NLSolversBase: df, fdf, make_f, make_df, make_fdf
     function f(x)
-        sum(x->x^2,x)
+        sum(x -> x^2, x)
     end
 
     g!(G, x) = G .= 2 .* x
     g(x) = 2 .* x
 
-    h!(H, _) = copyto!(H, 2*I)
+    h!(H, _) = copyto!(H, 2 * I)
     h(_) = Diagonal(fill(2, length(n)))
 
     function fg!(G, x)
         G .= 2 .* x
-        sum(x->x^2,x)
+        sum(x -> x^2, x)
     end
     function just_fg!(F, G, x)
         if G !== nothing
@@ -21,13 +21,13 @@
         if F === nothing
             return nothing
         else
-            return sum(x->x^2,x)
+            return sum(x -> x^2, x)
         end
     end
     fg(x) = f(x), g(x)
     function just_fgh!(F, G, H, x)
         if H !== nothing
-            copyto!(H, 2*I)
+            copyto!(H, 2 * I)
         end
         if G !== nothing
             G .= 2 .* x
@@ -35,7 +35,7 @@
         if F === nothing
             return nothing
         else
-            return sum(x->x^2,x)
+            return sum(x -> x^2, x)
         end
     end
     fgh(x) = f(x), g(x), h(x)
@@ -46,7 +46,7 @@
         Hv .= 2 .* v
     end
     function just_fghv!(F, G, Hv, x, v)
-        if G  !== nothing
+        if G !== nothing
             G .= 2 .* x
         end
         if Hv !== nothing
@@ -55,7 +55,7 @@
         if F === nothing
             return nothing
         else
-            return sum(x->x^2, x)
+            return sum(x -> x^2, x)
         end
     end
 
@@ -82,8 +82,8 @@
         make_df(FDF, x, x[1])(G_cache, x)
         g!(G_cache2, x)
         @test G_cache == G_cache2
-        f1 = make_fdf(FDF, x, x[1])(G_cache, x.*2)
-        f2 = fg!(G_cache2, x.*2)
+        f1 = make_fdf(FDF, x, x[1])(G_cache, x .* 2)
+        f2 = fg!(G_cache2, x .* 2)
         @test G_cache == G_cache2
         @test f1 == f2
     end
@@ -101,8 +101,8 @@
     od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F)
     od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F, similar(x))
     od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F, similar(x), NLSolversBase.alloc_H(x, _F))
-#    od_fgh = TwiceDifferentiable(only_fgh(fgh), x)
-    for OD in (od_fg, od_fg!, od_fgh!)#, od_fgh)
+    #    od_fgh = TwiceDifferentiable(only_fgh(fgh), x)
+    for OD in (od_fg, od_fg!, od_fgh!) #, od_fgh)
         value!(OD, x)
         @test value(OD) == f(x)
         gradient!(OD, x)
@@ -116,7 +116,7 @@
     # Incomplete TwiceDifferentiableHv
     v = randn(10)
     od_fg_and_hv = TwiceDifferentiableHV(only_fg_and_hv!(just_fg!, just_hv!), x)
-    od_fghv      = TwiceDifferentiableHV(only_fghv!(just_fghv!), x)
+    od_fghv = TwiceDifferentiableHV(only_fghv!(just_fghv!), x)
     ndtdhv = NonDifferentiable(od_fghv, v)
     @test value(ndtdhv, v) === value(od_fghv, v)
 
@@ -134,7 +134,7 @@
 end
 @testset "incomplete objectives vectors" begin
     function tf(x)
-        x.^2
+        x .^ 2
     end
     function tf(F, x)
         copyto!(F, tf(x))
@@ -145,7 +145,7 @@ end
 
     function tfj!(F, J, x)
         copyto!(J, Diagonal(x))
-        F .= x.^2
+        F .= x .^ 2
     end
     function just_tfj!(F, J, x)
         if J !== nothing
@@ -154,7 +154,7 @@ end
         if F === nothing
             return nothing
         else
-            F .= x.^2
+            F .= x .^ 2
             return F
         end
     end
@@ -188,8 +188,8 @@ end
         make_df(FDF, x, x)(J_cache, x)
         tj!(J_cache2, x)
         @test J_cache == J_cache2
-        make_fdf(FDF, x, x)(F_cache, J_cache, x.*2)
-        tfj!(F_cache2, J_cache2, x.*2)
+        make_fdf(FDF, x, x)(F_cache, J_cache, x .* 2)
+        tfj!(F_cache2, J_cache2, x .* 2)
         @test F_cache == F_cache2
         @test J_cache == J_cache2
     end
@@ -218,49 +218,49 @@ end
 @testset "https://github.com/JuliaNLSolvers/Optim.jl/issues/718" begin
     f(x) = (1.0 - x[1])^2 + 100.0 * (x[2] - x[1]^2)^2
     function g!(G, x)
-      G[1] = -2.0 * (1.0 - x[1]) - 400.0 * (x[2] - x[1]^2) * x[1]
-      G[2] = 200.0 * (x[2] - x[1]^2)
+        G[1] = -2.0 * (1.0 - x[1]) - 400.0 * (x[2] - x[1]^2) * x[1]
+        G[2] = 200.0 * (x[2] - x[1]^2)
     end
     function h!(H, x)
-      H[1, 1] = 2.0 - 400.0 * x[2] + 1200.0 * x[1]^2
-      H[1, 2] = -400.0 * x[1]
-      H[2, 1] = -400.0 * x[1]
-      H[2, 2] = 200.0
+        H[1, 1] = 2.0 - 400.0 * x[2] + 1200.0 * x[1]^2
+        H[1, 2] = -400.0 * x[1]
+        H[2, 1] = -400.0 * x[1]
+        H[2, 2] = 200.0
     end
 
-    function fg!(F,G,x)
-      if G !== nothing
-        g!(G,x)
-      end
-      if F === nothing
-        return nothing
-      else
-        return f(x)
-      end
+    function fg!(F, G, x)
+        if G !== nothing
+            g!(G, x)
+        end
+        if F === nothing
+            return nothing
+        else
+            return f(x)
+        end
     end
-    function fgh!(F,G,H,x)
-      if G !== nothing
-        g!(G,x)
-      end
-      if H !== nothing
-        h!(H,x)
-      end
-      if F === nothing
-        return nothing
-      else
-        return f(x)
-      end
+    function fgh!(F, G, H, x)
+        if G !== nothing
+            g!(G, x)
+        end
+        if H !== nothing
+            h!(H, x)
+        end
+        if F === nothing
+            return nothing
+        else
+            return f(x)
+        end
     end
-    
-    gx = [0.0,0.0]
-    x=[0.0,0.0]
 
-    @test NLSolversBase.make_f(only_fgh!(fgh!),[0.0,0.0],0.0)(x) == 1.0
-    @test NLSolversBase.make_df(only_fgh!(fgh!),[0.0,0.0],0.0)(gx, x) === nothing
+    gx = [0.0, 0.0]
+    x = [0.0, 0.0]
+
+    @test NLSolversBase.make_f(only_fgh!(fgh!), [0.0, 0.0], 0.0)(x) == 1.0
+    @test NLSolversBase.make_df(only_fgh!(fgh!), [0.0, 0.0], 0.0)(gx, x) === nothing
     @test gx == [-2.0, 0.0]
 
-    gx = [0.0,0.0]
-    @test NLSolversBase.make_fdf(only_fgh!(fgh!),[0.0,0.0],0.0)(gx, x) == 1.0
+    gx = [0.0, 0.0]
+    @test NLSolversBase.make_fdf(only_fgh!(fgh!), [0.0, 0.0], 0.0)(gx, x) == 1.0
     @test gx == [-2.0, 0.0]
 
 end

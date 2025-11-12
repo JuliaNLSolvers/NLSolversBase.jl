@@ -10,7 +10,7 @@
         x_alt = [1.0, 1.0]
         f_x_alt = 57.316431861603284
         g_x_alt = [-5.43656365691809, -218.39260013257694]
-        h_x_alt = [16.30969097075427 0.; 0. 982.7667005965963]
+        h_x_alt = [16.30969097075427 0.0; 0.0 982.7667005965963]
 
         # Construct instances
         nd = NonDifferentiable(exponential, x_seed)
@@ -69,7 +69,7 @@
 
         @test value(nd) == value(od) == value(td) == f_x_seed
         @test gradient(td) == g_x_alt
-        @test gradient(td) == [gradient(td, i) for i = 1:length(x_seed)]
+        @test gradient(td) == [gradient(td, i) for i in 1:length(x_seed)]
         @test hessian(td) == h_x_seed
         @test nd.f_calls == od.f_calls == td.f_calls == 3
         @test od.df_calls == td.df_calls == 3
@@ -170,8 +170,8 @@
                     G = NLSolversBase.alloc_DF(x, 0.0)
                     H = NLSolversBase.alloc_H(x, 0.0)
                     MVP.hessian(prob)(H, x)
-                    @test hv_product!(ddf, x, v) == H*v
-                    @test hv_product(ddf) == H*v
+                    @test hv_product!(ddf, x, v) == H * v
+                    @test hv_product(ddf) == H * v
                     @test hv_product(ddf) == ddf.Hv
                     F, G = fg!(G, x)
                     @test gradient!(ddf, x) == G
@@ -193,14 +193,14 @@
         # Test example: Rosenbrock MINPACK
         function f!(F::Vector, x::Vector)
             F[1] = 1 - x[1]
-            F[2] = 10(x[2]-x[1]^2)
+            F[2] = 10(x[2] - x[1]^2)
             F
         end
         function j!(J::Matrix, x::Vector)
-            J[1,1] = -1
-            J[1,2] = 0
-            J[2,1] = -20x[1]
-            J[2,2] = 10
+            J[1, 1] = -1
+            J[1, 2] = 0
+            J[2, 1] = -20x[1]
+            J[2, 2] = 10
             J
         end
 
