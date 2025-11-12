@@ -9,7 +9,7 @@ function f!_from_f(f, F::AbstractArray, inplace)
     else
         return function ff!(F, x)
             copyto!(F, f(x))
-            F
+            return F
         end
     end
 end
@@ -19,7 +19,7 @@ function df!_from_df(g, F::Real, inplace)
     else
         return function gg!(G, x)
             copyto!(G, g(x))
-            G
+            return G
         end
     end
 end
@@ -29,7 +29,7 @@ function df!_from_df(j, F::AbstractArray, inplace)
     else
         return function jj!(J, x)
             copyto!(J, j(x))
-            J
+            return J
         end
     end
 end
@@ -40,7 +40,7 @@ function fdf!_from_fdf(fg, F::Real, inplace)
         return function ffgg!(G, x)
             fx, gx = fg(x)
             copyto!(G, gx)
-            fx
+            return fx
         end
     end
 end
@@ -51,7 +51,7 @@ function fdf!_from_fdf(fj, F::AbstractArray, inplace)
         return function ffjj!(F, J, x)
             fx, jx = fj(x)
             copyto!(J, jx)
-            copyto!(F, fx)
+            return copyto!(F, fx)
         end
     end
 end
@@ -61,7 +61,7 @@ function h!_from_h(h, F::Real, inplace)
     else
         return function hh!(H, x)
             copyto!(H, h(x))
-            H
+            return H
         end
     end
 end

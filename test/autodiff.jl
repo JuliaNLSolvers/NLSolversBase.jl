@@ -3,18 +3,18 @@
 
     # Should throw, as :wah is not a proper autodiff choice
     err = ArgumentError("The autodiff value `:wah` is not supported. Use `:finite` or `:forward`.")
-    @test_throws err OnceDifferentiable(x->x, rand(10); autodiff=:wah)
-    @test_throws err OnceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
-    @test_throws err TwiceDifferentiable(x->x, rand(10); autodiff=:wah)
-    @test_throws err TwiceDifferentiable(x->x, rand(10), 0.0; autodiff=:wah)
+    @test_throws err OnceDifferentiable(x -> x, rand(10); autodiff = :wah)
+    @test_throws err OnceDifferentiable(x -> x, rand(10), 0.0; autodiff = :wah)
+    @test_throws err TwiceDifferentiable(x -> x, rand(10); autodiff = :wah)
+    @test_throws err TwiceDifferentiable(x -> x, rand(10), 0.0; autodiff = :wah)
     #@test_throws err TwiceDifferentiable(x->x, rand(10), 0.0, rand(10); autodiff=:wah)
-    @test_throws err TwiceDifferentiable(x->x, x->x, rand(10); autodiff=:wah)
-    @test_throws err TwiceDifferentiable(x->x, x->x, rand(10), 0.0; autodiff=:wah)
+    @test_throws err TwiceDifferentiable(x -> x, x -> x, rand(10); autodiff = :wah)
+    @test_throws err TwiceDifferentiable(x -> x, x -> x, rand(10), 0.0; autodiff = :wah)
     #@test_throws err TwiceDifferentiable(x->x, x->x, rand(10), 0.0, rand(10); autodiff=:wah)
 
     for T in (OnceDifferentiable, TwiceDifferentiable)
-        odad1 = T(x->5.0, rand(1); autodiff = :finite)
-        odad2 = T(x->5.0, rand(1); autodiff = :forward)
+        odad1 = T(x -> 5.0, rand(1); autodiff = :finite)
+        odad2 = T(x -> 5.0, rand(1); autodiff = :forward)
         gradient!(odad1, rand(1))
         gradient!(odad2, rand(1))
         #    odad3 = T(x->5., rand(1); autodiff = :reverse)
@@ -25,31 +25,31 @@
 
     for a in (1.0, 5.0)
         xa = rand(1)
-        odad1 = OnceDifferentiable(x->a*x[1], xa; autodiff = :finite)
-        odad2 = OnceDifferentiable(x->a*x[1], xa; autodiff = :forward)
-    #    odad3 = OnceDifferentiable(x->a*x[1], xa; autodiff = :reverse)
+        odad1 = OnceDifferentiable(x -> a * x[1], xa; autodiff = :finite)
+        odad2 = OnceDifferentiable(x -> a * x[1], xa; autodiff = :forward)
+        #    odad3 = OnceDifferentiable(x->a*x[1], xa; autodiff = :reverse)
         gradient!(odad1, xa)
         gradient!(odad2, xa)
         @test gradient(odad1) ≈ [a]
         @test gradient(odad2) == [a]
-    #    @test odad3.g == [a]
+        #    @test odad3.g == [a]
     end
     for a in (1.0, 5.0)
         xa = rand(1)
-        odad1 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = :finite)
-        odad2 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = :forward)
-    #    odad3 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = :reverse)
+        odad1 = OnceDifferentiable(x -> a * x[1]^2, xa; autodiff = :finite)
+        odad2 = OnceDifferentiable(x -> a * x[1]^2, xa; autodiff = :forward)
+        #    odad3 = OnceDifferentiable(x->a*x[1]^2, xa; autodiff = :reverse)
         gradient!(odad1, xa)
         gradient!(odad2, xa)
-        @test gradient(odad1) ≈ 2.0*a*xa
-        @test gradient(odad2) == 2.0*a*xa
-    #    @test odad3.g == 2.0*a*xa
+        @test gradient(odad1) ≈ 2.0 * a * xa
+        @test gradient(odad2) == 2.0 * a * xa
+        #    @test odad3.g == 2.0*a*xa
     end
     nx = 2
     x = rand(nx)
-    f(x) = sum(x.^3)
+    f(x) = sum(x .^ 3)
     fx = f(x)
-    g(G, x) = copyto!(G, 3 .* x.^2)
+    g(G, x) = copyto!(G, 3 .* x .^ 2)
     gx = g(NLSolversBase.alloc_DF(x, 0.0), x)
     h(H, x) = copyto!(H, Diagonal(6 .* x))
     hx = h(fill(0.0, nx, nx), x)
@@ -72,7 +72,7 @@
                 if autodiff == :finite
                     # we have to increase the tolerance here, as the hessian is
                     # not very accurate
-                    @test isapprox(hessian(differentiable), hx; atol = 1e-6)
+                    @test isapprox(hessian(differentiable), hx; atol = 1.0e-6)
                 else
                     @test hessian(differentiable) == hx
                 end
@@ -80,7 +80,7 @@
         end
     end
     @testset for autodiff in (:finite, :forward, AutoForwardDiff())
-        td = TwiceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x); autodiff = autodiff)
+        td = TwiceDifferentiable(x -> sum(x), (G, x) -> copyto!(G, fill!(copy(x), 1)), copy(x); autodiff = autodiff)
         value(td)
         value!(td, x)
         value_gradient!(td, x)
@@ -88,7 +88,7 @@
         hessian!(td, x)
     end
     @testset for autodiff in (:finite, :forward, AutoForwardDiff())
-        for nd = (NonDifferentiable(x->sum(x), copy(x)), NonDifferentiable(x->sum(x), copy(x), 0.0))
+        for nd in (NonDifferentiable(x -> sum(x), copy(x)), NonDifferentiable(x -> sum(x), copy(x), 0.0))
             td = TwiceDifferentiable(nd; autodiff = autodiff)
             value(td)
             value!(td, x)
@@ -96,7 +96,7 @@
             gradient!(td, x)
             hessian!(td, x)
         end
-        for od = (OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x)), OnceDifferentiable(x->sum(x), (G, x)->copyto!(G, fill!(copy(x),1)), copy(x), 0.0))
+        for od in (OnceDifferentiable(x -> sum(x), (G, x) -> copyto!(G, fill!(copy(x), 1)), copy(x)), OnceDifferentiable(x -> sum(x), (G, x) -> copyto!(G, fill!(copy(x), 1)), copy(x), 0.0))
             td = TwiceDifferentiable(od; autodiff = autodiff)
             value(td)
             value!(td, x)
@@ -108,14 +108,14 @@
     @testset "autodiff ℝᴺ → ℝᴺ" begin
         function f!(F, x)
             F[1] = 1.0 - x[1]
-            F[2] = 10.0*(x[2] - x[1]^2)
+            F[2] = 10.0 * (x[2] - x[1]^2)
             F
         end
         function j!(J, x)
-            J[1,1] = -1.0
-            J[1,2] = 0.0
-            J[2,1] = -20.0*x[1]
-            J[2,2] = 10.0
+            J[1, 1] = -1.0
+            J[1, 2] = 0.0
+            J[2, 1] = -20.0 * x[1]
+            J[2, 2] = 10.0
             J
         end
         # Some random x
@@ -162,7 +162,7 @@ end
 @testset "value/grad" begin
     a = 3.0
     x_seed = rand(1)
-    odad1 = OnceDifferentiable(x->a*x[1]^2, x_seed)
+    odad1 = OnceDifferentiable(x -> a * x[1]^2, x_seed)
     value_gradient!(odad1, x_seed)
     @test gradient(odad1) ≈ 2 .* a .* (x_seed)
     @testset "call counters" begin
@@ -179,9 +179,9 @@ end
 
 @testset "residual function" begin
     function f!(F, x)
-        F[1] = 2x[1]+x[2]
-        F[2] = x[1]+x[2]^2
-        F[3] = x[1]^2+x[2]^2
+        F[1] = 2x[1] + x[2]
+        F[2] = x[1] + x[2]^2
+        F[3] = x[1]^2 + x[2]^2
         F
     end
 
@@ -197,8 +197,8 @@ end
 
     F = zeros(3)
     J = zeros(3, 2)
-    x_init = [1., 1.]
-    od = OnceDifferentiable(f!, x_init,  F)
+    x_init = [1.0, 1.0]
+    od = OnceDifferentiable(f!, x_init, F)
     value_jacobian!(od, x_init)
     @test length(value(od)) == length(F)
     @test value(od) ≈ f!(F, x_init)
