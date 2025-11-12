@@ -153,6 +153,127 @@ function jacobian(obj::AbstractObjective, x)
     return newdf
 end
 
+"""
+    jvp(obj::OnceDifferentiable)
+
+Return the most recently evaluated Jacobian-vector product of the objective function `obj`.
+"""
+jvp(obj::OnceDifferentiable) = obj.JVP
+
+"""
+    jvp(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+
+Return the Jacobian-vector product of the objective function `obj` at point `x` with tangents `v`.
+
+!!! note
+    This function does neither use cached results nor cache the results.
+"""
+function jvp(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+    obj.jvp_calls += 1
+    return obj.jvp(x, v)
+end
+
+"""
+    jvp!(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+
+Return the Jacobian-vector product of the objective function `obj` at point `x` with tangents `v`,
+and cache the results in `obj`.
+
+!!! note
+    This function does use cached results if available.
+"""
+function jvp!(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+    if x != obj.x_jvp || v != obj.v_jvp
+        jvp!!(obj, x, v)
+    end
+    return jvp(obj)
+end
+
+"""
+    jvp!!(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+
+Return the Jacobian-vector product of the objective function `obj` at point `x` with tangents `v`,
+and cache the results in `obj`.
+
+!!! note
+    This function does not use cached results but forces reevaluation of the Jacobian-vector product.
+"""
+function jvp!!(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+    if obj.JVP isa Real
+        z = obj.jvp(x, v)
+        obj.JVP = z
+    else
+        obj.jvp(obj.JVP, x, v)
+    end
+    copyto!(obj.x_jvp, x)
+    copyto!(obj.v_jvp, v)
+    obj.jvp_calls += 1
+    return z
+end
+
+"""
+    value_jvp(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+
+Return the value and the Jacobian-vector product of the objective function `obj` at point `x` with tangents `v`.
+
+!!! note
+    This function does neither use cached results nor cache the results.
+"""
+function value_jvp(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+    obj.f_calls += 1
+    obj.jvp_calls += 1
+    return obj.fjvp(x, v)
+end
+
+"""
+    value_jvp!(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+
+Return the value and the Jacobian-vector product of the objective function `obj` at point `x` with tangents `v`,
+and cache the results in `obj`.
+
+!!! note
+    This function does use cached results if available.
+"""
+function value_jvp!(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+    if x != obj.x_f
+        if x != obj.x_jvp || v != obj.v_jvp
+            # Both value and Jacobian-vector product have to be recomputed
+            value_jvp!!(obj, x, v)
+        else
+            # Only value has to be recomputed
+            value!!(obj, x)
+        end
+    elseif x != obj.x_jvp || v != obj.v_jvp
+        jvp!!(obj, x, v)
+    end
+    return obj.F, obj.JVP
+end
+
+"""
+    value_jvp!!(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+
+Return the value and the Jacobian-vector product of the objective function `obj` at point `x` with tangents `v`,
+and cache the results in `obj`.
+
+!!! note
+    This function does not use cached results but forces reevaluation of the Jacobian-vector product.
+"""
+function value_jvp!!(obj::OnceDifferentiable, x::AbstractArray, v::AbstractArray)
+    if obj.F isa Real
+        y, ty = obj.fjvp(x, v)
+        obj.F = y
+        obj.JVP = ty
+    else
+        obj.fjvp(obj.F, obj.JVP, x, v)
+    end
+    copyto!(obj.x_f, x)
+    copyto!(obj.x_jvp, x)
+    copyto!(obj.v_jvp, v)
+    obj.f_calls += 1
+    obj.jvp_calls += 1
+    return obj.F, obj.JVP
+end
+
 value(obj::NonDifferentiable{TF, TX}, x) where {TF<:AbstractArray, TX} = value(obj, copy(obj.F), x)
 value(obj::OnceDifferentiable{TF, TDF, TX}, x) where {TF<:AbstractArray, TDF, TX} = value(obj, copy(obj.F), x)
 function value(obj::AbstractObjective, F, x)
@@ -188,6 +309,14 @@ function _clear_df!(d::AbstractObjective)
     nothing
 end
 
+function _clear_jvp!(d::AbstractObjective)
+    d.jvp_calls = 0
+    fill!(d.JVP, NaN)
+    fill!(d.x_jvp, NaN)
+    fill!(d.v_jvp, NaN)
+    nothing
+end
+
 function _clear_h!(d::AbstractObjective)
     d.h_calls = 0
     fill!(d.H, NaN)
@@ -208,6 +337,7 @@ clear!(d::NonDifferentiable)  = _clear_f!(d)
 function clear!(d::OnceDifferentiable)
     _clear_f!(d)
     _clear_df!(d)
+    _clear_jvp!(d)
     nothing
 end
 
@@ -229,6 +359,8 @@ g_calls(d::NonDifferentiable) = 0
 h_calls(d::Union{NonDifferentiable, OnceDifferentiable}) = 0
 f_calls(d) = d.f_calls
 g_calls(d) = d.df_calls
+jvp_calls(d) = 0
+jvp_calls(d::OnceDifferentiable) = d.jvp_calls
 h_calls(d) = d.h_calls
 hv_calls(d) = 0
 h_calls(d::TwiceDifferentiableHV) = 0
