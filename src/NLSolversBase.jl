@@ -5,7 +5,7 @@ import DifferentiationInterface as DI
 using FiniteDiff: FiniteDiff
 using ForwardDiff: ForwardDiff
 using LinearAlgebra: LinearAlgebra
-import Distributed: clear!
+
 export AbstractObjective,
        NonDifferentiable,
        OnceDifferentiable,
@@ -47,13 +47,14 @@ export AbstractConstraints, OnceDifferentiableConstraints,
 
 function finitediff_fdtype(autodiff)
     if autodiff == :finiteforward
-        fdtype = Val{:forward}
+        return Val{:forward}
     elseif autodiff == :finitecomplex
-        fdtype = Val{:complex}
+        return Val{:complex}
     elseif autodiff == :finite || autodiff == :central || autodiff == :finitecentral
-        fdtype = Val{:central}
+        return Val{:central}
+    else
+        throw(ArgumentError(LazyString("The autodiff value `", repr(autodiff), "` is not supported. Use `:finite` or `:forward`.")))
     end
-    fdtype
 end
 
 forwarddiff_chunksize(::Nothing) = nothing

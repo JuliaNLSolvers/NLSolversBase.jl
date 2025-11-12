@@ -1,6 +1,8 @@
 NLSolversBase.jl
 ========
 
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+
 Base functionality for optimization and solving systems of equations in Julia.
 
 NLSolversBase.jl is the core, common dependency of several packages in the [JuliaNLSolvers](https://github.com/JuliaNLSolvers/) family.

@@ -9,6 +9,10 @@ using RecursiveArrayTools
 using ADTypes
 MVP = OptimTestProblems.MultivariateProblems
 
+import Aqua
+import ExplicitImports
+import JET
+
 # TODO: Use OptimTestProblems (but it does not have exponential_gradient_hession etc.)
 # TODO: MultivariateProblems.UnconstrainedProblems.examples["Exponential"]
 
@@ -89,4 +93,5 @@ end
     include("sparse.jl")
     include("kwargs.jl")
     include("utils.jl")
+    include("qa.jl")
 end
