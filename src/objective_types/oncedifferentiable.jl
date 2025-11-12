@@ -3,12 +3,18 @@ mutable struct OnceDifferentiable{TF<:Union{AbstractArray,Real}, TDF<:AbstractAr
     f # objective
     df # (partial) derivative of objective
     fdf # objective and (partial) derivative of objective
+    jvp # Jacobian-vector product of objective
+    fjvp # objective and Jacobian-vector product of objective
     F::TF # cache for f output
     DF::TDF # cache for df output
+    JVP::TF # cache for jvp output
     x_f::TX # x used to evaluate f (stored in F)
     x_df::TX # x used to evaluate df (stored in DF)
+    x_jvp::TX # x used to evaluate jvp (stored in JVP)
+    v_jvp::TX # v used to evaluate jvp (stored in JVP) 
     f_calls::Int
     df_calls::Int
+    jvp_calls::Int
 end
 
 ### Only the objective
@@ -28,11 +34,15 @@ function OnceDifferentiable(f, x::AbstractArray,
     OnceDifferentiable(f!, x, F, DF, autodiff)
 end
 
-
 function OnceDifferentiable(f, x_seed::AbstractArray,
                             F::Real,
                             DF::AbstractArray,
                             autodiff::AbstractADType)
+    x_f = x_of_nans(x_seed)
+    x_df = x_of_nans(x_seed)
+    x_jvp = x_of_nans(x_seed)
+    v_jvp = x_of_nans(x_seed)
+
     # When here, at the constructor with positional autodiff, it should already
     # be the case, that f is inplace.
     if f isa Union{InplaceObjective, NotInplaceObjective}
@@ -40,8 +50,10 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
         fF = make_f(f, x_seed, F)
         dfF = make_df(f, x_seed, F)
         fdfF = make_fdf(f, x_seed, F)
+        jvpF = make_jvp(f, x_seed, F)
+        fjvpF = make_fjvp(f, x_seed, F)
 
-        return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
+        return OnceDifferentiable(fF, dfF, fdfF, jvpF, fjvpF, copy(F), copy(DF), copy(F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     else
         grad_prep = DI.prepare_gradient(f, autodiff, x_seed)
         g! = let f = f, grad_prep = grad_prep, autodiff = autodiff
@@ -56,7 +68,16 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
                 return y
             end
         end
-        return OnceDifferentiable(f, g!, fg!, x_seed, F, DF)
+        pushforward_prep = DI.prepare_pushforward(f, autodiff, x_seed, (x_seed,))
+        function jvp(_x, _v)
+            ty = DI.pushforward(f, pushforward_prep, autodiff, _x, (_v,))
+            return only(ty)
+        end
+        function fjvp(_x, _v)
+            y, ty = DI.value_and_pushforward(f, pushforward_prep, autodiff, _x, (_v,))
+            return y, only(ty)
+        end
+        return OnceDifferentiable(f, g!, fg!, jvp, fjvp, copy(F), copy(DF), copy(F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     end
 end
 
@@ -66,11 +87,20 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
                             F::AbstractArray,
                             DF::AbstractArray,
                             autodiff::AbstractADType)
+
+    x_f = x_of_nans(x_seed)
+    x_df = x_of_nans(x_seed)
+    x_jvp = x_of_nans(x_seed)
+    v_jvp = x_of_nans(x_seed)
+
     if  f isa Union{InplaceObjective, NotInplaceObjective}
         fF = make_f(f, x_seed, F)
         dfF = make_df(f, x_seed, F)
         fdfF = make_fdf(f, x_seed, F)
-        return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
+        jvpF = make_jvp(f, x_seed, F)
+        fjvpF = make_fjvp(f, x_seed, F)
+
+        return OnceDifferentiable(fF, dfF, fdfF, jvpF, fjvpF, copy(F), copy(DF), copy(F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     else
         F2 = similar(F)
         jac_prep = DI.prepare_jacobian(f, F2, autodiff, x_seed)
@@ -86,7 +116,20 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
                 return y
             end
         end
-        return OnceDifferentiable(f, j!, fj!, x_seed, F, DF)
+        pushforward_prep = DI.prepare_pushforward(f, F2, autodiff, x_seed, (x_seed,))
+        jvp! = let f = f, F2 = F2, pushforward_prep = pushforward_prep, autodiff = autodiff
+            function (_jvp, _x, _v)
+                DI.pushforward!(f, F2, _jvp, pushforward_prep, autodiff, _x, (_v,))
+                return _jvp
+            end
+        end
+        fjvp! = let f = f, pushforward_prep = pushforward_prep, autodiff = autodiff
+            function (_y, _jvp, _x, _v)
+                DI.value_and_pushforward!(f, _y, _jvp, pushforward_prep, autodiff, _x, (_v,))
+                return _y, _jvp
+            end
+        end
+        return OnceDifferentiable(f, j!, fj!, jvp!, fjvp!, copy(F), copy(DF), copy(F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     end
 end
 
@@ -96,10 +139,7 @@ function OnceDifferentiable(f, df,
                    F::Real = real(zero(eltype(x))),
                    DF::AbstractArray = alloc_DF(x, F);
                    inplace::Bool = true)
-
-
     df! = df!_from_df(df, F, inplace)
-
     fdf! = make_fdf(x, F, f, df!)
 
     OnceDifferentiable(f, df!, fdf!, x, F, DF)
@@ -126,16 +166,21 @@ function OnceDifferentiable(f, df, fdf,
     DF::AbstractArray = alloc_DF(x, F);
     inplace::Bool = true)
 
-    # f is never "inplace" since F is scalar
+    # f, jvp and fjvp are never "inplace" since F is scalar
     df! = df!_from_df(df, F, inplace)
     fdf! = fdf!_from_fdf(fdf, F, inplace)
+    jvp = make_jvp(x, F, df!)
+    fjvp = make_fjvp(x, F, fdf!)
 
-    x_f, x_df = x_of_nans(x), x_of_nans(x)
+    x_f = x_of_nans(x)
+    x_df = x_of_nans(x)
+    x_jvp = x_of_nans(x)
+    v_jvp = x_of_nans(x)
 
-    OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df!, fdf!,
-    copy(F), copy(DF),
-    x_f, x_df,
-    0, 0)
+    OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df!, fdf!, jvp, fjvp,
+    copy(F), copy(DF), copy(F),
+    x_f, x_df, x_jvp, v_jvp,
+    0, 0, 0)
 end
 
 function OnceDifferentiable(f, df, fdf,
@@ -147,8 +192,13 @@ function OnceDifferentiable(f, df, fdf,
     f = f!_from_f(f, F, inplace)
     df! = df!_from_df(df, F, inplace)
     fdf! = fdf!_from_fdf(fdf, F, inplace)
+    jvp! = make_jvp(x, F, df!)
+    fjvp! = make_fjvp(x, F, fdf!)
 
-    x_f, x_df = x_of_nans(x), x_of_nans(x)
+    x_f = x_of_nans(x)
+    x_df = x_of_nans(x)
+    x_jvp = x_of_nans(x)
+    v_jvp = x_of_nans(x)
 
-    OnceDifferentiable(f, df!, fdf!, copy(F), copy(DF), x_f, x_df, 0, 0)
+    OnceDifferentiable(f, df!, fdf!, jvp!, fjvp!, copy(F), copy(DF), copy(F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
 end

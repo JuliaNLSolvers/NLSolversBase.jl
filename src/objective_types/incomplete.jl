@@ -6,33 +6,53 @@
 # Note, that for TwiceDifferentiable we cannot provide con-
 # structors if h === nothing, as that requires automatic dif-
 # fferentiation of some sort.
-@kwdef struct InplaceObjective{FDF, FGH, Hv, FGHv}
+@kwdef struct InplaceObjective{FDF, FGH, Hv, FGHv, JVP, FJVP}
     fdf::FDF = nothing
     fgh::FGH = nothing
     hv::Hv = nothing
     fghv::FGHv = nothing
+    jvp::JVP = nothing
+    fjvp::FJVP = nothing
 end
 
-@kwdef struct NotInplaceObjective{DF, FDF, FGH}
+@kwdef struct NotInplaceObjective{DF, FDF, FGH, JVP, FJVP}
     df::DF = nothing
     fdf::FDF = nothing
     fgh::FGH = nothing
+    jvp::JVP = nothing
+    fjvp::FJVP = nothing
 end
 
 # Mutating version
 only_fg!(fg)     = InplaceObjective(; fdf=fg)
 only_fgh!(fgh)   = InplaceObjective(; fgh=fgh)
-only_fj!(fj)     = InplaceObjective(; fdf=fj)
+
+only_fg_and_gv!(fg, jvp) = InplaceObjective(; fdf=fg, jvp)
+only_fg_and_fgv!(fg, fjvp) = InplaceObjective(; fdf=fg, fjvp)
 
 only_fg_and_hv!(fg, hv) = InplaceObjective(; fdf=fg, hv=hv)
 only_fghv!(fghv)        = InplaceObjective(; fghv=fghv)
 
 # Non-mutating version
-only_fg(fg)     = NotInplaceObjective(; fdf=fg)
-only_fj(fj)     = NotInplaceObjective(; fdf=fj)
+only_fg(fg) = NotInplaceObjective(; fdf=fg)
+only_fgh(fgh) = NotInplaceObjective(; fgh) 
+
+only_fg_and_gv(fg, jvp) = NotInplaceObjective(; fdf = fg, jvp)
+only_fg_and_fgv(fg, fjvp) = NotInplaceObjective(; fdf = fg, fjvp)
 
 only_g_and_fg(g, fg)    = NotInplaceObjective(; df=g, fdf=fg)
-only_j_and_fj(j, fj)    = NotInplaceObjective(; df=j, fdf=fj)
+
+# Aliases with `j` (Jacobian)
+# Do not apply to functions that involve Hessians!
+# Maybe we should clearly separate functions that take gradients (=> scalar-valued functions) and Jacobians (=> array-valued functions)?
+const only_fj! = only_fg!
+const only_fj_and_jv! = only_fg_and_gv!
+const only_fj_and_fjv! = only_fg_and_fgv!
+
+const only_fj = only_fg
+const only_fj_and_jv = only_fg_and_gv
+const only_fj_and_fjv = only_fg_and_fgv
+const only_j_and_fj = only_g_and_fg
 
 # Mutating version
 function make_f(t::InplaceObjective, _, F::Real)
@@ -168,6 +188,108 @@ function make_hv(t::InplaceObjective, _, ::Real)
     end
 end
 
+function make_jvp(t::InplaceObjective, x::AbstractArray, F::Real)
+    (; jvp, fjvp, fdf, fgh, fghv) = t
+    if jvp !== nothing
+        return jvp
+    elseif fjvp !== nothing
+        return let fjvp = fjvp, F = F
+            (x, v) -> last ∘ fjvp(nothing, F, x, v)
+        end
+    elseif fdf !== nothing
+        return let fdf = fdf, df = alloc_DF(x, F)
+            (x, v) -> begin
+                fdf(nothing, df, x)
+                return LinearAlgebra.dot(df, v)
+            end
+        end
+    elseif fgh !== nothing
+        return let fgh = fgh, df = alloc_DF(x, F)
+            (x, v) -> begin
+                fgh(nothing, df, nothing, x)
+                return LinearAlgebra.dot(df, v)
+            end
+        end
+    elseif fghv !== nothing
+        return let fghv = fghv, df = alloc_DF(x, F)
+            (x, v) -> begin
+                fghv(nothing, df, nothing, x, v)
+                return LinearAlgebra.dot(df, v)
+            end
+        end
+    else
+        return ((x, v) -> throw(ArgumentError("Cannot evaluate the Jacobian-vector product of the objective function: No suitable Julia function available.")))
+    end
+end
+function make_jvp(t::InplaceObjective, x::AbstractArray, F::AbstractArray)
+    (; jvp, fjvp, fdf) = t
+    if jvp !== nothing
+        return jvp
+    elseif fjvp !== nothing
+        return let fjvp = fjvp
+            (JVP, x, v) -> last ∘ fjvp(nothing, JVP, x, v)
+        end
+    elseif fdf !== nothing
+        return let fdf = fdf, jx = alloc_DF(x, F)
+            (JVP, x, v) -> begin
+                fdf(nothing, jx, x)
+                LinearAlgebra.mul!(JVP, jx, v)
+                return JVP
+            end
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` and `fghv` are not appropriate for functions with `::AbstractArray` output
+        return ((JVP, x, v) -> throw(ArgumentError("Cannot evaluate the Jacobian-vector product of the objective function: No suitable Julia function available.")))
+    end
+end
+
+function make_fjvp(t::InplaceObjective, x::AbstractArray, F::Real)
+    (; fjvp, fdf, fgh, fghv) = t
+    if fjvp !== nothing
+        return fjvp
+    elseif fdf !== nothing
+        return let fdf = fdf, F = F, df = alloc_DF(x, F)
+            (x, v) -> begin
+                fx = fdf(F, df, x)
+                return fx, LinearAlgebra.dot(df, v)
+            end
+        end
+    elseif fgh !== nothing
+        return let fgh = fgh, F = F, df = alloc_DF(x, F)
+            (x, v) -> begin
+                fx = fgh(F, df, nothing, x)
+                return fx, LinearAlgebra.dot(df, v)
+            end
+        end
+    elseif fghv !== nothing
+        return let fghv = fghv, F = F, df = alloc_DF(x, F)
+            (x, v) -> begin
+                fx = fghv(F, df, nothing, x, v)
+                return fx, LinearAlgebra.dot(df, v)
+            end
+        end
+    else
+        return ((x, v) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian-vector product: No suitable Julia function available.")))
+    end
+end
+function make_fjvp(t::InplaceObjective, x::AbstractArray, F::AbstractArray)
+    (; fjvp, fdf) = t
+    if fjvp !== nothing
+        return fjvp
+    elseif fdf !== nothing
+        return let fdf = fdf, jx = alloc_DF(x, F)
+            (F, JVP, x, v) -> begin
+                fdf(F, jx, x)
+                LinearAlgebra.mul!(JVP, jx, v)
+                return F, JVP
+            end
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` and `fghv` are not appropriate for functions with `::AbstractArray` output
+        return ((F, JVP, x, v) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian-vector product: No suitable Julia function available.")))
+    end
+end
+
 # Non-mutating version
 # The contract with the user is that fdf returns (F, DF)
 # and then we simply need to pick out the appropriate element
@@ -263,6 +385,100 @@ function make_fdf(t::NotInplaceObjective, _, ::AbstractArray)
     else
         # Note: Functions involving the Hessian matrix such as `fgh` are not appropriate for functions with `::AbstractArray` output
         return ((F, DF, x) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.")))
+    end
+end
+
+function make_jvp(t::NotInplaceObjective, ::AbstractArray, ::Real)
+    (; jvp, fjvp, df, fdf, fgh) = t
+    if jvp !== nothing
+        return jvp
+    elseif fjvp !== nothing
+        return last ∘ fjvp
+    elseif df !== nothing
+        return let df = df
+            (x, v) -> LinearAlgebra.dot(df(x), v)
+        end
+    elseif fdf !== nothing
+        return let fdf = fdf
+            (x, v) -> LinearAlgebra.dot(last(fdf(x)), v)
+        end
+    elseif fgh !== nothing
+        return let fgh = fgh
+            (x, v) -> LinearAlgebra.dot(fgh(x)[2], v)
+        end
+    else
+        return ((x, v) -> throw(ArgumentError("Cannot evaluate the Jacobian-vector product of the objective function: No suitable Julia function available.")))
+    end
+end
+function make_jvp(t::NotInplaceObjective, ::AbstractArray, ::AbstractArray)
+    (; jvp, fjvp, df, fdf) = t
+    if jvp !== nothing
+        return let jvp = jvp
+            (JVP, x, v) -> copyto!(JVP, jvp(x, v))
+        end
+    elseif fjvp !== nothing
+        return let fjvp = fjvp
+            (JVP, x, v) -> copyto!(JVP, fjvp(x, v)[2])
+        end
+    elseif df !== nothing
+        return let df = df
+            (JVP, x, v) -> LinearAlgebra.mul!(JVP, df(x), v)
+        end
+    elseif fdf !== nothing
+        return let fdf = fdf
+            (JVP, x, v) -> LinearAlgebra.mul!(JVP, last(fdf(x)), v)
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` are not appropriate for functions with `::AbstractArray` output
+        return ((JVP, x, v) -> throw(ArgumentError("Cannot evaluate the Jacobian-vector product of the objective function: No suitable Julia function available.")))
+    end
+end
+
+function make_fjvp(t::NotInplaceObjective, ::AbstractArray, ::Real)
+    (; fjvp, fdf, fgh) = t
+    if fjvp !== nothing
+        return fjvp
+    elseif fdf !== nothing
+        return let fdf = fdf
+            (x, v) -> begin
+                fx, gx = fdf(x)
+                return fx, LinearAlgebra.dot(gx, v)
+            end
+        end
+    elseif fgh !== nothing
+        return let fgh = fgh
+            (x, v) -> begin
+                fx, gx, _ = fgh(x)
+                return fx, LinearAlgebra.dot(gx, v)
+            end
+        end
+    else
+        return ((x, v) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian-vector product: No suitable Julia function available.")))
+    end
+end
+function make_fjvp(t::NotInplaceObjective, ::AbstractArray, ::AbstractArray)
+    (; fjvp, fdf) = t
+    if fjvp !== nothing
+        return let fjvp = fjvp
+            (F, JVP, x, v) -> begin
+                fx, jvp = fjvp(x, v)
+                copyto!(F, fx)
+                copyto!(JVP, jvp)
+                return F, JVP
+            end
+        end
+    elseif fdf !== nothing
+        return let fdf = fdf
+            (F, JVP, x, v) -> begin
+                fx, jx = fdf(x)
+                copyto!(F, fx)
+                LinearAlgebra.mul!(JVP, jx, v)
+                return F, JVP
+            end
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` and `fghv` are not appropriate for functions with `::AbstractArray` output
+        return ((F, JVP, x, v) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian-vector product: No suitable Julia function available.")))
     end
 end
 
