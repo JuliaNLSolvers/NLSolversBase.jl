@@ -19,7 +19,7 @@ NLSolversBase.jl is the core, common dependency of several packages in the [Juli
 The package aims at establishing common ground for [Optim.jl](https://github.com/JuliaNLSolvers/Optim.jl), [LineSearches.jl](https://github.com/JuliaNLSolvers/LineSearches.jl), and [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl). The common ground is mainly the types used to hold objective related callables, information about the objectives, and an interface to interact with these types.
 
 ## NDifferentiable
-There are currently three main types: `NonDifferentiable`, `OnceDifferentiable`, and `TwiceDifferentiable`. There's also a more experimental `TwiceDifferentiableHV` for optimization algorithms that use Hessian-vector products. An `NDifferentiable` instance can be used to hold relevant functions for
+There are currently three main types: `NonDifferentiable`, `OnceDifferentiable`, and `TwiceDifferentiable`. An `NDifferentiable` instance can be used to hold relevant functions for
 
  - Optimization: $F : \mathbb{R}^N \to \mathbb{R}$
  - Solving systems of equations: $F : \mathbb{R}^N \to \mathbb{R}^N$

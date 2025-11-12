@@ -55,6 +55,29 @@ function fdf!_from_fdf(fj, F::AbstractArray, inplace)
         end
     end
 end
+
+function jvp!_from_jvp(jvp, F::AbstractArray, inplace::Bool)
+    if inplace
+        return jvp
+    else
+        return function jvp!(JVP, x, v)
+            copyto!(JVP, jvp(x, v))
+        end
+    end
+end
+function fjvp!_from_fjvp(fjvp, F::AbstractArray, inplace::Bool)
+    if inplace
+        return fjvp
+    else
+        return function fjvp!(F, JVP, x, v)
+            fx, jvpxv = fjvp(x, v)
+            copyto!(F, fx)
+            copyto!(JVP, jvpxv)
+            return fx, jvpxv
+        end
+    end
+end
+
 function h!_from_h(h, F::Real, inplace)
     if inplace
         return h

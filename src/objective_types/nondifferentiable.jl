@@ -7,7 +7,7 @@ mutable struct NonDifferentiable{TF<:Union{AbstractArray,Real},TX<:AbstractArray
 end
 
 # These could be the same if we could restrict g below not to be an AbstractArray
-function NonDifferentiable(f, x::AbstractArray, F::Real = real(zero(eltype(x))); inplace = true)
+function NonDifferentiable(f, x::AbstractArray, F::Real = real(eltype(x))(NaN); inplace = true)
     xnans = x_of_nans(x)
     NonDifferentiable{typeof(F),typeof(xnans)}(f, F, xnans, 0)
 end
@@ -18,6 +18,6 @@ function NonDifferentiable(f, x::AbstractArray, F::AbstractArray; inplace = true
 end
 
 # this is the g referred to above!
-NonDifferentiable(f, g,        x::AbstractArray, F::Union{AbstractArray, Real} = real(zero(eltype(x)))) = NonDifferentiable(f, x, F)
+NonDifferentiable(f, g,        x::AbstractArray, F::Union{AbstractArray, Real} = real(eltype(x))(NaN)) = NonDifferentiable(f, x, F)
 NonDifferentiable(f, g, h,     x::TX, F) where TX  = NonDifferentiable(f, x, F)
 NonDifferentiable(f, g, fg, h, x::TX, F) where TX  = NonDifferentiable(f, x, F)
