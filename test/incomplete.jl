@@ -1,5 +1,5 @@
 @testset "incomplete objectives" begin
-    import NLSolversBase: df, fdf, make_f, make_df, make_fdf
+    import NLSolversBase: make_f, make_df, make_fdf
     function f(x)
         sum(x->x^2,x)
     end
@@ -65,17 +65,13 @@
     G_cache = similar(x)
     G_cache2 = similar(G_cache)
 
-    @test df(fdf!_real) === nothing
-    @test df(fdf_real) === nothing
-    @test df(df_fdf_real) === g
-    @test df(df_fdf_real)(x) == g(x)
+    @test fdf_real.df === nothing
+    @test df_fdf_real.df === g
 
-    @test fdf(fdf!_real) === just_fg!
-    @test fdf(fdf_real) === fg
-    @test df(df_fdf_real) == g
-    @test fdf(df_fdf_real) == fg
-    @test df(df_fdf_real)(x) == g(x)
-    @test fdf(df_fdf_real)(x) == fg(x)
+    @test fdf!_real.fdf === just_fg!
+    @test fdf_real.fdf === fg
+    @test df_fdf_real.df === g
+    @test df_fdf_real.fdf === fg
 
     for FDF in (fdf_real, fdf!_real)
         @test make_f(FDF, x, x[1])(x) == f(x)
@@ -171,17 +167,13 @@ end
     F_cache = similar(x)
     F_cache2 = similar(x)
 
-    @test df(fdf!_real) === nothing
-    @test df(fdf_real) === nothing
-    @test df(df_fdf_real) === tj
-    @test df(df_fdf_real)(x) == tj(x)
+    @test fdf_real.df === nothing
+    @test df_fdf_real.df === tj
 
-    @test fdf(fdf!_real) === just_tfj!
-    @test fdf(fdf_real) === tfj
-    @test df(df_fdf_real) == tj
-    @test fdf(df_fdf_real) == tfj
-    @test df(df_fdf_real)(x) == tj(x)
-    @test fdf(df_fdf_real)(x) == tfj(x)
+    @test fdf!_real.fdf === just_tfj!
+    @test fdf_real.fdf === tfj
+    @test df_fdf_real.df === tj
+    @test df_fdf_real.fdf == tfj
 
     for FDF in (fdf_real, fdf!_real)
         @test make_f(FDF, x, x)(F_cache, x) == tf(x)
