@@ -50,7 +50,7 @@ function make_f(t::InplaceObjective, _, F::Real)
             x -> fghv(F, nothing, nothing, x, nothing)
         end
     else
-        return nothing
+        return (x -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
     end
 end
 function make_f(t::InplaceObjective, _, ::AbstractArray)
@@ -68,7 +68,7 @@ function make_f(t::InplaceObjective, _, ::AbstractArray)
             (F, x) -> fghv(F, nothing, nothing, x, nothing)
         end
     else
-        return nothing
+        return ((F, x) -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
     end
 end
 
@@ -87,7 +87,11 @@ function make_df(t::InplaceObjective, _, F::Union{Real,AbstractArray})
             (DF, x) -> fghv(nothing, DF, nothing, x, nothing)
         end
     else
-        return nothing
+        if F isa Real
+            return ((DF, x) -> throw(ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.")))
+        else
+            return ((DF, x) -> throw(ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.")))
+        end
     end
 end
 
@@ -106,7 +110,7 @@ function make_fdf(t::InplaceObjective, _, F::Real)
             (G, x) -> fghv(F, G, nothing, x, nothing)
         end
     else
-        return nothing
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the objective function and its gradient: No suitable Julia function available.")))
     end
 end
 function make_fdf(t::InplaceObjective, _, ::AbstractArray)
@@ -122,7 +126,7 @@ function make_fdf(t::InplaceObjective, _, ::AbstractArray)
             (F, G, x) -> fghv(F, G, nothing, x, nothing)
         end
     else
-        return nothing
+        return ((F, G, x) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.")))
     end
 end
 
@@ -134,7 +138,7 @@ function make_dfh(t::InplaceObjective, _, ::Real)
             (DF, H, x) -> fgh(nothing, DF, H, x)
         end
     else
-        return nothing
+        return ((DF, H, x) -> throw(ArgumentError("Cannot evaluate the gradient and Hessian of the objective function: No suitable Julia function available.")))
     end
 end
 
@@ -142,10 +146,10 @@ function make_fdfh(t::InplaceObjective, _, F::Real)
     (; fgh) = t
     if fgh !== nothing
         return let fgh = fgh, F = F
-            (G, x) -> fgh(F, G, x)
+            (G, H, x) -> fgh(F, G, H, x)
         end
     else
-        return nothing
+        return ((G, H, x) -> throw(ArgumentError("Cannot evaluate the objective function, its gradient and its Hessian: No suitable Julia function available.")))
     end
 end
 function make_h(t::InplaceObjective, _, ::Real)
@@ -155,7 +159,7 @@ function make_h(t::InplaceObjective, _, ::Real)
             (H, x) -> fgh(nothing, nothing, H, x)
         end
     else
-        return nothing
+        return ((H, x) -> throw(ArgumentError("Cannot evaluate the Hessian of the objective function: No suitable Julia function available.")))
     end
 end
 function make_hv(t::InplaceObjective, _, ::Real)
@@ -167,7 +171,7 @@ function make_hv(t::InplaceObjective, _, ::Real)
             (Hv, x, v) -> fghv(nothing, nothing, Hv, x, v)
         end
     else
-        return nothing
+        return ((Hv, x, v) -> throw(ArgumentError("Cannot evaluate the Hessian-vector product of the objective function: No suitable Julia function available.")))
     end
 end
 
@@ -182,7 +186,7 @@ function make_f(t::NotInplaceObjective, _, _::Real)
     elseif fgh !== nothing
         return first ∘ fgh
     else
-        return nothing
+        return (x -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
     end
 end
 function make_f(t::NotInplaceObjective, _, ::AbstractArray)
@@ -196,11 +200,11 @@ function make_f(t::NotInplaceObjective, _, ::AbstractArray)
             (F, x) -> copyto!(F, first(fgh(x)))
         end
     else
-        return nothing
+        return ((F, x) -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
     end
 end
 
-function make_df(t::NotInplaceObjective, _, ::Union{Real,AbstractArray})
+function make_df(t::NotInplaceObjective, _, F::Union{Real,AbstractArray})
     (; df, fdf, fgh) = t
     if df !== nothing
         return let df = df
@@ -215,7 +219,11 @@ function make_df(t::NotInplaceObjective, _, ::Union{Real,AbstractArray})
             (DF, x) -> copyto!(DF, fgh(x)[2])
         end
     else
-        return nothing
+        if F isa Real
+            return ((DF, x) -> throw(ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.")))
+        else
+            return ((DF, x) -> throw(ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.")))
+        end
     end
 end
 
@@ -238,7 +246,7 @@ function make_fdf(t::NotInplaceObjective, _, F::Real)
             end
         end
     else
-        return nothing
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the objective function and its gradient: No suitable Julia function available.")))
     end
 end
 function make_fdf(t::NotInplaceObjective, _, ::AbstractArray)
@@ -260,7 +268,7 @@ function make_fdf(t::NotInplaceObjective, _, ::AbstractArray)
             end
         end
     else
-        return nothing
+        return ((F, DF, x) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.")))
     end
 end
 
