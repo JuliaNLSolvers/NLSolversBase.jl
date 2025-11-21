@@ -256,3 +256,78 @@ end
     @test gx == [-2.0, 0.0]
 
 end
+
+@testset "Error messages in case of missing functions" begin
+    x = [1.0, 2.0]
+
+    @testset "Inplace objectives" begin
+        # Evaluation of objective function not possible
+        f = make_f(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        @test_throws ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.") f(x)
+        f! = make_f(NLSolversBase.InplaceObjective(), x, x)
+        @test_throws ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.") f!(similar(x), x)
+
+        # Evaluation of gradient/Jacobian not possible
+        df! = make_df(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        @test_throws ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.") df!(similar(x), x)
+        jac! = make_df(NLSolversBase.InplaceObjective(), x, x)
+        @test_throws ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.") jac!(similar(x, length(x), length(x)), x)
+
+        # Combined evaluation of objective function + its gradient/Jacobian not possible
+        fdf! = make_fdf(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        @test_throws ArgumentError("Cannot evaluate the objective function and its gradient: No suitable Julia function available.") fdf!(similar(x), x)
+        fjac! = make_fdf(NLSolversBase.InplaceObjective(), x, x)
+        @test_throws ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.") fjac!(similar(x), similar(x, length(x), length(x)), x)
+
+        # Combined evaluation of gradient and Hessian
+        dfh!_1 = NLSolversBase.make_dfh(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
+        dfh!_2 = NLSolversBase.make_dfh(NLSolversBase.InplaceObjective(; fghv = (DF, Hv, x, v) -> (fill!(DF, 1); copyto!(Hv, 0); sum(x))), x, x[1])
+        dfh!_3 = NLSolversBase.make_dfh(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        for dfh! in (dfh!_1, dfh!_2, dfh!_3)
+            @test_throws ArgumentError("Cannot evaluate the gradient and Hessian of the objective function: No suitable Julia function available.") dfh!(similar(x), similar(x, length(x), length(x)), x[1])
+        end
+
+        # Combined evaluation of objective function, gradient and Hessian
+        fdfh!_1 = NLSolversBase.make_fdfh(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
+        fdfh!_2 = NLSolversBase.make_fdfh(NLSolversBase.InplaceObjective(; fghv = (DF, Hv, x, v) -> (fill!(DF, 1); copyto!(Hv, 0); sum(x))), x, x[1])
+        fdfh!_3 = NLSolversBase.make_fdfh(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        for fdfh! in (fdfh!_1, fdfh!_2, fdfh!_3)
+            @test_throws ArgumentError("Cannot evaluate the objective function, its gradient and its Hessian: No suitable Julia function available.") fdfh!(similar(x), similar(x, length(x), length(x)), x[1])
+        end
+
+        # Evaluation of Hessian
+        h!_1 = NLSolversBase.make_h(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
+        h!_2 = NLSolversBase.make_h(NLSolversBase.InplaceObjective(; fghv = (DF, Hv, x, v) -> (fill!(DF, 1); copyto!(Hv, 0); sum(x))), x, x[1])
+        h!_3 = NLSolversBase.make_h(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        for h! in (h!_1, h!_2, h!_3)
+            @test_throws ArgumentError("Cannot evaluate the Hessian of the objective function: No suitable Julia function available.") h!(similar(x, length(x), length(x)), x[1])
+        end
+
+        # Evaluation of Hessian-vector product
+        hv!_1 = NLSolversBase.make_hv(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
+        hv!_2 = NLSolversBase.make_hv(NLSolversBase.InplaceObjective(; fgh = (DF, H, x) -> (fill!(DF, 1); copyto!(H, 0); sum(x))), x, x[1])
+        for hv! in (hv!_1, hv!_2)
+            @test_throws ArgumentError("Cannot evaluate the Hessian-vector product of the objective function: No suitable Julia function available.") hv!(similar(x, length(x)), x[1], x)
+        end
+    end
+
+    @testset "Non-mutating objectives" begin
+        # Evaluation of objective function
+        f = make_f(NLSolversBase.NotInplaceObjective(; df = x -> fill!(similar(x), 1)), x, x[1])
+        @test_throws ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.") f(x)
+        f! = make_f(NLSolversBase.NotInplaceObjective(; df = x -> copyto!(similar(x, length(x), length(x)), I)), x, x)
+        @test_throws ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.") f!(similar(x), x)
+
+        # Evaluation of gradient/Jacobian
+        df! = make_df(NLSolversBase.NotInplaceObjective(), x, x[1])
+        @test_throws ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.") df!(similar(x), x)
+        jac! = make_df(NLSolversBase.NotInplaceObjective(), x, x)
+        @test_throws ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.") jac!(similar(x, length(x), length(x)), x)
+
+        # Combined evaluation of objective function and gradient/Jacobian
+        fdf! = make_fdf(NLSolversBase.NotInplaceObjective(; df = x -> fill!(similar(x), 1)), x, x[1])
+        @test_throws ArgumentError("Cannot evaluate the objective function and its gradient: No suitable Julia function available.") fdf!(similar(x), x)
+        fjac! = make_fdf(NLSolversBase.NotInplaceObjective(; df = x -> copyto!(similar(x, length(x), length(x)), I)), x, x)
+        @test_throws ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.") fjac!(similar(x), similar(x, length(x), length(x)), x)
+    end
+end
