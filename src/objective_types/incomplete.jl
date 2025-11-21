@@ -6,42 +6,36 @@
 # Note, that for TwiceDifferentiable we cannot provide con-
 # structors if h === nothing, as that requires automatic dif-
 # fferentiation of some sort.
-struct InplaceObjective{DF, FDF, FGH, Hv, FGHv}
-    df::DF
-    fdf::FDF
-    fgh::FGH
-    hv::Hv
-    fghv::FGHv
+@kwdef struct InplaceObjective{FDF, FGH, Hv, FGHv}
+    fdf::FDF = nothing
+    fgh::FGH = nothing
+    hv::Hv = nothing
+    fghv::FGHv = nothing
 end
-InplaceObjective(;df=nothing, fdf=nothing, fgh=nothing, hv=nothing, fghv=nothing) = InplaceObjective(df, fdf, fgh, hv, fghv)
-const InPlaceObjectiveFGH = InplaceObjective{<:Nothing, <:Nothing, <:Any, <:Nothing, <: Nothing}
-const InPlaceObjectiveFG_Hv = InplaceObjective{<:Nothing, <:Any, <:Nothing, <:Any, <:Nothing}
-const InPlaceObjectiveFGHv = InplaceObjective{<:Nothing, <:Nothing, <:Nothing, <:Nothing, <:Any}
-struct NotInplaceObjective{DF, FDF, FGH}
-    df::DF
-    fdf::FDF
-    fgh::FGH
-end
-# Mutating version
-only_fg!(fg)     = InplaceObjective(fdf=fg)
-only_fgh!(fgh)   = InplaceObjective(fgh=fgh)
-only_fj!(fj)     = InplaceObjective(fdf=fj)
 
-only_fg_and_hv!(fg, hv) = InplaceObjective(fdf=fg, hv=hv)
-only_fghv!(fghv)        = InplaceObjective(fghv=fghv)
+@kwdef struct NotInplaceObjective{DF, FDF, FGH}
+    df::DF = nothing
+    fdf::FDF = nothing
+    fgh::FGH = nothing
+end
+
+# Mutating version
+only_fg!(fg)     = InplaceObjective(; fdf=fg)
+only_fgh!(fgh)   = InplaceObjective(; fgh=fgh)
+only_fj!(fj)     = InplaceObjective(; fdf=fj)
+
+only_fg_and_hv!(fg, hv) = InplaceObjective(; fdf=fg, hv=hv)
+only_fghv!(fghv)        = InplaceObjective(; fghv=fghv)
 
 # Non-mutating version
-only_fg(fg)     = NotInplaceObjective(nothing, fg, nothing)
-only_fj(fj)     = NotInplaceObjective(nothing, fj, nothing)
+only_fg(fg)     = NotInplaceObjective(; fdf=fg)
+only_fj(fj)     = NotInplaceObjective(; fdf=fj)
 
-only_g_and_fg(g, fg)    = NotInplaceObjective(g, fg, nothing)
-only_j_and_fj(j, fj)    = NotInplaceObjective(j, fj, nothing)
-
-df(t::Union{InplaceObjective, NotInplaceObjective}) = t.df
-fdf(t::Union{InplaceObjective, NotInplaceObjective}) = t.fdf
+only_g_and_fg(g, fg)    = NotInplaceObjective(; df=g, fdf=fg)
+only_j_and_fj(j, fj)    = NotInplaceObjective(; df=j, fdf=fj)
 
 # Mutating version
-function make_f(t::InplaceObjective, x, F::Real)
+function make_f(t::InplaceObjective, _, F::Real)
     (; fdf, fgh, fghv) = t
     if fdf !== nothing
         return let fdf = fdf, F = F
@@ -56,12 +50,22 @@ function make_f(t::InplaceObjective, x, F::Real)
             x -> fghv(F, nothing, nothing, x, nothing)
         end
     else
-        throw(ArgumentError("Cannot construct function for evaluating the objective function: No suitable function was provided."))
+        return (x -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
     end
 end
-make_f(t::InplaceObjective, x, F) = let fdf = t.fdf; (F, x) -> fdf(F, nothing, x); end
+function make_f(t::InplaceObjective, _, ::AbstractArray)
+    (; fdf) = t
+    if fdf !== nothing
+        return let fdf = fdf
+            (F,x) -> fdf(F, nothing, x)
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` and `fghv` are not appropriate for functions with `::AbstractArray` output
+        return ((F, x) -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
+    end
+end
 
-function make_df(t::InplaceObjective, x, F)
+function make_df(t::InplaceObjective, _, ::Real)
     (; fdf, fgh, fghv) = t
     if fdf !== nothing
         return let fdf = fdf
@@ -76,11 +80,22 @@ function make_df(t::InplaceObjective, x, F)
             (DF, x) -> fghv(nothing, DF, nothing, x, nothing)
         end
     else
-        throw(ArgumentError("Cannot construct function for evaluating the gradient of the objective function: No suitable function was provided.."))
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.")))
+    end
+end
+function make_df(t::InplaceObjective, _, ::AbstractArray)
+    (; fdf) = t
+    if fdf !== nothing
+        return let fdf = fdf
+            (DF, x) -> fdf(nothing, DF, x)
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` and `fghv` are not appropriate for functions with `::AbstractArray` output
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.")))
     end
 end
 
-function make_fdf(t::InplaceObjective, x, F::Real)
+function make_fdf(t::InplaceObjective, _, F::Real)
     (; fdf, fgh, fghv) = t
     if fdf !== nothing
         return let fdf = fdf, F = F
@@ -95,31 +110,159 @@ function make_fdf(t::InplaceObjective, x, F::Real)
             (G, x) -> fghv(F, G, nothing, x, nothing)
         end
     else
-        throw(ArgumentError("Cannot construct function that evaluates both the objective function and its gradient: No suitable function was provided."))
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the objective function and its gradient: No suitable Julia function available.")))
     end
 end
-make_fdf(t::InplaceObjective, x, F) = fdf(t)
+function make_fdf(t::InplaceObjective, _, ::AbstractArray)
+    (; fdf) = t
+    if fdf !== nothing
+        return fdf
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` and `fghv` are not appropriate for functions with `::AbstractArray` output
+        return ((F, G, x) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.")))
+    end
+end
+
+# Hessian matrix calculations require that the objective function returns a scalar
+function make_dfh(t::InplaceObjective, _, ::Real)
+    (; fgh) = t
+    if fgh !== nothing
+        return let fgh = fgh
+            (DF, H, x) -> fgh(nothing, DF, H, x)
+        end
+    else
+        return ((DF, H, x) -> throw(ArgumentError("Cannot evaluate the gradient and Hessian of the objective function: No suitable Julia function available.")))
+    end
+end
+
+function make_fdfh(t::InplaceObjective, _, F::Real)
+    (; fgh) = t
+    if fgh !== nothing
+        return let fgh = fgh, F = F
+            (G, H, x) -> fgh(F, G, H, x)
+        end
+    else
+        return ((G, H, x) -> throw(ArgumentError("Cannot evaluate the objective function, its gradient and its Hessian: No suitable Julia function available.")))
+    end
+end
+function make_h(t::InplaceObjective, _, ::Real)
+    (; fgh) = t
+    if fgh !== nothing
+        return let fgh = fgh
+            (H, x) -> fgh(nothing, nothing, H, x)
+        end
+    else
+        return ((H, x) -> throw(ArgumentError("Cannot evaluate the Hessian of the objective function: No suitable Julia function available.")))
+    end
+end
+function make_hv(t::InplaceObjective, _, ::Real)
+    (; hv, fghv) = t
+    if hv !== nothing
+        return hv
+    elseif fghv !== nothing
+        return let fghv = fghv
+            (Hv, x, v) -> fghv(nothing, nothing, Hv, x, v)
+        end
+    else
+        return ((Hv, x, v) -> throw(ArgumentError("Cannot evaluate the Hessian-vector product of the objective function: No suitable Julia function available.")))
+    end
+end
 
 # Non-mutating version
 # The contract with the user is that fdf returns (F, DF)
 # and then we simply need to pick out the appropriate element
 # of whatever fdf returns.
-make_f(t::NotInplaceObjective, x, F::Real) = x -> fdf(t)(x)[1]
-make_f(t::NotInplaceObjective, x, F) = (F, x) -> copyto!(F, fdf(t)(x)[1])
-make_df(t::NotInplaceObjective{DF, TDF}, x, F) where {DF<:Nothing, TDF} = (DF, x) -> copyto!(DF, fdf(t)(x)[2])
-make_df(t::NotInplaceObjective, x, F) = t.df
-function make_fdf(t::NotInplaceObjective, x, F::Real)
-    return function ffgg!(G, x)
-        f, g = fdf(t)(x)
-        copyto!(G, g)
-        f
+function make_f(t::NotInplaceObjective, _, _::Real)
+    (; fdf, fgh) = t
+    if fdf !== nothing
+        return first ∘ fdf
+    elseif fgh !== nothing
+        return first ∘ fgh
+    else
+        return (x -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
     end
 end
-function make_fdf(t::NotInplaceObjective, x, F)
-    return function ffjj!(F, J, x)
-        f, j = fdf(t)(x)
-        copyto!(J, j)
-        copyto!(F, f)
+function make_f(t::NotInplaceObjective, _, ::AbstractArray)
+    (; fdf) = t
+    if fdf !== nothing
+        return let fdf = fdf
+            (F, x) -> copyto!(F, first(fdf(x)))
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` are not appropriate for functions with `::AbstractArray` output
+        return ((F, x) -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
+    end
+end
+
+function make_df(t::NotInplaceObjective, _, ::Real)
+    (; df, fdf, fgh) = t
+    if df !== nothing
+        return let df = df
+            (DF, x) -> copyto!(DF, df(x))
+        end
+    elseif fdf !== nothing
+        return let fdf = fdf
+            (DF, x) -> copyto!(DF, fdf(x)[2])
+        end
+    elseif fgh !== nothing
+        return let fgh = fgh
+            (DF, x) -> copyto!(DF, fgh(x)[2])
+        end
+    else
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.")))
+    end
+end
+function make_df(t::NotInplaceObjective, _, ::AbstractArray)
+    (; df, fdf) = t
+    if df !== nothing
+        return let df = df
+            (DF, x) -> copyto!(DF, df(x))
+        end
+    elseif fdf !== nothing
+        return let fdf = fdf
+            (DF, x) -> copyto!(DF, fdf(x)[2])
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` are not appropriate for functions with `::AbstractArray` output
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.")))
+    end
+end
+
+function make_fdf(t::NotInplaceObjective, _, F::Real)
+    (; fdf, fgh) = t
+    if fdf !== nothing
+        return let fdf = fdf
+            (DF, x) -> begin
+                f, g = fdf(x)
+                copyto!(DF, g)
+                return f
+            end
+        end
+    elseif fgh !== nothing
+        return let fgh = fgh
+            (DF, x) -> begin
+                f, g, _ = fgh(x)
+                copyto!(DF, g)
+                return f
+            end
+        end
+    else
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the objective function and its gradient: No suitable Julia function available.")))
+    end
+end
+function make_fdf(t::NotInplaceObjective, _, ::AbstractArray)
+    (; fdf) = t
+    if fdf !== nothing
+        return let fdf = fdf
+            (F, DF, x) -> begin
+                f, j = fdf(x)
+                copyto!(DF, j)
+                copyto!(F, f)
+            end
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` are not appropriate for functions with `::AbstractArray` output
+        return ((F, DF, x) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.")))
     end
 end
 
@@ -134,40 +277,24 @@ function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::A
     NonDifferentiable(f, x, F)
 end
 
-const InPlaceFGH = InplaceObjective{<:Nothing,<:Nothing,TH,<:Nothing,<:Nothing} where {TH}
-const InPlaceFG_HV = InplaceObjective{<:Nothing,TFG,<:Nothing,THv,<:Nothing} where {TFG,THv}
-const InPlaceFGHV = InplaceObjective{<:Nothing,<:Nothing,<:Nothing,<:Nothing,TFGHv} where {TFGHv}
-function TwiceDifferentiable(t::InPlaceFGH, x::AbstractArray, F::Real = real(zero(eltype(x))), G::AbstractArray = alloc_DF(x, F), H::AbstractMatrix = alloc_H(x, F))
-    f   =     x  -> t.fgh(F, nothing, nothing, x)
-    df  = (G, x) -> t.fgh(nothing, G, nothing, x)
-    fdf = (G, x) -> t.fgh(F, G, nothing, x)
-    fdfh = (G, H, x) -> t.fgh(F, G, H, x)
-    dfh = (G, H, x) -> t.fgh(nothing, G, H, x)
-    h   = (H, x) -> t.fgh(F, nothing, H, x)
+function TwiceDifferentiable(t::InplaceObjective, x::AbstractArray, F::Real = real(zero(eltype(x))), G::AbstractArray = alloc_DF(x, F), H::AbstractMatrix = alloc_H(x, F))
+    f   = make_f(t, x, F)
+    df  = make_df(t, x, F)
+    fdf = make_fdf(t, x, F)
+    fdfh = make_fdfh(t, x, F)
+    dfh = make_dfh(t, x, F)
+    h   = make_h(t, x, F)
 
-    x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
-
-    TwiceDifferentiable(f, df, fdf, dfh, fdfh, h,
-                                        copy(F), copy(G), copy(H),
-                                        x_f, x_df, x_h,
-                                        0, 0, 0)
-end
-function TwiceDifferentiable(t::InPlaceFGH, x::AbstractVector{T}, F::Real = real(zero(eltype(x))), G::AbstractVector{Tx} = alloc_DF(x, F)) where {T, Tx}
-    f   =     x  -> t.fgh(F, nothing, nothing, x)
-    df  = (G, x) -> t.fgh(nothing, G, nothing, x)
-    fdf = (G, x) -> t.fgh(F, G, nothing, x)
-    fdfh = (G, H, x) -> t.fgh(F, G, H, x)
-    dfh = (G, H, x) -> t.fgh(nothing, G, H, x)
-    h   = (H, x) -> t.fgh(F, nothing, H, x)
-
-    H = alloc_H(x, F)
-    x_f, x_df, x_h = x_of_nans(x), x_of_nans(x), x_of_nans(x)
+    x_f = x_of_nans(x)
+    x_df = x_of_nans(x)
+    x_h = x_of_nans(x)
 
     TwiceDifferentiable(f, df, fdf, dfh, fdfh, h,
                                         copy(F), copy(G), copy(H),
                                         x_f, x_df, x_h,
                                         0, 0, 0)
 end
+
 function value_gradient_hessian!!(obj, x)
     obj.f_calls += 1
     obj.df_calls += 1
@@ -198,12 +325,9 @@ function gradient_hessian!!(obj, x)
     obj.DF, obj.H
 end
 
-function TwiceDifferentiableHV(t::InPlaceFG_HV, x::AbstractVector)
-    TwiceDifferentiableHV(nothing, t.fdf, t.hv, x)
-end
-
-function TwiceDifferentiableHV(t::InPlaceFGHV, x::AbstractVector, F::Real = real(zero(eltype(x))))
-    fg  =  (F, G, x) -> t.fghv(F, G, nothing, x, nothing)
-    Hv  = (Hv, x, v) -> t.fghv(nothing, nothing, Hv, x, v)
-    TwiceDifferentiableHV(nothing, fg, Hv, x)
+function TwiceDifferentiableHV(t::InplaceObjective, x::AbstractVector, F::Real = real(zero(eltype(x))))
+    f = make_f(t, x, F)
+    fg = make_fdf(t, x, F)
+    hv = make_hv(t, x, F)
+    return TwiceDifferentiableHV(f, fg, hv, x)
 end
