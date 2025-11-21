@@ -84,6 +84,22 @@
         @test f1 == f2
     end
 
+    # Only gradient/Jacobian
+    df!_real = make_df(NLSolversBase.NotInplaceObjective(; df = g), x, x[1])
+    df!_real(fill!(G_cache, NaN), x)
+    g!(G_cache2, x)
+    @test G_cache == G_cache2
+    jac!_array = make_df(NLSolversBase.NotInplaceObjective(; df = x -> Diagonal(fill!(similar(x), 1))), x, x)
+    J = fill!(similar(x, length(x), length(x)), NaN)
+    jac!_array(J, x)
+    @test J == Diagonal(ones(length(x)))
+
+    # Only function value, gradient, and objective 
+    df!_real = make_df(only_fghv!(just_fghv!), x, x[1])
+    df!_real(fill!(G_cache, NaN), x)
+    g!(G_cache2, x)
+    @test G_cache == G_cache2
+
     nd_fg = NonDifferentiable(only_fg(fg), x)
     nd_fg! = NonDifferentiable(only_fg!(just_fg!), x)
     for ND in (nd_fg, nd_fg!)
