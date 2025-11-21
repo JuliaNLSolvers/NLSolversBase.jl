@@ -8,7 +8,7 @@
     g(x) = 2 .* x
 
     h!(H, _) = copyto!(H, 2*I)
-    h(_) = Diagonal(fill(2, length(n)))
+    h(x) = Diagonal(fill(2, length(x)))
 
     function fg!(G, x)
         G .= 2 .* x
@@ -92,13 +92,13 @@
     end
     od_fg = OnceDifferentiable(only_fg(fg), x)
     od_fg! = OnceDifferentiable(only_fg!(just_fg!), x)
+    od_fgh = OnceDifferentiable(NLSolversBase.NotInplaceObjective(; fgh), x)
     od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x)
     _F = zero(eltype(x))
     od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F)
     od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F, similar(x))
     od_fgh! = TwiceDifferentiable(only_fgh!(just_fgh!), x, _F, similar(x), NLSolversBase.alloc_H(x, _F))
-#    od_fgh = TwiceDifferentiable(only_fgh(fgh), x)
-    for OD in (od_fg, od_fg!, od_fgh!)#, od_fgh)
+    for OD in (od_fg, od_fg!, od_fgh, od_fgh!)
         value!(OD, x)
         @test value(OD) == f(x)
         gradient!(OD, x)

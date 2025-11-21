@@ -54,25 +54,18 @@ function make_f(t::InplaceObjective, _, F::Real)
     end
 end
 function make_f(t::InplaceObjective, _, ::AbstractArray)
-    (; fdf, fgh, fghv) = t
+    (; fdf) = t
     if fdf !== nothing
         return let fdf = fdf
             (F,x) -> fdf(F, nothing, x)
         end
-    elseif fgh !== nothing
-        return let fgh = fgh
-            (F, x) -> fgh(F, nothing, nothing, x)
-        end
-    elseif fghv !== nothing
-        return let fghv = fghv
-            (F, x) -> fghv(F, nothing, nothing, x, nothing)
-        end
     else
+        # Note: Functions involving the Hessian matrix such as `fgh` and `fghv` are not appropriate for functions with `::AbstractArray` output
         return ((F, x) -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
     end
 end
 
-function make_df(t::InplaceObjective, _, F::Union{Real,AbstractArray})
+function make_df(t::InplaceObjective, _, ::Real)
     (; fdf, fgh, fghv) = t
     if fdf !== nothing
         return let fdf = fdf
@@ -87,11 +80,18 @@ function make_df(t::InplaceObjective, _, F::Union{Real,AbstractArray})
             (DF, x) -> fghv(nothing, DF, nothing, x, nothing)
         end
     else
-        if F isa Real
-            return ((DF, x) -> throw(ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.")))
-        else
-            return ((DF, x) -> throw(ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.")))
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.")))
+    end
+end
+function make_df(t::InplaceObjective, _, ::AbstractArray)
+    (; fdf) = t
+    if fdf !== nothing
+        return let fdf = fdf
+            (DF, x) -> fdf(nothing, DF, x)
         end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` and `fghv` are not appropriate for functions with `::AbstractArray` output
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.")))
     end
 end
 
@@ -114,18 +114,11 @@ function make_fdf(t::InplaceObjective, _, F::Real)
     end
 end
 function make_fdf(t::InplaceObjective, _, ::AbstractArray)
-    (; fdf, fgh, fghv) = t
+    (; fdf) = t
     if fdf !== nothing
         return fdf
-    elseif fgh !== nothing
-        return let fgh = fgh
-            (F, G, x) -> fgh(F, G, nothing, x)
-        end
-    elseif fghv !== nothing
-        return let fghv = fghv
-            (F, G, x) -> fghv(F, G, nothing, x, nothing)
-        end
     else
+        # Note: Functions involving the Hessian matrix such as `fgh` and `fghv` are not appropriate for functions with `::AbstractArray` output
         return ((F, G, x) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.")))
     end
 end
@@ -190,21 +183,18 @@ function make_f(t::NotInplaceObjective, _, _::Real)
     end
 end
 function make_f(t::NotInplaceObjective, _, ::AbstractArray)
-    (; fdf, fgh) = t
+    (; fdf) = t
     if fdf !== nothing
         return let fdf = fdf
             (F, x) -> copyto!(F, first(fdf(x)))
         end
-    elseif fgh !== nothing
-        return let fgh = fgh
-            (F, x) -> copyto!(F, first(fgh(x)))
-        end
     else
+        # Note: Functions involving the Hessian matrix such as `fgh` are not appropriate for functions with `::AbstractArray` output
         return ((F, x) -> throw(ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.")))
     end
 end
 
-function make_df(t::NotInplaceObjective, _, F::Union{Real,AbstractArray})
+function make_df(t::NotInplaceObjective, _, ::Real)
     (; df, fdf, fgh) = t
     if df !== nothing
         return let df = df
@@ -219,11 +209,22 @@ function make_df(t::NotInplaceObjective, _, F::Union{Real,AbstractArray})
             (DF, x) -> copyto!(DF, fgh(x)[2])
         end
     else
-        if F isa Real
-            return ((DF, x) -> throw(ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.")))
-        else
-            return ((DF, x) -> throw(ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.")))
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.")))
+    end
+end
+function make_df(t::NotInplaceObjective, _, ::AbstractArray)
+    (; df, fdf) = t
+    if df !== nothing
+        return let df = df
+            (DF, x) -> copyto!(DF, df(x))
         end
+    elseif fdf !== nothing
+        return let fdf = fdf
+            (DF, x) -> copyto!(DF, fdf(x)[2])
+        end
+    else
+        # Note: Functions involving the Hessian matrix such as `fgh` are not appropriate for functions with `::AbstractArray` output
+        return ((DF, x) -> throw(ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.")))
     end
 end
 
@@ -250,7 +251,7 @@ function make_fdf(t::NotInplaceObjective, _, F::Real)
     end
 end
 function make_fdf(t::NotInplaceObjective, _, ::AbstractArray)
-    (; fdf, fgh) = t
+    (; fdf) = t
     if fdf !== nothing
         return let fdf = fdf
             (F, DF, x) -> begin
@@ -259,15 +260,8 @@ function make_fdf(t::NotInplaceObjective, _, ::AbstractArray)
                 copyto!(F, f)
             end
         end
-    elseif fgh !== nothing
-        return let fgh = fgh
-            (F, DF, x) -> begin
-                f, j, _ = fgh(x)
-                copyto!(DF, j)
-                copyto!(F, f)
-            end
-        end
     else
+        # Note: Functions involving the Hessian matrix such as `fgh` are not appropriate for functions with `::AbstractArray` output
         return ((F, DF, x) -> throw(ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.")))
     end
 end
