@@ -1,12 +1,12 @@
 # Used for objectives and solvers where the gradient is available/exists
 mutable struct OnceDifferentiable{TF<:Union{AbstractArray,Real}, TDF<:AbstractArray, TX<:AbstractArray} <: AbstractObjective
-    f # objective
-    df # (partial) derivative of objective
-    fdf # objective and (partial) derivative of objective
+    const f # objective
+    const df # (partial) derivative of objective
+    const fdf # objective and (partial) derivative of objective
     F::TF # cache for f output
-    DF::TDF # cache for df output
-    x_f::TX # x used to evaluate f (stored in F)
-    x_df::TX # x used to evaluate df (stored in DF)
+    const DF::TDF # cache for df output
+    const x_f::TX # x used to evaluate f (stored in F)
+    const x_df::TX # x used to evaluate df (stored in DF)
     f_calls::Int
     df_calls::Int
 end

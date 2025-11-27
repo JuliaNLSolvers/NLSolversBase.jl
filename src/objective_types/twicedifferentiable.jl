@@ -1,17 +1,17 @@
 # Used for objectives and solvers where the gradient and Hessian is available/exists
 mutable struct TwiceDifferentiable{T<:Real,TDF<:AbstractArray,TH<:AbstractMatrix,TX<:AbstractArray} <: AbstractObjective
-    f
-    df
-    fdf
-    dfh
-    fdfh
-    h
+    const f
+    const df
+    const fdf
+    const dfh
+    const fdfh
+    const h
     F::T
-    DF::TDF
-    H::TH
-    x_f::TX
-    x_df::TX
-    x_h::TX
+    const DF::TDF
+    const H::TH
+    const x_f::TX
+    const x_df::TX
+    const x_h::TX
     f_calls::Int
     df_calls::Int
     h_calls::Int

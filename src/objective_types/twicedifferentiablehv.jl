@@ -1,15 +1,15 @@
 # Used for objectives and solvers where the gradient and Hessian is available/exists
 mutable struct TwiceDifferentiableHV{T,TDF,THv,TX} <: AbstractObjective
-    f
-    fdf
-    hv
+    const f
+    const fdf
+    const hv
     F::T
-    DF::TDF
-    Hv::THv
-    x_f::TX
-    x_df::TX
-    x_hv::TX
-    v_hv::TX
+    const DF::TDF
+    const Hv::THv
+    const x_f::TX
+    const x_df::TX
+    const x_hv::TX
+    const v_hv::TX
     f_calls::Int
     df_calls::Int
     hv_calls::Int
