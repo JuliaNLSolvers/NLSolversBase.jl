@@ -1,14 +1,20 @@
 # Used for objectives and solvers where the gradient is available/exists
-mutable struct OnceDifferentiable{TF<:Union{AbstractArray,Real}, TDF<:AbstractArray, TX<:AbstractArray} <: AbstractObjective
+mutable struct OnceDifferentiable{TF<:Union{AbstractArray,Real}, TDF<:AbstractArray, TJVP<:Union{AbstractArray,Number}, TX<:AbstractArray} <: AbstractObjective
     const f # objective
     const df # (partial) derivative of objective
     const fdf # objective and (partial) derivative of objective
+    const jvp # Jacobian-vector product of objective
+    const fjvp # objective and Jacobian-vector product of objective
     F::TF # cache for f output
     const DF::TDF # cache for df output
+    JVP::TJVP # cache for jvp output
     const x_f::TX # x used to evaluate f (stored in F)
     const x_df::TX # x used to evaluate df (stored in DF)
+    const x_jvp::TX # x used to evaluate jvp (stored in JVP)
+    const v_jvp::TX # v used to evaluate jvp (stored in JVP) 
     f_calls::Int
     df_calls::Int
+    jvp_calls::Int
 end
 
 ### Only the objective
@@ -28,11 +34,15 @@ function OnceDifferentiable(f, x::AbstractArray,
     OnceDifferentiable(f!, x, F, DF, autodiff)
 end
 
-
 function OnceDifferentiable(f, x_seed::AbstractArray,
                             F::Real,
                             DF::AbstractArray,
                             autodiff::AbstractADType)
+    x_f = x_of_nans(x_seed)
+    x_df = x_of_nans(x_seed)
+    x_jvp = x_of_nans(x_seed)
+    v_jvp = x_of_nans(x_seed)
+
     # When here, at the constructor with positional autodiff, it should already
     # be the case, that f is inplace.
     if f isa Union{InplaceObjective, NotInplaceObjective}
@@ -40,8 +50,10 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
         fF = make_f(f, x_seed, F)
         dfF = make_df(f, x_seed, F)
         fdfF = make_fdf(f, x_seed, F)
+        jvpF = make_jvp(f, x_seed, F)
+        fjvpF = make_fjvp(f, x_seed, F)
 
-        return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
+        return OnceDifferentiable(fF, dfF, fdfF, jvpF, fjvpF, copy(F), copy(DF), alloc_JVP(x_seed, F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     else
         grad_prep = DI.prepare_gradient(f, autodiff, x_seed)
         g! = let f = f, grad_prep = grad_prep, autodiff = autodiff
@@ -56,7 +68,10 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
                 return y
             end
         end
-        return OnceDifferentiable(f, g!, fg!, x_seed, F, DF)
+        # TODO: Define dedicated AD-based functions for JVPs as well
+        # Currently, this is disabled as it can lead to inconsistencies with gradient calculations with finite differencing (default)
+        # We probably need a more fine-grained way for choosing AD backends, as JVP is a prime candidate for forward-mode AD
+        return OnceDifferentiable(f, g!, fg!, nothing, nothing, copy(F), copy(DF), alloc_JVP(x_seed, F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     end
 end
 
@@ -66,11 +81,20 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
                             F::AbstractArray,
                             DF::AbstractArray,
                             autodiff::AbstractADType)
+
+    x_f = x_of_nans(x_seed)
+    x_df = x_of_nans(x_seed)
+    x_jvp = x_of_nans(x_seed)
+    v_jvp = x_of_nans(x_seed)
+
     if  f isa Union{InplaceObjective, NotInplaceObjective}
         fF = make_f(f, x_seed, F)
         dfF = make_df(f, x_seed, F)
         fdfF = make_fdf(f, x_seed, F)
-        return OnceDifferentiable(fF, dfF, fdfF, x_seed, F, DF)
+        jvpF = make_jvp(f, x_seed, F)
+        fjvpF = make_fjvp(f, x_seed, F)
+
+        return OnceDifferentiable(fF, dfF, fdfF, jvpF, fjvpF, copy(F), copy(DF), alloc_JVP(x_seed, F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     else
         F2 = similar(F)
         jac_prep = DI.prepare_jacobian(f, F2, autodiff, x_seed)
@@ -86,7 +110,10 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
                 return y
             end
         end
-        return OnceDifferentiable(f, j!, fj!, x_seed, F, DF)
+        # TODO: Define dedicated AD-based functions for JVPs as well
+        # Currently, this is disabled as it can lead to inconsistencies with gradient calculations with finite differencing (default)
+        # We probably need a more fine-grained way for choosing AD backends, as JVP is a prime candidate for forward-mode AD
+        return OnceDifferentiable(f, j!, fj!, nothing, nothing, copy(F), copy(DF), alloc_JVP(x_seed, F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     end
 end
 
@@ -130,12 +157,17 @@ function OnceDifferentiable(f, df, fdf,
     df! = df!_from_df(df, F, inplace)
     fdf! = fdf!_from_fdf(fdf, F, inplace)
 
-    x_f, x_df = x_of_nans(x), x_of_nans(x)
+    x_f = x_of_nans(x)
+    x_df = x_of_nans(x)
+    x_jvp = x_of_nans(x)
+    v_jvp = x_of_nans(x)
 
-    OnceDifferentiable{typeof(F),typeof(DF),typeof(x)}(f, df!, fdf!,
-    copy(F), copy(DF),
-    x_f, x_df,
-    0, 0)
+    JVP = alloc_JVP(x, F)
+
+    OnceDifferentiable{typeof(F),typeof(DF),typeof(JVP),typeof(x)}(f, df!, fdf!, nothing, nothing,
+    copy(F), copy(DF), JVP,
+    x_f, x_df, x_jvp, v_jvp,
+    0, 0, 0)
 end
 
 function OnceDifferentiable(f, df, fdf,
@@ -148,7 +180,10 @@ function OnceDifferentiable(f, df, fdf,
     df! = df!_from_df(df, F, inplace)
     fdf! = fdf!_from_fdf(fdf, F, inplace)
 
-    x_f, x_df = x_of_nans(x), x_of_nans(x)
+    x_f = x_of_nans(x)
+    x_df = x_of_nans(x)
+    x_jvp = x_of_nans(x)
+    v_jvp = x_of_nans(x)
 
-    OnceDifferentiable(f, df!, fdf!, copy(F), copy(DF), x_f, x_df, 0, 0)
+    OnceDifferentiable(f, df!, fdf!, nothing, nothing, copy(F), copy(DF), alloc_JVP(x, F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
 end

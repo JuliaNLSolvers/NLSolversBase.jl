@@ -6,33 +6,41 @@
 # Note, that for TwiceDifferentiable we cannot provide con-
 # structors if h === nothing, as that requires automatic dif-
 # fferentiation of some sort.
-@kwdef struct InplaceObjective{FDF, FGH, Hv, FGHv}
+@kwdef struct InplaceObjective{FDF, FGH, Hv, FGHv, FJVP}
     fdf::FDF = nothing
     fgh::FGH = nothing
     hv::Hv = nothing
     fghv::FGHv = nothing
+    fjvp::FJVP = nothing
 end
 
-@kwdef struct NotInplaceObjective{DF, FDF, FGH}
+@kwdef struct NotInplaceObjective{DF, FDF, FGH, JVP, FJVP}
     df::DF = nothing
     fdf::FDF = nothing
     fgh::FGH = nothing
+    jvp::JVP = nothing
+    fjvp::FJVP = nothing
 end
 
 # Mutating version
 only_fg!(fg)     = InplaceObjective(; fdf=fg)
 only_fgh!(fgh)   = InplaceObjective(; fgh=fgh)
-only_fj!(fj)     = InplaceObjective(; fdf=fj)
 
 only_fg_and_hv!(fg, hv) = InplaceObjective(; fdf=fg, hv=hv)
 only_fghv!(fghv)        = InplaceObjective(; fghv=fghv)
 
 # Non-mutating version
-only_fg(fg)     = NotInplaceObjective(; fdf=fg)
-only_fj(fj)     = NotInplaceObjective(; fdf=fj)
+only_fg(fg) = NotInplaceObjective(; fdf=fg)
+only_fgh(fgh) = NotInplaceObjective(; fgh) 
 
 only_g_and_fg(g, fg)    = NotInplaceObjective(; df=g, fdf=fg)
-only_j_and_fj(j, fj)    = NotInplaceObjective(; df=j, fdf=fj)
+
+# Aliases with `j` (Jacobian)
+# Do not apply to functions that involve Hessians!
+# Maybe we should clearly separate functions that take gradients (=> scalar-valued functions) and Jacobians (=> array-valued functions)?
+const only_fj! = only_fg!
+const only_fj = only_fg
+const only_j_and_fj = only_g_and_fg
 
 # Mutating version
 function make_f(t::InplaceObjective, _, F::Real)
@@ -155,6 +163,7 @@ function make_h(t::InplaceObjective, _, ::Real)
         return ((H, x) -> throw(ArgumentError("Cannot evaluate the Hessian of the objective function: No suitable Julia function available.")))
     end
 end
+
 function make_hv(t::InplaceObjective, _, ::Real)
     (; hv, fghv) = t
     if hv !== nothing
@@ -164,7 +173,52 @@ function make_hv(t::InplaceObjective, _, ::Real)
             (Hv, x, v) -> fghv(nothing, nothing, Hv, x, v)
         end
     else
-        return ((Hv, x, v) -> throw(ArgumentError("Cannot evaluate the Hessian-vector product of the objective function: No suitable Julia function available.")))
+        # By returning `nothing`, `hv_product!` will reuse the cache for the Hessian of `TwiceDifferentiable`
+        return nothing
+    end
+end
+
+function make_jvp(t::InplaceObjective, ::AbstractArray, F::Real)
+    (; fjvp) = t
+    if fjvp !== nothing
+        return let fjvp = fjvp, F = F
+            (x, v) -> last ∘ fjvp(nothing, F, x, v)
+        end
+    else
+        # By returning `nothing`, `jvp!` will reuse the cache for the gradient/Jacobian of `OnceDifferentiable` and `TwiceDifferentiable`
+        return nothing
+    end
+end
+function make_jvp(t::InplaceObjective, ::AbstractArray, F::AbstractArray)
+    (; fjvp) = t
+    if fjvp !== nothing
+        return let fjvp = fjvp
+            (JVP, x, v) -> last ∘ fjvp(nothing, JVP, x, v)
+        end
+    else
+        # By returning `nothing`, `jvp!` will reuse the cache for the gradient/Jacobian of `OnceDifferentiable` and `TwiceDifferentiable`
+        return nothing
+    end
+end
+
+function make_fjvp(t::InplaceObjective, ::AbstractArray, F::Real)
+    (; fjvp) = t
+    if fjvp !== nothing
+        return let fjvp = fjvp, F = F
+            (x, v) -> fjvp(F, F, x, v)
+        end
+    else
+        # By returning `nothing`, `fjvp!` will reuse the cache for the gradient/Jacobian of `OnceDifferentiable` and `TwiceDifferentiable`
+        return nothing
+    end
+end
+function make_fjvp(t::InplaceObjective, x::AbstractArray, F::AbstractArray)
+    (; fjvp) = t
+    if fjvp !== nothing
+        return fjvp
+    else
+        # By returning `nothing`, `fjvp!` will reuse the cache for the gradient/Jacobian of `OnceDifferentiable` and `TwiceDifferentiable`
+        return nothing
     end
 end
 
@@ -266,6 +320,59 @@ function make_fdf(t::NotInplaceObjective, _, ::AbstractArray)
     end
 end
 
+function make_jvp(t::NotInplaceObjective, ::AbstractArray, ::Real)
+    (; jvp, fjvp) = t
+    if jvp !== nothing
+        return jvp
+    elseif fjvp !== nothing
+        return last ∘ fjvp
+    else
+        # By returning `nothing`, `jvp!` will reuse the cache for the gradient/Jacobian of `OnceDifferentiable` and `TwiceDifferentiable`
+        return nothing
+    end
+end
+function make_jvp(t::NotInplaceObjective, ::AbstractArray, ::AbstractArray)
+    (; jvp, fjvp) = t
+    if jvp !== nothing
+        return let jvp = jvp
+            (JVP, x, v) -> copyto!(JVP, jvp(x, v))
+        end
+    elseif fjvp !== nothing
+        return let fjvp = fjvp
+            (JVP, x, v) -> copyto!(JVP, fjvp(x, v)[2])
+        end
+    else
+        # By returning `nothing`, `jvp!` will reuse the cache for the gradient/Jacobian of `OnceDifferentiable` and `TwiceDifferentiable`
+        return nothing
+    end
+end
+
+function make_fjvp(t::NotInplaceObjective, ::AbstractArray, ::Real)
+    (; fjvp) = t
+    if fjvp !== nothing
+        return fjvp
+    else
+        # By returning `nothing`, `fjvp!` will reuse the cache for the gradient/Jacobian of `OnceDifferentiable` and `TwiceDifferentiable`
+        return nothing
+    end
+end
+function make_fjvp(t::NotInplaceObjective, ::AbstractArray, ::AbstractArray)
+    (; fjvp) = t
+    if fjvp !== nothing
+        return let fjvp = fjvp
+            (F, JVP, x, v) -> begin
+                fx, jvp = fjvp(x, v)
+                copyto!(F, fx)
+                copyto!(JVP, jvp)
+                return F, JVP
+            end
+        end
+    else
+        # By returning `nothing`, `fjvp!` will reuse the cache for the gradient/Jacobian of `OnceDifferentiable` and `TwiceDifferentiable`
+        return nothing
+    end
+end
+
 # Constructors
 function NonDifferentiable(t::Union{InplaceObjective, NotInplaceObjective}, x::AbstractArray, F::Real = real(zero(eltype(x))))
     f = make_f(t, x, F)
@@ -281,53 +388,23 @@ function TwiceDifferentiable(t::InplaceObjective, x::AbstractArray, F::Real = re
     f   = make_f(t, x, F)
     df  = make_df(t, x, F)
     fdf = make_fdf(t, x, F)
+    jvp = make_jvp(t, x, F)
+    fjvp = make_fjvp(t, x, F)
     fdfh = make_fdfh(t, x, F)
     dfh = make_dfh(t, x, F)
     h   = make_h(t, x, F)
+    hv = make_hv(t, x, F)
 
     x_f = x_of_nans(x)
     x_df = x_of_nans(x)
+    x_jvp = x_of_nans(x)
+    v_jvp = x_of_nans(x)
     x_h = x_of_nans(x)
+    x_hv = x_of_nans(x)
+    v_hv = x_of_nans(x)
 
-    TwiceDifferentiable(f, df, fdf, dfh, fdfh, h,
-                                        copy(F), copy(G), copy(H),
-                                        x_f, x_df, x_h,
-                                        0, 0, 0)
-end
-
-function value_gradient_hessian!!(obj, x)
-    obj.f_calls += 1
-    obj.df_calls += 1
-    obj.h_calls += 1
-    copyto!(obj.x_f, x)
-    copyto!(obj.x_df, x)
-    copyto!(obj.x_h, x)
-    if obj.fdfh === nothing
-        obj.F = obj.fdf(obj.DF, x)
-        obj.h(obj.H, x)
-    else
-        obj.F = obj.fdfh(obj.DF, obj.H, x)
-    end
-    obj.F, obj.DF, obj.H
-end
-
-function gradient_hessian!!(obj, x)
-    if obj.dfh === nothing
-        gradient!!(obj, x)
-        hessian!!(obj, x)
-    else
-        obj.df_calls += 1
-        obj.h_calls += 1
-        copyto!(obj.x_df, x)
-        copyto!(obj.x_h, x)
-        obj.dfh(obj.DF, obj.H, x)
-    end
-    obj.DF, obj.H
-end
-
-function TwiceDifferentiableHV(t::InplaceObjective, x::AbstractVector, F::Real = real(zero(eltype(x))))
-    f = make_f(t, x, F)
-    fg = make_fdf(t, x, F)
-    hv = make_hv(t, x, F)
-    return TwiceDifferentiableHV(f, fg, hv, x)
+    TwiceDifferentiable(f, df, fdf, jvp, fjvp, dfh, fdfh, h, hv,
+                                        copy(F), copy(G), alloc_JVP(x, F), copy(H), copy(G),
+                                        x_f, x_df, x_jvp, v_jvp, x_h, x_hv, v_hv,
+                                        0, 0, 0, 0, 0)
 end
