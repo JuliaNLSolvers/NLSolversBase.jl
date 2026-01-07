@@ -9,7 +9,7 @@
 
     nd = NonDifferentiable(exponential, x_seed)
     @test nd.f == exponential
-    @test value(nd) == 0.0
+    @test isnan(value(nd))
     @test iszero(nd.f_calls)
     od = OnceDifferentiable(exponential, exponential_gradient!, nothing, x_seed, 0.0, g_seed)
     @test od.f == exponential
@@ -28,7 +28,7 @@ end
 
     nd = NonDifferentiable(exponential, x_seed)
     @test nd.f == exponential
-    @test value(nd) == 0.0
+    @test isnan(value(nd))
     @test iszero(nd.f_calls)
     od = OnceDifferentiable(exponential, exponential_gradient!, nothing, x_seed, 0.0, g_seed)
     @test od.f == exponential
@@ -51,7 +51,7 @@ end
 
     nd = NonDifferentiable(exponential, x_seed)
     @test nd.f == exponential
-    @test value(nd) == 0.0
+    @test isnan(value(nd))
     @test iszero(nd.f_calls)
     od = OnceDifferentiable(exponential, exponential_gradient!, nothing, x_seed, 0.0, g_seed)
     @test od.f == exponential

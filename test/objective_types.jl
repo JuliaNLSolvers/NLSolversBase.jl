@@ -7,7 +7,7 @@ for T in (Float32, Float64, BigFloat)
 
         nd = NonDifferentiable(exponential, x_seed)
         @test nd.f == exponential
-        @test value(nd) == 0
+        @test isnan(value(nd))
         @test iszero(nd.f_calls)
 
         od = OnceDifferentiable(

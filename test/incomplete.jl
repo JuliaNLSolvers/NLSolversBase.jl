@@ -42,15 +42,15 @@
     fdf!_real = only_fg!(just_fg!)
     fdf_real = only_fg(fg)
 
-    function just_hv!(Hv, x, v)
-        Hv .= 2 .* v
+    function just_hvp!(HVP, x, v)
+        HVP .= 2 .* v
     end
-    function just_fghv!(F, G, Hv, x, v)
+    function just_fghvp!(F, G, HVP, x, v)
         if G  !== nothing
             G .= 2 .* x
         end
-        if Hv !== nothing
-            Hv .= 2 .* v
+        if HVP !== nothing
+            HVP .= 2 .* v
         end
         if F === nothing
             return nothing
@@ -95,7 +95,7 @@
     @test J == Diagonal(ones(length(x)))
 
     # Only function value, gradient, and objective 
-    df!_real = make_df(only_fghv!(just_fghv!), x, x[1])
+    df!_real = make_df(only_fghvp!(just_fghvp!), x, x[1])
     df!_real(fill!(G_cache, NaN), x)
     g!(G_cache2, x)
     @test G_cache == G_cache2
@@ -125,23 +125,163 @@
         @test gradient(OD) == g(2 .* x)
     end
 
-    # Incomplete TwiceDifferentiableHv
+    # Incomplete TwiceDifferentiable with Hessian-vector product
     v = randn(10)
-    od_fg_and_hv = TwiceDifferentiableHV(only_fg_and_hv!(just_fg!, just_hv!), x)
-    od_fghv      = TwiceDifferentiableHV(only_fghv!(just_fghv!), x)
-    ndtdhv = NonDifferentiable(od_fghv, v)
-    @test value(ndtdhv, v) === value(od_fghv, v)
+    od_fg_and_hvp = TwiceDifferentiable(only_fg_and_hvp!(just_fg!, just_hvp!), x)
+    od_fghvp      = TwiceDifferentiable(only_fghvp!(just_fghvp!), x)
+    ndtdhv = NonDifferentiable(od_fghvp, v)
+    @test value(ndtdhv, v) === value(od_fghvp, v)
 
-    for OD in (od_fg_and_hv, od_fghv)
+    for OD in (od_fg_and_hvp, od_fghvp)
         gradient!(OD, x)
         @test gradient(OD) == g(x)
-        hv_product!(OD, x, v)
-        @test OD.Hv == 2v
+        hvp!(OD, x, v)
+        @test OD.HVP == 2v
         OD.f(x) == f(x)
         _g = similar(x)
         OD.fdf(_g, x)
         @test _g == g(x)
         @test OD.fdf(_g, x) == f(x)
+    end
+
+    # `InplaceObjective`: JVPs
+    ## With dedicated JVP function
+    function just_fjvp!(F, JVP, x, v)
+        _f = F === nothing ? nothing : f(x)
+        _jvp = JVP === nothing ? nothing : 2 * dot(x, v)
+        return _f, _jvp
+    end
+    od_fjvp = OnceDifferentiable(NLSolversBase.InplaceObjective(; fdf=just_fg!, fjvp=just_fjvp!), x)
+    td_fjvp = TwiceDifferentiable(NLSolversBase.InplaceObjective(; fdf=just_fg!, fjvp=just_fjvp!), x)
+    for obj in (od_fjvp, td_fjvp)
+        # Before first evaluation
+        @test obj.jvp !== nothing
+        @test obj.fjvp !== nothing
+        @test all(isnan, obj.x_f)
+        @test isnan(obj.F)
+        @test all(isnan, obj.x_df)
+        @test all(isnan, obj.DF)
+        @test all(isnan, obj.x_jvp)
+        @test all(isnan, obj.v_jvp)
+        @test isnan(obj.JVP)
+        @test f_calls(obj) == 0
+        @test g_calls(obj) == 0
+        @test jvp_calls(obj) == 0
+
+        # First JVP calculation, without objective function evaluation
+        v = randn(length(x))
+        _jvp = @inferred(jvp!(obj, x, v))
+        @test _jvp ≈ dot(g(x), v)
+        @test all(isnan, obj.x_f)
+        @test isnan(obj.F)
+        @test all(isnan, obj.x_df)
+        @test all(isnan, obj.DF)
+        @test obj.x_jvp == x
+        @test obj.v_jvp == v
+        @test obj.JVP == _jvp
+        @test f_calls(obj) == 0
+        @test g_calls(obj) == 0
+        @test jvp_calls(obj) == 1
+
+        # Second JVP calculation, with objective function value evaluation
+        # No additional JVP evaluation as cached value is used
+        _f, _jvp = @inferred(value_jvp!(obj, x, v))
+        @test _f ≈ f(x)
+        @test _jvp ≈ dot(g(x), v)
+        @test obj.x_f == x
+        @test obj.F == _f
+        @test all(isnan, obj.x_df)
+        @test all(isnan, obj.DF)
+        @test obj.x_jvp == x
+        @test obj.v_jvp == v
+        @test obj.JVP == _jvp
+        @test f_calls(obj) == 1
+        @test g_calls(obj) == 0
+        @test jvp_calls(obj) == 1
+
+        # Third JVP calculation, with objective function value evaluation
+        # Additional JVP evaluation as `v` changes,
+        # but no additional objective function evaluation as `x` is unchanged
+        v = randn(length(x))
+        _f, _jvp = @inferred(value_jvp!(obj, x, v))
+        @test _f ≈ f(x)
+        @test _jvp ≈ dot(g(x), v)
+        @test obj.x_f == x
+        @test obj.F == _f
+        @test all(isnan, obj.x_df)
+        @test all(isnan, obj.DF)
+        @test obj.x_jvp == x
+        @test obj.v_jvp == v
+        @test obj.JVP == _jvp
+        @test f_calls(obj) == 1
+        @test g_calls(obj) == 0
+        @test jvp_calls(obj) == 2
+    end
+    ## Without dedicated JVP function
+    od_fg = OnceDifferentiable(only_fg!(just_fg!), x)
+    td_fg = TwiceDifferentiable(only_fg!(just_fg!), x)
+    for obj in (od_fg, td_fg)
+        # Before first evaluation
+        @test obj.jvp === nothing
+        @test obj.fjvp === nothing
+        @test all(isnan, obj.x_f)
+        @test isnan(obj.F)
+        @test all(isnan, obj.x_df)
+        @test all(isnan, obj.DF)
+        @test all(isnan, obj.x_jvp)
+        @test all(isnan, obj.v_jvp)
+        @test isnan(obj.JVP)
+        @test f_calls(obj) == 0
+        @test g_calls(obj) == 0
+        @test jvp_calls(obj) == 0
+
+        # First JVP calculation, without objective function evaluation
+        v = randn(length(x))
+        _jvp = @inferred(jvp!(obj, x, v))
+        @test _jvp ≈ dot(g(x), v)
+        @test all(isnan, obj.x_f)
+        @test isnan(obj.F)
+        @test obj.x_df == x
+        @test obj.DF == g(x)
+        @test obj.x_jvp == x
+        @test obj.v_jvp == v
+        @test obj.JVP == _jvp
+        @test f_calls(obj) == 0
+        @test g_calls(obj) == 1
+        @test jvp_calls(obj) == 0
+
+        # Second JVP calculation, with objective function value evaluation
+        # No additional gradient evaluation as cached value is used
+        _f, _jvp = @inferred(value_jvp!(obj, x, v))
+        @test _f ≈ f(x)
+        @test _jvp ≈ dot(g(x), v)
+        @test obj.x_f == x
+        @test obj.F == _f
+        @test obj.x_df == x
+        @test obj.DF == g(x)
+        @test obj.x_jvp == x
+        @test obj.v_jvp == v
+        @test obj.JVP == _jvp
+        @test f_calls(obj) == 1
+        @test g_calls(obj) == 1
+        @test jvp_calls(obj) == 0
+
+        # Third JVP calculation, with objective function value evaluation
+        # No additional objective function or gradient evaluation as `x` is unchanged
+        v = randn(length(x))
+        _f, _jvp = @inferred(value_jvp!(obj, x, v))
+        @test _f ≈ f(x)
+        @test _jvp ≈ dot(g(x), v)
+        @test obj.x_f == x
+        @test obj.F == _f
+        @test obj.x_df == x
+        @test obj.DF == g(x)
+        @test obj.x_jvp == x
+        @test obj.v_jvp == v
+        @test obj.JVP == _jvp
+        @test f_calls(obj) == 1
+        @test g_calls(obj) == 1
+        @test jvp_calls(obj) == 0
     end
 end
 @testset "incomplete objectives vectors" begin
@@ -278,52 +418,52 @@ end
 
     @testset "Inplace objectives" begin
         # Evaluation of objective function not possible
-        f = make_f(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        f = make_f(NLSolversBase.InplaceObjective(; hvp = (HVP, x, v) -> fill!(HVP, 0)), x, x[1])
         @test_throws ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.") f(x)
         f! = make_f(NLSolversBase.InplaceObjective(), x, x)
         @test_throws ArgumentError("Cannot evaluate the objective function: No suitable Julia function available.") f!(similar(x), x)
 
         # Evaluation of gradient/Jacobian not possible
-        df! = make_df(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        df! = make_df(NLSolversBase.InplaceObjective(; hvp = (HVP, x, v) -> fill!(HVP, 0)), x, x[1])
         @test_throws ArgumentError("Cannot evaluate the gradient of the objective function: No suitable Julia function available.") df!(similar(x), x)
         jac! = make_df(NLSolversBase.InplaceObjective(), x, x)
         @test_throws ArgumentError("Cannot evaluate the Jacobian of the objective function: No suitable Julia function available.") jac!(similar(x, length(x), length(x)), x)
 
         # Combined evaluation of objective function + its gradient/Jacobian not possible
-        fdf! = make_fdf(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        fdf! = make_fdf(NLSolversBase.InplaceObjective(; hvp = (HVP, x, v) -> fill!(HVP, 0)), x, x[1])
         @test_throws ArgumentError("Cannot evaluate the objective function and its gradient: No suitable Julia function available.") fdf!(similar(x), x)
         fjac! = make_fdf(NLSolversBase.InplaceObjective(), x, x)
         @test_throws ArgumentError("Cannot evaluate the objective function and its Jacobian: No suitable Julia function available.") fjac!(similar(x), similar(x, length(x), length(x)), x)
 
         # Combined evaluation of gradient and Hessian
         dfh!_1 = NLSolversBase.make_dfh(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
-        dfh!_2 = NLSolversBase.make_dfh(NLSolversBase.InplaceObjective(; fghv = (DF, Hv, x, v) -> (fill!(DF, 1); copyto!(Hv, 0); sum(x))), x, x[1])
-        dfh!_3 = NLSolversBase.make_dfh(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        dfh!_2 = NLSolversBase.make_dfh(NLSolversBase.InplaceObjective(; fghvp = (DF, HVP, x, v) -> (fill!(DF, 1); copyto!(HVP, 0); sum(x))), x, x[1])
+        dfh!_3 = NLSolversBase.make_dfh(NLSolversBase.InplaceObjective(; hvp = (HVP, x, v) -> fill!(HVP, 0)), x, x[1])
         for dfh! in (dfh!_1, dfh!_2, dfh!_3)
             @test_throws ArgumentError("Cannot evaluate the gradient and Hessian of the objective function: No suitable Julia function available.") dfh!(similar(x), similar(x, length(x), length(x)), x[1])
         end
 
         # Combined evaluation of objective function, gradient and Hessian
         fdfh!_1 = NLSolversBase.make_fdfh(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
-        fdfh!_2 = NLSolversBase.make_fdfh(NLSolversBase.InplaceObjective(; fghv = (DF, Hv, x, v) -> (fill!(DF, 1); copyto!(Hv, 0); sum(x))), x, x[1])
-        fdfh!_3 = NLSolversBase.make_fdfh(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        fdfh!_2 = NLSolversBase.make_fdfh(NLSolversBase.InplaceObjective(; fghvp = (DF, HVP, x, v) -> (fill!(DF, 1); copyto!(HVP, 0); sum(x))), x, x[1])
+        fdfh!_3 = NLSolversBase.make_fdfh(NLSolversBase.InplaceObjective(; hvp = (HVP, x, v) -> fill!(HVP, 0)), x, x[1])
         for fdfh! in (fdfh!_1, fdfh!_2, fdfh!_3)
             @test_throws ArgumentError("Cannot evaluate the objective function, its gradient and its Hessian: No suitable Julia function available.") fdfh!(similar(x), similar(x, length(x), length(x)), x[1])
         end
 
         # Evaluation of Hessian
         h!_1 = NLSolversBase.make_h(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
-        h!_2 = NLSolversBase.make_h(NLSolversBase.InplaceObjective(; fghv = (DF, Hv, x, v) -> (fill!(DF, 1); copyto!(Hv, 0); sum(x))), x, x[1])
-        h!_3 = NLSolversBase.make_h(NLSolversBase.InplaceObjective(; hv = (Hv, x, v) -> fill!(Hv, 0)), x, x[1])
+        h!_2 = NLSolversBase.make_h(NLSolversBase.InplaceObjective(; fghvp = (DF, HVP, x, v) -> (fill!(DF, 1); copyto!(HVP, 0); sum(x))), x, x[1])
+        h!_3 = NLSolversBase.make_h(NLSolversBase.InplaceObjective(; hvp = (HVP, x, v) -> fill!(HVP, 0)), x, x[1])
         for h! in (h!_1, h!_2, h!_3)
             @test_throws ArgumentError("Cannot evaluate the Hessian of the objective function: No suitable Julia function available.") h!(similar(x, length(x), length(x)), x[1])
         end
 
         # Evaluation of Hessian-vector product
-        hv!_1 = NLSolversBase.make_hv(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
-        hv!_2 = NLSolversBase.make_hv(NLSolversBase.InplaceObjective(; fgh = (DF, H, x) -> (fill!(DF, 1); copyto!(H, 0); sum(x))), x, x[1])
-        for hv! in (hv!_1, hv!_2)
-            @test_throws ArgumentError("Cannot evaluate the Hessian-vector product of the objective function: No suitable Julia function available.") hv!(similar(x, length(x)), x[1], x)
+        hvp!_1 = NLSolversBase.make_hvp(NLSolversBase.InplaceObjective(; fdf = (DF, x) -> (fill!(DF, 1); sum(x))), x, x[1])
+        hvp!_2 = NLSolversBase.make_hvp(NLSolversBase.InplaceObjective(; fgh = (DF, H, x) -> (fill!(DF, 1); copyto!(H, 0); sum(x))), x, x[1])
+        for hvp! in (hvp!_1, hvp!_2)
+            @test hvp! === nothing
         end
     end
 
