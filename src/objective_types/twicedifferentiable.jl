@@ -84,7 +84,9 @@ function TwiceDifferentiable(f, g,
     g! = df!_from_df(g, F, inplace)
     fg! = make_fdf(x_seed, F, f, g!)
 
-    hess_prep = DI.prepare_hessian(f, autodiff, x_seed)
+    x_prep = x_of_values(x_seed)
+
+    hess_prep = DI.prepare_hessian(f, autodiff, x_prep)
     h! = let f = f, hess_prep = hess_prep, autodiff = autodiff
         function (_h, _x)
             DI.hessian!(f, _h, hess_prep, autodiff, _x)
@@ -94,7 +96,7 @@ function TwiceDifferentiable(f, g,
     dfh! = make_dfh(x_seed, F, g!, h!)
     fdfh! = make_fdfh(x_seed, F, fg!, h!)
 
-    hvp_prep = DI.prepare_hvp(f, autodiff, x_seed, (x_seed,))
+    hvp_prep = DI.prepare_hvp(f, autodiff, x_prep, (x_prep,))
     hvp! = let f = f, hv_prep = hvp_prep, autodiff = autodiff
         function (_hvp, _x, _v)
             DI.hvp!(f, (_hvp,), hv_prep, autodiff, _x, (_v,))
@@ -128,7 +130,9 @@ function TwiceDifferentiable(d::OnceDifferentiable,
                              x_seed::AbstractArray = d.x_f,
                              F::Real = real(eltype(x_seed))(NaN);
                              autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
-    hess_prep = DI.prepare_hessian(d.f, autodiff, x_seed)
+    x_prep = x_of_values(x_seed)
+
+    hess_prep = DI.prepare_hessian(d.f, autodiff, x_prep)
     h! = let f = d.f, hess_prep = hess_prep, autodiff = autodiff
         function (_h, _x)
             DI.hessian!(f, _h, hess_prep, autodiff, _x)
@@ -138,7 +142,7 @@ function TwiceDifferentiable(d::OnceDifferentiable,
     dfh! = make_dfh(x_seed, F, d.df, h!)
     fdfh! = make_fdfh(x_seed, F, d.fdf, h!)
 
-    hvp_prep = DI.prepare_hvp(d.f, autodiff, x_seed, (x_seed,))
+    hvp_prep = DI.prepare_hvp(d.f, autodiff, x_prep, (x_prep,))
     hvp! = let f = d.f, hv_prep = hvp_prep, autodiff = autodiff
         function (_hvp, _x, _v)
             DI.hvp!(f, (_hvp,), hv_prep, autodiff, _x, (_v,))
@@ -164,7 +168,9 @@ end
 function TwiceDifferentiable(f, x::AbstractArray, F::Real = real(eltype(x))(NaN);
                              inplace::Bool = true,
                              autodiff::AbstractADType = AutoFiniteDiff(; fdtype = Val(:central)))
-    grad_prep = DI.prepare_gradient(f, autodiff, x)
+    x_prep = x_of_values(x)
+
+    grad_prep = DI.prepare_gradient(f, autodiff, x_prep)
     g! = let f = f, grad_prep = grad_prep, autodiff = autodiff
         function (_g, _x)
             DI.gradient!(f, _g, grad_prep, autodiff, _x)
@@ -177,7 +183,7 @@ function TwiceDifferentiable(f, x::AbstractArray, F::Real = real(eltype(x))(NaN)
             return y
         end
     end
-    hess_prep = DI.prepare_hessian(f, autodiff, x)
+    hess_prep = DI.prepare_hessian(f, autodiff, x_prep)
     gh! = let f = f, hess_prep = hess_prep, autodiff = autodiff
         function (_g, _h, _x)
             DI.value_gradient_and_hessian!(f, _g, _h, hess_prep, autodiff, _x)
@@ -196,7 +202,7 @@ function TwiceDifferentiable(f, x::AbstractArray, F::Real = real(eltype(x))(NaN)
             return nothing
         end
     end
-    hvp_prep = DI.prepare_hvp(f, autodiff, x, (x,))
+    hvp_prep = DI.prepare_hvp(f, autodiff, x_prep, (x_prep,))
     hvp! = let f = f, hv_prep = hvp_prep, autodiff = autodiff
         function (_hvp, _x, _v)
             DI.hvp!(f, (_hvp,), hv_prep, autodiff, _x, (_v,))
