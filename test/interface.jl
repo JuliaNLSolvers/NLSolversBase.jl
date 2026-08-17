@@ -441,3 +441,32 @@ for T in (Float32, Float64, BigFloat)
         end
     end
 end
+
+@testset "value_gradient_hessian! evaluates the value if only gradient and Hessian are cached" begin
+    x = [0.5, 0.3]
+    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, similar(x))
+    gradient_hessian!(td, x)
+    @test isnan(value(td))
+    F, DF, H = value_gradient_hessian!(td, x)
+    @test F ≈ exponential(x)
+    @test value(td) ≈ exponential(x)
+    @test td.x_f == x
+    @test DF == exponential_gradient!(similar(x), x)
+    @test H == exponential_hessian!(fill(0.0, 2, 2), x)
+    @test f_calls(td) == 1
+    @test g_calls(td) == 1
+    @test h_calls(td) == 1
+end
+
+@testset "TwiceDifferentiable(f, g, h, x, F, G, H) does not alias user-provided G and H" begin
+    x = [0.5, 0.3]
+    G = fill(0.0, 2)
+    H = fill(0.0, 2, 2)
+    td = TwiceDifferentiable(exponential, exponential_gradient!, exponential_hessian!, x, 0.0, G, H)
+    @test td.DF !== G
+    @test td.H !== H
+    gradient!(td, x)
+    hessian!(td, x)
+    @test iszero(G)
+    @test iszero(H)
+end
