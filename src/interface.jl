@@ -321,6 +321,9 @@ function value_gradient_hessian!(obj::TwiceDifferentiable, x)
         elseif x != obj.x_df
             # Only function value and gradient have to be evaluated
             value_gradient!!(obj, x)
+        else
+            # Only function value has to be evaluated
+            value!!(obj, x)
         end
     elseif x != obj.x_df
         if x != obj.x_h

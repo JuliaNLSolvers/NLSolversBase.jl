@@ -71,7 +71,7 @@ function TwiceDifferentiable(f, g, h,
     x_hvp = x_of_nans(x)
     v_hvp = x_of_nans(x)
 
-    return TwiceDifferentiable(f, g!, fg!, nothing, nothing, dfh!, fdfh!, h!, nothing, F, G, alloc_JVP(x, F), H, copy(G), x_f, x_df, x_jvp, v_jvp, x_h, x_hvp, v_hvp, 0, 0, 0, 0, 0)
+    return TwiceDifferentiable(f, g!, fg!, nothing, nothing, dfh!, fdfh!, h!, nothing, copy(F), copy(G), alloc_JVP(x, F), copy(H), copy(G), x_f, x_df, x_jvp, v_jvp, x_h, x_hvp, v_hvp, 0, 0, 0, 0, 0)
 end
 
 
