@@ -93,6 +93,7 @@ end
     include("incomplete.jl")
     include("constraints.jl")
     include("abstractarrays.jl")
+    include("complex.jl")
     include("autodiff.jl")
     include("sparse.jl")
     include("kwargs.jl")

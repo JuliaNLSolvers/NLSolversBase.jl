@@ -49,6 +49,13 @@ export AbstractConstraints, OnceDifferentiableConstraints,
 
 x_of_nans(x::AbstractArray, ::Type{Tf}=float(eltype(x))) where {Tf} = fill!(similar(x, Tf), NaN)
 
+# Differentiation is prepared once, at construction, and then reused for every evaluation. Preparation has to
+# see the array type the evaluations will use, and that is the type of the x caches, not necessarily the type
+# of the array the caller handed us: the caches come from `similar`, which can change the container (a
+# ReinterpretArray becomes an Array). The caller's values are carried over because preparation evaluates the
+# objective, so a cache full of NaNs is not a safe point to prepare at.
+x_of_values(x::AbstractArray) = copyto!(x_of_nans(x), x)
+
 include("objective_types/inplace_factory.jl")
 include("objective_types/abstract.jl")
 include("objective_types/nondifferentiable.jl")

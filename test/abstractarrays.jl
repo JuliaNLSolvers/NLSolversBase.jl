@@ -63,3 +63,32 @@ end
     @test od.x_f isa ArrayPartition
     @test od.x_df isa ArrayPartition
 end
+
+@testset "https://github.com/JuliaNLSolvers/NLSolversBase.jl/issues/172" begin
+    # The x caches come from `similar`, which turns a ReinterpretArray into an Array. Differentiation is
+    # prepared once at construction and reused, so it has to be prepared for the type the evaluations use.
+    @testset for autodiff in (AutoFiniteDiff(; fdtype = Val(:central)), AutoForwardDiff())
+        x_seed = reinterpret(Float64, [2.0 + 3.0im])
+        @test !(x_seed isa Array)
+        @test NLSolversBase.x_of_nans(x_seed) isa Array
+
+        f!(F, x) = (F[1] = x[1]^2 - 2; F[2] = x[2]^2 - 3)
+        od = OnceDifferentiable(f!, x_seed, copy(x_seed), autodiff)
+        @test od.x_f isa Array
+        value_jacobian!!(od, [2.0, 3.0])
+        @test value(od) ≈ [2.0, 6.0]
+        @test jacobian(od) ≈ [4.0 0.0; 0.0 6.0]
+
+        g(x) = sum(abs2, x)
+        od2 = OnceDifferentiable(g, x_seed, 0.0; autodiff = autodiff)
+        value_gradient!!(od2, [2.0, 3.0])
+        @test value(od2) ≈ 13.0
+        @test gradient(od2) ≈ [4.0, 6.0]
+
+        td = TwiceDifferentiable(g, x_seed, 0.0; autodiff = autodiff)
+        value_gradient!!(td, [2.0, 3.0])
+        hessian!!(td, [2.0, 3.0])
+        @test gradient(td) ≈ [4.0, 6.0]
+        @test hessian(td) ≈ [2.0 0.0; 0.0 2.0]
+    end
+end

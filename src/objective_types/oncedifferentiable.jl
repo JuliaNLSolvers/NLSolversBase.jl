@@ -55,7 +55,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
 
         return OnceDifferentiable(fF, dfF, fdfF, jvpF, fjvpF, copy(F), copy(DF), alloc_JVP(x_seed, F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     else
-        grad_prep = DI.prepare_gradient(f, autodiff, x_seed)
+        grad_prep = DI.prepare_gradient(f, autodiff, x_of_values(x_seed))
         g! = let f = f, grad_prep = grad_prep, autodiff = autodiff
             function (_g, _x)
                 DI.gradient!(f, _g, grad_prep, autodiff, _x)
@@ -97,7 +97,7 @@ function OnceDifferentiable(f, x_seed::AbstractArray,
         return OnceDifferentiable(fF, dfF, fdfF, jvpF, fjvpF, copy(F), copy(DF), alloc_JVP(x_seed, F), x_f, x_df, x_jvp, v_jvp, 0, 0, 0)
     else
         F2 = similar(F)
-        jac_prep = DI.prepare_jacobian(f, F2, autodiff, x_seed)
+        jac_prep = DI.prepare_jacobian(f, F2, autodiff, x_of_values(x_seed))
         j! = let f = f, F2 = F2, jac_prep = jac_prep, autodiff = autodiff
             function (_j, _x)
                 DI.jacobian!(f, F2, _j, jac_prep, autodiff, _x)
